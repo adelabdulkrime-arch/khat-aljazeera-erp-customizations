@@ -1,0 +1,289 @@
+# -*- coding: utf-8 -*-
+"""Build 'General Settings' (الإعدادات العامة) workspace matching Mazoon's
+General Settings screen — 11 tiles (Branches intentionally excluded per user
+request), reusing ERPNext's own native doctypes/pages wherever they exist."""
+import json
+import frappe
+from frappe.workshop_futuristic import FUTURISTIC_CSS, FUTURISTIC_JS
+
+WS_NAME = "General Settings"
+WS_TITLE = "الإعدادات العامة"
+BLOCK_NAME = "General Settings Tiles"
+
+# (label, action, target, icon, color)
+# action: list | form | page | myaccount
+TILES = [
+    ("الإعدادات", "company", "Company", "settings", "#e63946"),
+    ("الأدوار", "page", "roles-dashboard", "shield-user", "#e63946"),
+    ("المستخدمون", "page", "users-dashboard", "users", "#e63946"),
+    ("أدوار جهات الاتصال", "list", "Contact Role", "id-card", "#e63946"),
+    ("جهات الاتصال", "list", "Contact", "contact", "#e63946"),
+    ("حسابي", "myaccount", "User", "circle-user", "#e63946"),
+    ("الحقول المخصصة", "list", "Custom Field", "list-plus", "#e63946"),
+    ("نسخة احتياطية", "page", "backups", "file-down", "#e63946"),
+    ("قوالب الطباعة", "list", "Letter Head", "printer", "#e63946"),
+    ("الدول", "list", "Country", "globe", "#e63946"),
+    ("سجل نشاط النظام", "list", "Activity Log", "history", "#e63946"),
+]
+
+TRANSLATIONS = [
+    ("الإعدادات العامة", "General Settings"),
+    ("الإعدادات", "Settings"),
+    ("الأدوار والصلاحيات", "Roles & Permissions"),
+    ("المستخدمون", "Users"),
+    ("أدوار جهات الاتصال", "Contact Roles"),
+    ("جهات الاتصال", "Contacts"),
+    ("حسابي", "My Account"),
+    ("الحقول المخصصة", "Custom Fields"),
+    ("نسخة احتياطية", "Backup"),
+    ("قوالب الطباعة", "Print Templates"),
+    ("الدول", "Countries"),
+    ("سجل نشاط النظام", "System Activity Log"),
+]
+
+
+def _ensure_contact_role_doctype():
+    """Mazoon has a small 'Contact Roles' master with no direct ERPNext
+    equivalent — add a minimal custom DocType for it."""
+    if frappe.db.exists("DocType", "Contact Role"):
+        return
+    if not frappe.db.exists("Module Def", "Workshop"):
+        frappe.get_doc({"doctype": "Module Def", "module_name": "Workshop",
+                        "custom": 1, "app_name": "frappe"}).insert(ignore_permissions=True)
+    frappe.get_doc({
+        "doctype": "DocType", "name": "Contact Role", "module": "Workshop", "custom": 1,
+        "autoname": "field:role_name", "naming_rule": "By fieldname",
+        "fields": [
+            {"fieldname": "role_name", "label": "اسم الدور", "fieldtype": "Data",
+             "reqd": 1, "in_list_view": 1, "unique": 1},
+            {"fieldname": "description", "label": "الوصف", "fieldtype": "Small Text"},
+        ],
+        "permissions": [
+            {"role": "System Manager", "read": 1, "write": 1, "create": 1,
+             "delete": 1, "report": 1, "export": 1, "print": 1, "share": 1},
+        ],
+    }).insert(ignore_permissions=True)
+
+
+def _tiles_html():
+    cells = []
+    for label, action, target, icon, color in TILES:
+        cells.append(
+            '<div class="gsd-tile" data-action="%s" data-target="%s">'
+            '<span class="gsd-tile-ico-wrap">'
+            '<svg class="icon icon-sm gsd-tile-ico" style="color:%s;">'
+            '<use href="#icon-%s"></use></svg></span>'
+            '<span class="gsd-tile-lbl" data-i18n="%s">%s</span></div>'
+            % (action, frappe.utils.escape_html(target), color, icon,
+               frappe.utils.escape_html(label), label)
+        )
+    return '<div class="gsd-grid">' + "".join(cells) + '</div>'
+
+
+STYLE = """
+@keyframes kajFadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+.gsd-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; direction:rtl; }
+.gsd-tile { display:flex; align-items:center; gap:13px; background:var(--card-bg,#fff);
+  border:1px solid var(--border-color,#eef0f4); border-radius:14px; padding:18px 20px;
+  cursor:pointer; min-height:60px; box-shadow:0 1px 3px rgba(16,30,54,.06);
+  animation:kajFadeUp .4s cubic-bezier(.2,.8,.2,1) backwards;
+  transition:transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s, border-color .2s; }
+.gsd-tile:hover { transform:translateY(-3px); box-shadow:0 10px 24px rgba(16,30,54,.12); border-color:#dfe3ea; }
+.gsd-tile-ico-wrap { width:42px; height:42px; border-radius:11px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(135deg,rgba(230,57,70,.10),rgba(192,57,43,.16)); }
+.gsd-tile-ico { width:20px; height:20px; flex-shrink:0; }
+.gsd-tile-lbl { font-size:13.5px; font-weight:700; color:var(--text-color,#1a2b4a); letter-spacing:.1px; }
+.gsd-grid > .gsd-tile:nth-child(1){ animation-delay:.01s; } .gsd-grid > .gsd-tile:nth-child(2){ animation-delay:.03s; }
+.gsd-grid > .gsd-tile:nth-child(3){ animation-delay:.05s; } .gsd-grid > .gsd-tile:nth-child(4){ animation-delay:.07s; }
+.gsd-grid > .gsd-tile:nth-child(n+5){ animation-delay:.09s; }
+@media (max-width:1024px){ .gsd-grid{ grid-template-columns:repeat(3,1fr);} }
+@media (max-width:768px){ .gsd-grid{ grid-template-columns:repeat(2,1fr); gap:12px;} }
+@media (max-width:520px){ .gsd-grid{ grid-template-columns:1fr;} }
+""" + FUTURISTIC_CSS
+
+ICON_SPRITE_JS = r"""
+(async function(){
+  if(root.querySelector('#wsd-icon-sprite-holder')) return;
+  try {
+    if(!window.__wsd_icon_sprite_text){
+      const resp = await fetch('/assets/frappe/icons/lucide/icons.svg');
+      window.__wsd_icon_sprite_text = await resp.text();
+    }
+    const holder = document.createElement('div');
+    holder.id = 'wsd-icon-sprite-holder';
+    holder.style.display = 'none';
+    holder.innerHTML = window.__wsd_icon_sprite_text;
+    root.insertBefore(holder, root.firstChild);
+  } catch(e){ console.error('icon sprite inject failed', e); }
+})();
+"""
+
+NAV_LANG_JS = r"""
+(function(){
+  if(document.getElementById('kaj-lang-nav-item')) return;
+  var navRight = document.querySelector('.page-icon-group') || document.querySelector('.standard-items-section');
+  if(!navRight) return;
+
+  if(!document.getElementById('kaj-lang-style')){
+    var style = document.createElement('style');
+    style.id = 'kaj-lang-style';
+    style.textContent =
+      '#kaj-lang-nav-item { position: relative; display: flex; align-items: center; }' +
+      '#kaj-lang-toggle { cursor: pointer; display: flex; align-items: center; gap: 4px; ' +
+      '  padding: 0 10px; height: 100%; color: var(--text-color,#333); font-size: 13px; font-weight: 600; }' +
+      '#kaj-lang-toggle:hover { color: #e63946; }' +
+      '#kaj-lang-menu { display:none; position:absolute; top:calc(100% + 6px); inset-inline-end:0; ' +
+      '  background:var(--card-bg,#fff); border:1px solid var(--border-color,#e5e7eb); border-radius:10px; ' +
+      '  box-shadow:0 10px 26px rgba(0,0,0,.15); min-width:130px; z-index:1050; overflow:hidden; }' +
+      '#kaj-lang-menu a { display:block; padding:9px 16px; font-size:13px; color:var(--text-color,#333); ' +
+      '  text-decoration:none; cursor:pointer; }' +
+      '#kaj-lang-menu a:hover { background:var(--bg-light-gray,#f5f7fa); }' +
+      '#kaj-lang-menu a.active { color:#e63946; font-weight:700; }' +
+      '#kaj-logout-item { display: flex; align-items: center; }' +
+      '#kaj-logout-btn { cursor: pointer; display: flex; align-items: center; gap: 5px; ' +
+      '  padding: 0 10px; height: 100%; color: var(--text-color,#333); font-size: 13px; font-weight: 600; }' +
+      '#kaj-logout-btn:hover { color: #e63946; }' +
+      '.kaj-ico { width: 14px; height: 14px; flex-shrink: 0; }' +
+      '.sidebar-header { display: none !important; }';
+    document.head.appendChild(style);
+  }
+
+  function current_lang(){ return (frappe.boot && frappe.boot.lang) || 'ar'; }
+  var isEn = current_lang().startsWith('en');
+
+  var li = document.createElement('span');
+  li.id = 'kaj-lang-nav-item';
+  li.innerHTML =
+    '<a id="kaj-lang-toggle"><span>' + (isEn ? 'English' : 'العربية') + '</span></a>' +
+    '<div id="kaj-lang-menu">' +
+    '  <a data-lang="ar" class="' + (isEn ? '' : 'active') + '">العربية</a>' +
+    '  <a data-lang="en" class="' + (isEn ? 'active' : '') + '">English</a>' +
+    '</div>';
+  navRight.insertBefore(li, navRight.firstChild);
+
+  var toggle = li.querySelector('#kaj-lang-toggle');
+  var menu = li.querySelector('#kaj-lang-menu');
+  toggle.addEventListener('click', function(e){
+    e.preventDefault(); e.stopPropagation();
+    menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+  });
+  document.addEventListener('click', function(){ menu.style.display = 'none'; });
+  li.querySelectorAll('[data-lang]').forEach(function(a){
+    a.addEventListener('click', function(e){
+      e.preventDefault();
+      var lang = a.dataset.lang;
+      if(lang === current_lang()) return;
+      toggle.style.opacity = '0.5';
+      frappe.db.set_value('User', frappe.session.user, 'language', lang).then(function(){
+        window.location.reload();
+      }).catch(function(){ toggle.style.opacity = '1'; });
+    });
+  });
+
+  var logoutItem = document.createElement('span');
+  logoutItem.id = 'kaj-logout-item';
+  logoutItem.innerHTML = '<a id="kaj-logout-btn"><svg class="icon kaj-ico"><use href="#icon-log-out"></use></svg><span>' +
+    (isEn ? 'Logout' : 'تسجيل الخروج') + '</span></a>';
+  li.parentNode.insertBefore(logoutItem, li.nextSibling);
+  logoutItem.querySelector('#kaj-logout-btn').addEventListener('click', function(e){
+    e.preventDefault(); e.stopPropagation();
+    frappe.confirm(
+      isEn ? 'Are you sure you want to log out?' : 'هل أنت متأكد أنك تريد تسجيل الخروج؟',
+      function(){
+        frappe.call('logout').then(function(){ window.location.href = '/login'; });
+      }
+    );
+  });
+})();
+"""
+
+SCRIPT = """
+const root = (typeof root_element !== 'undefined' && root_element) ? root_element : document;
+""" + ICON_SPRITE_JS + NAV_LANG_JS + FUTURISTIC_JS + """
+function translateAll(){
+  root.querySelectorAll('[data-i18n]').forEach(function(el){ el.textContent = __(el.dataset.i18n); });
+}
+translateAll();
+root.querySelectorAll('.gsd-tile').forEach(function(t){
+  t.addEventListener('click', function(){
+    var a = t.dataset.action, tg = t.dataset.target;
+    if(a === 'list') frappe.set_route('List', tg);
+    else if(a === 'form') frappe.set_route('Form', tg);
+    else if(a === 'page') frappe.set_route(tg);
+    else if(a === 'report') frappe.set_route('query-report', tg);
+    else if(a === 'myaccount') frappe.set_route('Form', tg, frappe.session.user);
+    else if(a === 'company') {
+      frappe.db.get_single_value('Global Defaults', 'default_company').then(function(c){
+        frappe.set_route('Form', tg, c || '');
+      });
+    }
+  });
+});
+"""
+
+
+def _make_block():
+    html = '<div class="gsd" dir="rtl">' + _tiles_html() + '</div>'
+    if frappe.db.exists("Custom HTML Block", BLOCK_NAME):
+        frappe.delete_doc("Custom HTML Block", BLOCK_NAME, force=1, ignore_permissions=True)
+    d = frappe.get_doc({
+        "doctype": "Custom HTML Block", "name": BLOCK_NAME,
+        "html": html, "style": STYLE, "script": SCRIPT,
+    })
+    d.insert(ignore_permissions=True)
+    d.append("roles", {"role": "System Manager"})
+    d.append("roles", {"role": "All"})
+    d.save(ignore_permissions=True)
+    frappe.db.commit()
+    return d.name
+
+
+def _make_translations():
+    for src, tgt in TRANSLATIONS:
+        if not frappe.db.exists("Translation", {"source_text": src, "language": "en"}):
+            frappe.get_doc({
+                "doctype": "Translation", "language": "en",
+                "source_text": src, "translated_text": tgt,
+            }).insert(ignore_permissions=True)
+    frappe.db.commit()
+
+
+def execute():
+    _ensure_contact_role_doctype()
+    _make_translations()
+    block_name = _make_block()
+
+    if frappe.db.exists("Workspace", WS_NAME):
+        frappe.delete_doc("Workspace", WS_NAME, force=1, ignore_permissions=True)
+        frappe.db.commit()
+
+    content = [
+        {"id": "gs_hdr", "type": "header",
+         "data": {"text": '<span class="h4"><b>الإعدادات العامة</b></span>', "col": 12}},
+        {"id": "gs_cb", "type": "custom_block",
+         "data": {"custom_block_name": block_name, "col": 12}},
+    ]
+
+    ws = frappe.get_doc({
+        "doctype": "Workspace", "name": WS_NAME, "label": WS_NAME, "title": WS_TITLE,
+        "public": 1, "is_hidden": 0, "icon": "setting", "module": "Core",
+        "content": json.dumps(content, ensure_ascii=False),
+        "shortcuts": [], "links": [], "number_cards": [], "quick_lists": [], "charts": [],
+        "sequence_id": 2,
+    })
+    ws.append("custom_blocks", {"custom_block_name": block_name, "label": block_name})
+    ws.insert(ignore_permissions=True)
+
+    # Explicit clean Workspace Sidebar override (learned from the Home bug —
+    # standard fixtures ship hardcoded sidebar items regardless of DB content).
+    if frappe.db.exists("Workspace Sidebar", WS_NAME):
+        frappe.delete_doc("Workspace Sidebar", WS_NAME, force=1, ignore_permissions=True)
+    frappe.get_doc({
+        "doctype": "Workspace Sidebar", "name": WS_NAME, "title": WS_NAME,
+        "header_icon": "setting", "module": "Core", "standard": 0, "items": [],
+    }).insert(ignore_permissions=True)
+
+    frappe.db.commit()
+    frappe.clear_cache()
+    print("GENERAL_SETTINGS_DONE tiles=%d" % len(TILES))
