@@ -7,6 +7,15 @@ SITE_NAME="${SITE_NAME:-erp.local}"
 DB_HOST="${DB_HOST:-db}"
 DB_PORT="${DB_PORT:-3306}"
 
+# Defensive: strip any scheme (http://, https://) and trailing path/slash that
+# may have been copied from a Coolify-generated domain URL. Frappe site names
+# must be a bare hostname. NOTE: the frontend container's FRAPPE_SITE_NAME_HEADER
+# uses SITE_NAME raw, so the env var itself must ALSO be a bare hostname for
+# nginx routing to match — see .env.example.
+SITE_NAME="${SITE_NAME#http://}"
+SITE_NAME="${SITE_NAME#https://}"
+SITE_NAME="${SITE_NAME%%/*}"
+
 # ── Persistent logging ───────────────────────────────────────────────────────
 # Tee everything to a file inside the shared 'sites' volume so the log
 # survives even when Coolify removes this container on failure. Retrieve with:
