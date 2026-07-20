@@ -46,6 +46,7 @@ site_config.json
 common_site_config.json
 .env
 .env.*
+!.env.example
 *.key
 *.pem
 
