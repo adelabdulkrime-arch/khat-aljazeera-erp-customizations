@@ -13,7 +13,8 @@ COPY --chown=frappe:frappe workshop_*.py /opt/workshop-scripts/
 
 # One-time init entrypoint
 COPY --chown=frappe:frappe docker/init.sh /opt/init.sh
-RUN chmod +x /opt/init.sh
+# Strip Windows CRLF line endings that break bash path resolution on Linux
+RUN sed -i 's/\r$//' /opt/init.sh && chmod +x /opt/init.sh
 
 USER frappe
 WORKDIR /home/frappe/frappe-bench
