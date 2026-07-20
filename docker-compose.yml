@@ -63,6 +63,7 @@ services:
       args:
         ERPNEXT_VERSION: ${ERPNEXT_VERSION:-v16}
     restart: "no"
+    entrypoint: ["bash", "/opt/init.sh"]
     environment:
       DB_HOST: db
       DB_PORT: "3306"

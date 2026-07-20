@@ -1,39 +1,77 @@
 #!/bin/bash
-# One-time site creation + workshop customisation script.
-# Safe to re-run: site creation is skipped if the site already exists,
-# and all workshop scripts are idempotent.
-set -eo pipefail
+# One-time site creation + workshop customisation.
+# Idempotent — safe to re-run on every deploy.
+# NO set -e intentionally: we want explicit error handling, not silent exits.
 
 SITE_NAME="${SITE_NAME:-erp.local}"
 DB_HOST="${DB_HOST:-db}"
 DB_PORT="${DB_PORT:-3306}"
 
-log() { echo "[init] $*"; }
+log()  { echo "[init] $(date '+%H:%M:%S') $*"; }
+die()  { log "FATAL: $*"; exit 1; }
+warn() { log "WARN:  $*"; }
+
+log "=========================================="
+log "Khat Al Jazeera ERP — init container start"
+log "SITE_NAME   = ${SITE_NAME}"
+log "DB_HOST     = ${DB_HOST}:${DB_PORT}"
+log "=========================================="
+
+# Activate frappe virtualenv so 'bench' is on PATH
+VENV="/home/frappe/frappe-bench/env/bin/activate"
+if [ -f "$VENV" ]; then
+  # shellcheck disable=SC1090
+  source "$VENV"
+  log "virtualenv activated"
+else
+  warn "virtualenv not found at $VENV — bench may not be on PATH"
+fi
+
+# Ensure working directory is the bench root
+cd /home/frappe/frappe-bench || die "Cannot cd to /home/frappe/frappe-bench"
+log "cwd = $(pwd)"
 
 # ── 1. Wait for common_site_config.json (configurator must finish first) ────
-log "Waiting for configurator to write common_site_config.json..."
-until python3 - <<'EOF' 2>/dev/null
+log "Waiting for configurator (common_site_config.json)..."
+TRIES=0
+while true; do
+  CHECK=$(python3 -c "
 import json, sys
-with open("sites/common_site_config.json") as f:
-    c = json.load(f)
-assert c.get("db_host"), "db_host missing"
-EOF
-do
+try:
+    c = json.load(open('sites/common_site_config.json'))
+    sys.exit(0 if c.get('db_host') else 1)
+except Exception as e:
+    sys.exit(1)
+" 2>/dev/null)
+  RC=$?
+  if [ $RC -eq 0 ]; then
+    log "common_site_config.json is ready."
+    break
+  fi
+  TRIES=$((TRIES + 1))
+  [ $TRIES -ge 24 ] && die "common_site_config.json not ready after 2 min"
+  log "  still waiting... (${TRIES}/24)"
   sleep 5
 done
-log "common_site_config.json is ready."
 
 # ── 2. Wait for MariaDB ──────────────────────────────────────────────────────
 log "Waiting for MariaDB at ${DB_HOST}:${DB_PORT}..."
-until mysqladmin ping -h "${DB_HOST}" -P "${DB_PORT}" \
-      -u root -p"${DB_ROOT_PASSWORD}" --silent 2>/dev/null; do
+TRIES=0
+while true; do
+  if mysqladmin ping -h "${DB_HOST}" -P "${DB_PORT}" \
+                    -u root -p"${DB_ROOT_PASSWORD}" --silent 2>/dev/null; then
+    log "MariaDB is up."
+    break
+  fi
+  TRIES=$((TRIES + 1))
+  [ $TRIES -ge 36 ] && die "MariaDB not ready after 3 min"
+  log "  still waiting... (${TRIES}/36)"
   sleep 5
 done
-log "MariaDB is up."
 
-# ── 3. Create site (skipped if it already exists) ───────────────────────────
+# ── 3. Create site if it does not already exist ──────────────────────────────
 if [ ! -d "sites/${SITE_NAME}" ]; then
-  log "Creating site: ${SITE_NAME}"
+  log "Creating site: ${SITE_NAME} (this takes several minutes)..."
   bench new-site \
     --no-mariadb-socket \
     --db-host "${DB_HOST}" \
@@ -42,21 +80,26 @@ if [ ! -d "sites/${SITE_NAME}" ]; then
     --db-password "${MYSQL_PASSWORD}" \
     --admin-password "${ADMIN_PASSWORD}" \
     --install-app erpnext \
-    --set-default \
     "${SITE_NAME}"
-  log "Site created."
+  RC=$?
+  if [ $RC -ne 0 ]; then
+    die "bench new-site exited with code $RC"
+  fi
+  log "Site created successfully."
 else
   log "Site ${SITE_NAME} already exists — skipping creation."
 fi
 
-# Ensure currentsite.txt points to our site (needed by bench commands below)
+# Mark as default site (needed by bench commands below)
 echo "${SITE_NAME}" > sites/currentsite.txt
+log "currentsite.txt written."
 
-# Set host_name to the internal nginx container so wkhtmltopdf can fetch
-# static assets when generating PDF invoices (see HANDOFF.md §6).
-bench --site "${SITE_NAME}" set-config host_name "http://frontend:8080"
+# Set host_name so wkhtmltopdf can fetch static assets via the nginx container
+bench --site "${SITE_NAME}" set-config host_name "http://frontend:8080" \
+  && log "host_name set to http://frontend:8080" \
+  || warn "Could not set host_name (non-fatal)"
 
-# ── 4. Apply workshop customisations in the required order ───────────────────
+# ── 4. Apply workshop customisations in the correct order ────────────────────
 SCRIPTS=(
   workshop_futuristic          # shared CSS/JS — must be first
   workshop_home
@@ -78,17 +121,20 @@ for module in "${SCRIPTS[@]}"; do
   dst="apps/frappe/frappe/${module}.py"
 
   if [ ! -f "$src" ]; then
-    log "  SKIP  ${module}.py (not found)"
+    warn "Script not found — skipping: $src"
     continue
   fi
 
   cp "$src" "$dst"
-
-  if bench --site "${SITE_NAME}" execute "frappe.${module}.execute" 2>&1; then
+  bench --site "${SITE_NAME}" execute "frappe.${module}.execute" 2>&1
+  RC=$?
+  if [ $RC -eq 0 ]; then
     log "  OK    ${module}"
   else
-    log "  WARN  ${module} returned an error (continuing)"
+    warn "  ${module} returned code ${RC} (continuing)"
   fi
 done
 
-log "Init complete. ERPNext is ready at https://${SITE_NAME}"
+log "=========================================="
+log "Init complete. ERPNext ready at: https://${SITE_NAME}"
+log "=========================================="
