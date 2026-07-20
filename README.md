@@ -12,6 +12,7 @@
 
 | الملف | الوظيفة |
 |------|---------|
+| `workshop_setup.py` | **يُنشئ كل الدولايتايبات المخصّصة** (بطاقة العمل، فاتورة الإصلاح، مركبة العميل، إعدادات الورشة…) كـ Custom DocTypes مخزّنة في قاعدة البيانات — **يجب تشغيله أولاً** |
 | `workshop_futuristic.py` | وحدة CSS/JS مشتركة تستوردها كل اللوحات |
 | `workshop_home.py` | لوحة الرئيسية + بحث سريع بالجوال/رقم اللوحة |
 | `workshop_dashboard.py` | لوحة "إدارة ورشة الصيانة" (بلاطات + إحصائيات قابلة للطي) |
@@ -24,6 +25,8 @@
 | `workshop_gl_stock_integration.py` | ربط بطاقة العمل/الفواتير/الدفعات بمحرك المحاسبة والمخزون الحقيقي في ERPNext |
 | `workshop_invoice_whatsapp.py` | توليد PDF لفاتورة الإصلاح وإرجاع رابط لإرساله عبر واتساب |
 | `workshop_translations.py` | جداول الترجمة العربية |
+| `workshop_oman_setup2.py` | إعادة وسم دليل الحسابات إلى OMR (قبل تبديل عملة الشركة) |
+| `workshop_oman_setup.py` | توطين عُمان: عملة OMR (3 خانات)، ضريبة 5%، توقيت مسقط |
 
 ## النشر
 
@@ -36,7 +39,11 @@ docker compose exec backend bench --site erp.local execute frappe.workshop_scrip
 ## المتطلبات
 
 - Frappe/ERPNext v16 عبر Docker (انظر [frappe/frappe_docker](https://github.com/frappe/frappe_docker))
-- الدولايتايبات المخصّصة: `Work Card`, `Repair Invoice`, `Workshop Payment`, `Customer Vehicle`, `Workshop Technician`, `Service Package`, `Workshop Settings` (من تطبيق الورشة المخصّص — غير مُضمّن في هذا المستودع)
+- الدولايتايبات المخصّصة (`Work Card`, `Repair Invoice`, `Workshop Payment`, `Customer Vehicle`, `Workshop Technician`, `Service Package`, `Workshop Settings` …) أصبحت الآن **مُضمّنة** ويُنشئها `workshop_setup.py` تلقائياً عند النشر — لم تعد تحتاج تطبيقاً خارجياً.
+
+## النشر الحاوي (Docker / Coolify)
+
+هذا المستودع يتضمّن الآن نشراً حاوياً كاملاً: `docker-compose.yml` + `Dockerfile` + `docker/init.sh`. عند النشر (محلياً أو عبر Coolify) تُنشأ الحاوية `init` الموقعَ وتُنفّذ كل سكربتات التخصيص بالترتيب الصحيح (`workshop_setup` أولاً). راجع [`.env.example`](.env.example) للمتغيّرات المطلوبة.
 
 ## ملاحظة أمنية
 

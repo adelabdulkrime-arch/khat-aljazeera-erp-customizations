@@ -112,7 +112,8 @@ bench --site "${SITE_NAME}" set-config host_name "http://frontend:8080" \
 
 # ── 4. Apply workshop customisations in the required order ───────────────────
 SCRIPTS=(
-  workshop_futuristic          # shared CSS/JS — must be first
+  workshop_setup               # creates all custom DocTypes — MUST be first
+  workshop_futuristic          # shared CSS/JS design layer
   workshop_home
   workshop_dashboard
   workshop_accounting
@@ -124,6 +125,8 @@ SCRIPTS=(
   workshop_gl_stock_integration
   workshop_invoice_whatsapp
   workshop_translations
+  workshop_oman_setup2         # retag chart of accounts to OMR (before currency switch)
+  workshop_oman_setup          # Oman localisation: OMR currency, 5% VAT, timezone
 )
 
 log "Applying workshop customisations..."
