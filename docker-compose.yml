@@ -99,7 +99,18 @@ services:
   frontend:
     image: frappe/erpnext:${ERPNEXT_VERSION:-v16}
     restart: unless-stopped
-    command: nginx-entrypoint.sh
+    # Strip any http(s):// scheme and trailing path from the site header before
+    # handing off to nginx. Frappe rejects a site name containing a scheme, so
+    # this makes the container robust even if SITE_NAME is set to a full URL.
+    # $$ escapes to a literal $ so the shell (not compose) does the expansion.
+    entrypoint: ["bash", "-c"]
+    command:
+      - |
+        H="$$FRAPPE_SITE_NAME_HEADER"
+        H="$${H#http://}"; H="$${H#https://}"; H="$${H%%/*}"
+        export FRAPPE_SITE_NAME_HEADER="$$H"
+        echo "frontend: FRAPPE_SITE_NAME_HEADER=$$FRAPPE_SITE_NAME_HEADER"
+        exec nginx-entrypoint.sh
     environment:
       BACKEND: backend:8000
       FRAPPE_SITE_NAME_HEADER: ${SITE_NAME:-erp.local}
