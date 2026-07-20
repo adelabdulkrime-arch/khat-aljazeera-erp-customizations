@@ -7,15 +7,28 @@ SITE_NAME="${SITE_NAME:-erp.local}"
 DB_HOST="${DB_HOST:-db}"
 DB_PORT="${DB_PORT:-3306}"
 
+# ── Persistent logging ───────────────────────────────────────────────────────
+# Tee everything to a file inside the shared 'sites' volume so the log
+# survives even when Coolify removes this container on failure. Retrieve with:
+#   docker run --rm -v <project>_sites:/s alpine cat /s/init.log
+cd /home/frappe/frappe-bench 2>/dev/null || cd / || true
+mkdir -p sites 2>/dev/null || true
+exec > >(tee -a sites/init.log) 2>&1
+
 log()  { echo "[init] $(date '+%H:%M:%S') $*"; }
 die()  { log "FATAL: $*"; exit 1; }
 warn() { log "WARN:  $*"; }
 
-log "=========================================="
+log "=============================================="
 log "Khat Al Jazeera ERP — init container start"
-log "SITE_NAME   = ${SITE_NAME}"
-log "DB_HOST     = ${DB_HOST}:${DB_PORT}"
-log "=========================================="
+log "SITE_NAME = ${SITE_NAME}"
+log "DB_HOST   = ${DB_HOST}:${DB_PORT}"
+log "PWD       = $(pwd)"
+log "whoami    = $(whoami)"
+log "=============================================="
+
+# Trace every command from here on (visible in the tee'd log)
+set -x
 
 # Activate frappe virtualenv so 'bench' is on PATH
 VENV="/home/frappe/frappe-bench/env/bin/activate"
@@ -24,33 +37,25 @@ if [ -f "$VENV" ]; then
   source "$VENV"
   log "virtualenv activated"
 else
-  warn "virtualenv not found at $VENV — bench may not be on PATH"
+  warn "virtualenv not found at $VENV"
 fi
 
-# Ensure working directory is the bench root
+command -v bench || warn "bench not found on PATH"
+command -v mysqladmin || warn "mysqladmin not found on PATH"
+
+# Ensure we are in the bench root
 cd /home/frappe/frappe-bench || die "Cannot cd to /home/frappe/frappe-bench"
-log "cwd = $(pwd)"
 
 # ── 1. Wait for common_site_config.json (configurator must finish first) ────
 log "Waiting for configurator (common_site_config.json)..."
 TRIES=0
 while true; do
-  CHECK=$(python3 -c "
-import json, sys
-try:
-    c = json.load(open('sites/common_site_config.json'))
-    sys.exit(0 if c.get('db_host') else 1)
-except Exception as e:
-    sys.exit(1)
-" 2>/dev/null)
-  RC=$?
-  if [ $RC -eq 0 ]; then
+  if python3 -c "import json,sys; c=json.load(open('sites/common_site_config.json')); sys.exit(0 if c.get('db_host') else 1)" 2>/dev/null; then
     log "common_site_config.json is ready."
     break
   fi
   TRIES=$((TRIES + 1))
   [ $TRIES -ge 24 ] && die "common_site_config.json not ready after 2 min"
-  log "  still waiting... (${TRIES}/24)"
   sleep 5
 done
 
@@ -58,48 +63,45 @@ done
 log "Waiting for MariaDB at ${DB_HOST}:${DB_PORT}..."
 TRIES=0
 while true; do
-  if mysqladmin ping -h "${DB_HOST}" -P "${DB_PORT}" \
-                    -u root -p"${DB_ROOT_PASSWORD}" --silent 2>/dev/null; then
+  if mysqladmin ping -h "${DB_HOST}" -P "${DB_PORT}" -u root -p"${DB_ROOT_PASSWORD}" --silent 2>/dev/null; then
     log "MariaDB is up."
     break
   fi
   TRIES=$((TRIES + 1))
   [ $TRIES -ge 36 ] && die "MariaDB not ready after 3 min"
-  log "  still waiting... (${TRIES}/36)"
   sleep 5
 done
 
 # ── 3. Create site if it does not already exist ──────────────────────────────
 if [ ! -d "sites/${SITE_NAME}" ]; then
-  log "Creating site: ${SITE_NAME} (this takes several minutes)..."
+  log "Creating site: ${SITE_NAME} (takes several minutes)..."
+  # Frappe v15/v16 flags: --mariadb-user-host-login-scope replaces the old
+  # --no-mariadb-socket; --db-root-username makes the root login explicit.
   bench new-site \
-    --no-mariadb-socket \
-    --db-host "${DB_HOST}" \
-    --db-port "${DB_PORT}" \
-    --db-root-password "${DB_ROOT_PASSWORD}" \
-    --db-password "${MYSQL_PASSWORD}" \
-    --admin-password "${ADMIN_PASSWORD}" \
+    --mariadb-user-host-login-scope='%' \
+    --db-root-username=root \
+    --db-root-password="${DB_ROOT_PASSWORD}" \
+    --db-host="${DB_HOST}" \
+    --db-port="${DB_PORT}" \
+    --admin-password="${ADMIN_PASSWORD}" \
     --install-app erpnext \
     "${SITE_NAME}"
   RC=$?
-  if [ $RC -ne 0 ]; then
-    die "bench new-site exited with code $RC"
-  fi
+  [ $RC -ne 0 ] && die "bench new-site exited with code $RC"
   log "Site created successfully."
 else
   log "Site ${SITE_NAME} already exists — skipping creation."
 fi
 
-# Mark as default site (needed by bench commands below)
+# Mark as default / current site
 echo "${SITE_NAME}" > sites/currentsite.txt
-log "currentsite.txt written."
+bench use "${SITE_NAME}" 2>/dev/null || true
 
-# Set host_name so wkhtmltopdf can fetch static assets via the nginx container
+# host_name so wkhtmltopdf can fetch static assets via the nginx container
 bench --site "${SITE_NAME}" set-config host_name "http://frontend:8080" \
-  && log "host_name set to http://frontend:8080" \
-  || warn "Could not set host_name (non-fatal)"
+  && log "host_name set" || warn "could not set host_name (non-fatal)"
 
-# ── 4. Apply workshop customisations in the correct order ────────────────────
+# ── 4. Apply workshop customisations in the required order ───────────────────
 SCRIPTS=(
   workshop_futuristic          # shared CSS/JS — must be first
   workshop_home
@@ -119,22 +121,19 @@ log "Applying workshop customisations..."
 for module in "${SCRIPTS[@]}"; do
   src="/opt/workshop-scripts/${module}.py"
   dst="apps/frappe/frappe/${module}.py"
-
   if [ ! -f "$src" ]; then
-    warn "Script not found — skipping: $src"
+    warn "not found, skipping: $src"
     continue
   fi
-
   cp "$src" "$dst"
-  bench --site "${SITE_NAME}" execute "frappe.${module}.execute" 2>&1
-  RC=$?
-  if [ $RC -eq 0 ]; then
+  if bench --site "${SITE_NAME}" execute "frappe.${module}.execute"; then
     log "  OK    ${module}"
   else
-    warn "  ${module} returned code ${RC} (continuing)"
+    warn "  ${module} failed (continuing)"
   fi
 done
 
-log "=========================================="
-log "Init complete. ERPNext ready at: https://${SITE_NAME}"
-log "=========================================="
+set +x
+log "=============================================="
+log "Init complete. ERPNext ready at https://${SITE_NAME}"
+log "=============================================="
