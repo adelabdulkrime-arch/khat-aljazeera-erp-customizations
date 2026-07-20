@@ -31,7 +31,7 @@ services:
 
   # ── One-time: write common_site_config.json ───────────────────────────────
   configurator:
-    image: ghcr.io/frappe/erpnext:${ERPNEXT_VERSION:-v16}
+    image: frappe/erpnext:${ERPNEXT_VERSION:-v16}
     restart: "no"
     entrypoint: ["bash", "-c"]
     command:
@@ -79,7 +79,7 @@ services:
 
   # ── Backend (gunicorn) ────────────────────────────────────────────────────
   backend:
-    image: ghcr.io/frappe/erpnext:${ERPNEXT_VERSION:-v16}
+    image: frappe/erpnext:${ERPNEXT_VERSION:-v16}
     restart: unless-stopped
     environment:
       DB_HOST: db
@@ -96,7 +96,7 @@ services:
 
   # ── Frontend (nginx) — Coolify/Traefik routes to port 8080 ───────────────
   frontend:
-    image: ghcr.io/frappe/erpnext:${ERPNEXT_VERSION:-v16}
+    image: frappe/erpnext:${ERPNEXT_VERSION:-v16}
     restart: unless-stopped
     command: nginx-entrypoint.sh
     environment:
@@ -118,7 +118,7 @@ services:
 
   # ── WebSocket (Socket.io) ─────────────────────────────────────────────────
   websocket:
-    image: ghcr.io/frappe/erpnext:${ERPNEXT_VERSION:-v16}
+    image: frappe/erpnext:${ERPNEXT_VERSION:-v16}
     restart: unless-stopped
     command: node /home/frappe/frappe-bench/apps/frappe/socketio.js
     environment:
@@ -134,7 +134,7 @@ services:
 
   # ── Workers ───────────────────────────────────────────────────────────────
   queue-short:
-    image: ghcr.io/frappe/erpnext:${ERPNEXT_VERSION:-v16}
+    image: frappe/erpnext:${ERPNEXT_VERSION:-v16}
     restart: unless-stopped
     command: bench worker --queue short,default
     environment:
@@ -150,7 +150,7 @@ services:
         condition: service_completed_successfully
 
   queue-long:
-    image: ghcr.io/frappe/erpnext:${ERPNEXT_VERSION:-v16}
+    image: frappe/erpnext:${ERPNEXT_VERSION:-v16}
     restart: unless-stopped
     command: bench worker --queue long
     environment:
@@ -166,7 +166,7 @@ services:
         condition: service_completed_successfully
 
   scheduler:
-    image: ghcr.io/frappe/erpnext:${ERPNEXT_VERSION:-v16}
+    image: frappe/erpnext:${ERPNEXT_VERSION:-v16}
     restart: unless-stopped
     command: bench schedule
     environment:

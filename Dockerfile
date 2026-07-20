@@ -1,5 +1,5 @@
 ARG ERPNEXT_VERSION=v16
-FROM ghcr.io/frappe/erpnext:${ERPNEXT_VERSION}
+FROM frappe/erpnext:${ERPNEXT_VERSION}
 
 USER root
 
