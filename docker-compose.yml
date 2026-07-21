@@ -124,11 +124,13 @@ services:
       - sites:/home/frappe/frappe-bench/sites
     expose:
       - "8080"
-    # NOTE: Do NOT declare networks here. Coolify manages the proxy-network
-    # attachment via the "Connect To Predefined Network" toggle (Configuration
-    # → Advanced), which adds the `coolify` network to every service on deploy.
-    # Declaring networks in this file conflicts with Coolify's own network
-    # generation and breaks the deploy.
+    # Attach to BOTH the app's default network (to reach backend) and Coolify's
+    # external proxy network (so Traefik can route to it). Coolify normally adds
+    # the proxy network automatically, but it can drop the attachment on redeploy
+    # — declaring it here makes routing survive every recreate.
+    networks:
+      - default
+      - coolify
     depends_on:
       backend:
         condition: service_started
@@ -204,3 +206,10 @@ volumes:
   redis-queue-data:
   sites:
   logs:
+
+networks:
+  # Coolify's shared proxy network (created by Coolify itself). Referenced as
+  # external so the frontend can join it for Traefik routing. The app's own
+  # network stays implicit as `default`.
+  coolify:
+    external: true
