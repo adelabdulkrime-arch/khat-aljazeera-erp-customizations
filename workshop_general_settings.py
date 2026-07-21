@@ -14,8 +14,11 @@ BLOCK_NAME = "General Settings Tiles"
 # action: list | form | page | myaccount
 TILES = [
     ("الإعدادات", "company", "Company", "settings", "#e63946"),
-    ("الأدوار", "page", "roles-dashboard", "shield-user", "#e63946"),
-    ("المستخدمون", "page", "users-dashboard", "users", "#e63946"),
+    # NOTE: these two previously pointed at custom pages `roles-dashboard` /
+    # `users-dashboard` that were never built, so the tiles opened a blank
+    # screen. Routed to Frappe's built-in Role/User list views instead.
+    ("الأدوار", "list", "Role", "shield-user", "#e63946"),
+    ("المستخدمون", "list", "User", "users", "#e63946"),
     ("أدوار جهات الاتصال", "list", "Contact Role", "id-card", "#e63946"),
     ("جهات الاتصال", "list", "Contact", "contact", "#e63946"),
     ("حسابي", "myaccount", "User", "circle-user", "#e63946"),

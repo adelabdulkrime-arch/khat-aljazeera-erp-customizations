@@ -420,5 +420,27 @@ def execute():
                 "color": color, "is_closed": closed,
             }).insert(ignore_permissions=True)
 
+    # ---------------------------------------------------------------
+    # Hide the dead `employee` link while hrms is not installed.
+    # Workshop Technician.employee is a Link to Employee, which lives in the
+    # `hrms` app. hrms is NOT installed here, so the control renders an empty,
+    # unusable picker. A Property Setter is used (not a field-list change)
+    # because make_dt() short-circuits once the DocType exists.
+    # Self-correcting: unhides automatically if hrms is installed later.
+    # ---------------------------------------------------------------
+    if frappe.db.exists("DocType", "Workshop Technician"):
+        want_hidden = 0 if frappe.db.exists("DocType", "Employee") else 1
+        ps_name = "Workshop Technician-employee-hidden"
+        if frappe.db.exists("Property Setter", ps_name):
+            frappe.db.set_value("Property Setter", ps_name, "value", want_hidden)
+        elif want_hidden:
+            frappe.get_doc({
+                "doctype": "Property Setter", "name": ps_name,
+                "doctype_or_field": "DocField", "doc_type": "Workshop Technician",
+                "field_name": "employee", "property": "hidden",
+                "property_type": "Check", "value": 1,
+            }).insert(ignore_permissions=True)
+
     frappe.db.commit()
+    frappe.clear_cache()
     print("WORKSHOP_SETUP_DONE " + str(log))

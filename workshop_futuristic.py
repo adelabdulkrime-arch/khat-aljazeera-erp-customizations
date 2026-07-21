@@ -31,8 +31,8 @@ COMMANDS = [
     {"label": "سجل صرف العمولات", "label_en": "Commission Log", "action": "list", "target": "Commission Log", "icon": "dollar-sign", "source": "الورشة", "source_en": "Workshop"},
     {"label": "تذكرات الصيانة", "label_en": "Maintenance Reminders", "action": "list", "target": "Maintenance Reminder", "icon": "bell", "source": "الورشة", "source_en": "Workshop"},
 
-    {"label": "الأدوار", "label_en": "Roles", "action": "page", "target": "roles-dashboard", "icon": "shield-user", "source": "الإعدادات", "source_en": "Settings"},
-    {"label": "المستخدمون", "label_en": "Users", "action": "page", "target": "users-dashboard", "icon": "users", "source": "الإعدادات", "source_en": "Settings"},
+    {"label": "الأدوار", "label_en": "Roles", "action": "list", "target": "Role", "icon": "shield-user", "source": "الإعدادات", "source_en": "Settings"},
+    {"label": "المستخدمون", "label_en": "Users", "action": "list", "target": "User", "icon": "users", "source": "الإعدادات", "source_en": "Settings"},
     {"label": "أدوار جهات الاتصال", "label_en": "Contact Roles", "action": "list", "target": "Contact Role", "icon": "id-card", "source": "الإعدادات", "source_en": "Settings"},
     {"label": "جهات الاتصال", "label_en": "Contacts", "action": "list", "target": "Contact", "icon": "contact", "source": "الإعدادات", "source_en": "Settings"},
     {"label": "الحقول المخصصة", "label_en": "Custom Fields", "action": "list", "target": "Custom Field", "icon": "list-plus", "source": "الإعدادات", "source_en": "Settings"},

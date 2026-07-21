@@ -256,9 +256,14 @@ try {
   if(dateEl){ dateEl.textContent = frappe.datetime.str_to_user(frappe.datetime.now_date()); }
   const logoEl = root.querySelector('.hm-logo');
   if(logoEl){
+    // Resolve the logo from Website Settings. The old code fell back to a
+    // hardcoded /files/kaj-logo<hash>.png that only ever existed on the
+    // original dev machine, so every fresh deploy rendered a broken image.
+    // Now: show the configured logo, or show nothing at all.
     const lg = (frappe.boot && frappe.boot.website_settings && frappe.boot.website_settings.app_logo)
-      || (frappe.boot && frappe.boot.app_logo_url) || '/files/kaj-logo1fe402.png';
-    logoEl.src = lg;
+      || (frappe.boot && frappe.boot.app_logo_url) || '';
+    if(lg){ logoEl.src = lg; logoEl.style.display = ''; }
+    else { logoEl.style.display = 'none'; }
   }
 } catch(e){ console.error(e); }
 root.querySelectorAll('.hm-card').forEach(function(a){
@@ -428,7 +433,10 @@ def _make_home_block():
         '      <div class="hm-sub"><span data-i18n="مرحباً بعودتك إلى نظام خط الجزيرة">'
         'مرحباً بعودتك إلى نظام خط الجزيرة</span> · <span class="hm-date"></span></div>'
         '    </div>'
-        '    <img class="hm-logo" src="/files/kaj-logo1fe402.png" alt="logo">'
+        # Transparent 1x1 placeholder; the real logo (if any) is set by JS from
+        # Website Settings. Avoids a broken-image flash before JS runs.
+        '    <img class="hm-logo" style="display:none" alt="logo"'
+        ' src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==">'
         '  </div>'
         '  <div class="hm-search-box">'
         '    <div class="hm-search-title"><svg class="icon"><use href="#icon-phone"></use></svg>'

@@ -58,6 +58,22 @@ if doc.status == "جاهزة للتسليم" and not doc.stock_entry:
 REPAIR_INVOICE_SI_SCRIPT = """
 if not doc.sales_invoice and doc.customer and doc.items and (doc.grand_total or 0) > 0:
 	company = frappe.db.get_single_value("Global Defaults", "default_company")
+	# Pull the company's DEFAULT sales tax template (Oman VAT 5%) and copy its
+	# rows onto the invoice. Without this the generated Sales Invoice posts with
+	# ZERO tax, which is a compliance problem, not just a display bug.
+	tax_template = frappe.db.get_value(
+		"Sales Taxes and Charges Template", {"company": company, "is_default": 1}, "name"
+	)
+	tax_rows = []
+	if tax_template:
+		for t in frappe.get_all(
+			"Sales Taxes and Charges", filters={"parent": tax_template},
+			fields=["charge_type", "account_head", "description", "rate"], order_by="idx"
+		):
+			tax_rows.append({
+				"charge_type": t.charge_type, "account_head": t.account_head,
+				"description": t.description, "rate": t.rate,
+			})
 	si = frappe.get_doc({
 		"doctype": "Sales Invoice",
 		"customer": doc.customer,
@@ -74,6 +90,8 @@ if not doc.sales_invoice and doc.customer and doc.items and (doc.grand_total or 
 			}
 			for row in doc.items
 		],
+		"taxes_and_charges": tax_template,
+		"taxes": tax_rows,
 		"discount_amount": doc.discount or 0,
 		"apply_discount_on": "Grand Total",
 		"remarks": "فاتورة مبيعات مُنشأة تلقائياً من فاتورة الإصلاح %s" % doc.name,
