@@ -135,3 +135,5 @@ docker compose $COMPOSE up -d        # تشغيل
 docker compose $COMPOSE stop         # إيقاف مؤقت
 docker compose $COMPOSE logs -f backend
 ```
+cd "C:/Users/adela/Documents/GitHub/khat-aljazeera-erp-customizations"
+git push
