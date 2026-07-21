@@ -529,9 +529,14 @@ def execute():
         content.append({"id": "card_" + frappe.scrub(group_label), "type": "card",
                         "data": {"card_name": group_label, "col": 4}})
 
-    if REPORTS:
+    # Only link Reports that actually exist. These four were never created, so
+    # the whole Workspace insert failed with LinkValidationError and the main
+    # dashboard disappeared entirely — losing the dashboard is far worse than
+    # losing four report shortcuts.
+    available_reports = [r for r in REPORTS if frappe.db.exists("Report", r)]
+    if available_reports:
         links.append({"type": "Card Break", "label": "التقارير", "hidden": 0, "onboard": 0})
-        for rep in REPORTS:
+        for rep in available_reports:
             links.append({"type": "Link", "label": rep, "link_type": "Report",
                           "link_to": rep, "is_query_report": 1, "hidden": 0, "onboard": 0})
         content.append({"id": "card_reports", "type": "card",

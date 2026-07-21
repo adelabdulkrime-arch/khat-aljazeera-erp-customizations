@@ -67,12 +67,26 @@ def f(fieldname, label, fieldtype, **kw):
 def execute():
     _ensure_module()
 
-    # Ensure the Workshop Manager role exists
-    if not frappe.db.exists("Role", "Workshop Manager"):
-        frappe.get_doc({
-            "doctype": "Role", "role_name": "Workshop Manager",
-            "desk_access": 1,
-        }).insert(ignore_permissions=True)
+    # Ensure every role the dashboards attach to actually exists.
+    # The Arabic roles below are referenced in the `roles` table of the
+    # accounting/inventory/purchasing/sales blocks. They were never created,
+    # so those four workspaces died on insert with LinkValidationError
+    # ("Could not find Row #3: Role: محاسب") and the dashboards silently
+    # vanished from the sidebar on every single deploy.
+    REQUIRED_ROLES = [
+        "Workshop Manager",
+        "محاسب",            # workshop_accounting
+        "مدير المستودع",     # workshop_inventory
+        "مسؤول المشتريات",   # workshop_purchasing
+        "مندوب مبيعات",      # workshop_sales
+        "كاشير",             # workshop_sales
+    ]
+    for role_name in REQUIRED_ROLES:
+        if not frappe.db.exists("Role", role_name):
+            frappe.get_doc({
+                "doctype": "Role", "role_name": role_name,
+                "desk_access": 1,
+            }).insert(ignore_permissions=True)
 
     log = {}
 
@@ -418,27 +432,6 @@ def execute():
             frappe.get_doc({
                 "doctype": "Work Card Status", "status_name": nm,
                 "color": color, "is_closed": closed,
-            }).insert(ignore_permissions=True)
-
-    # ---------------------------------------------------------------
-    # Hide the dead `employee` link while hrms is not installed.
-    # Workshop Technician.employee is a Link to Employee, which lives in the
-    # `hrms` app. hrms is NOT installed here, so the control renders an empty,
-    # unusable picker. A Property Setter is used (not a field-list change)
-    # because make_dt() short-circuits once the DocType exists.
-    # Self-correcting: unhides automatically if hrms is installed later.
-    # ---------------------------------------------------------------
-    if frappe.db.exists("DocType", "Workshop Technician"):
-        want_hidden = 0 if frappe.db.exists("DocType", "Employee") else 1
-        ps_name = "Workshop Technician-employee-hidden"
-        if frappe.db.exists("Property Setter", ps_name):
-            frappe.db.set_value("Property Setter", ps_name, "value", want_hidden)
-        elif want_hidden:
-            frappe.get_doc({
-                "doctype": "Property Setter", "name": ps_name,
-                "doctype_or_field": "DocField", "doc_type": "Workshop Technician",
-                "field_name": "employee", "property": "hidden",
-                "property_type": "Check", "value": 1,
             }).insert(ignore_permissions=True)
 
     frappe.db.commit()

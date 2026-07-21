@@ -111,9 +111,16 @@ bench --site "${SITE_NAME}" set-config host_name "http://frontend:8080" \
   && log "host_name set" || warn "could not set host_name (non-fatal)"
 
 # ── 4. Apply workshop customisations in the required order ───────────────────
+# Shared library modules: copied so the dashboard builders can import them,
+# but NOT executed — they expose no execute(). Running them produced a
+# guaranteed "has no attribute 'execute'" failure on every single deploy.
+# They must still be copied, or the imports in the dashboards would break.
+LIBS=(
+  workshop_futuristic          # shared CSS/JS design layer + command palette
+)
+
 SCRIPTS=(
   workshop_setup               # creates all custom DocTypes — MUST be first
-  workshop_futuristic          # shared CSS/JS design layer
   workshop_home
   workshop_dashboard
   workshop_accounting
@@ -128,6 +135,16 @@ SCRIPTS=(
   workshop_oman_setup2         # retag chart of accounts to OMR (before currency switch)
   workshop_oman_setup          # Oman localisation: OMR currency, 5% VAT, timezone
 )
+
+log "Staging shared library modules (copied, not executed)..."
+for module in "${LIBS[@]}"; do
+  src="/opt/workshop-scripts/${module}.py"
+  if [ ! -f "$src" ]; then
+    warn "lib not found, skipping: $src"
+    continue
+  fi
+  cp "$src" "apps/frappe/frappe/${module}.py" && log "  LIB   ${module}"
+done
 
 log "Applying workshop customisations..."
 for module in "${SCRIPTS[@]}"; do
