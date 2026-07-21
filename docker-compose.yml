@@ -124,13 +124,11 @@ services:
       - sites:/home/frappe/frappe-bench/sites
     expose:
       - "8080"
-    # Attach to BOTH the app's default network (to reach backend) and Coolify's
-    # external proxy network (so Traefik can route to it). Coolify normally adds
-    # the proxy network automatically, but it can drop the attachment on redeploy
-    # — declaring it here makes routing survive every recreate.
-    networks:
-      - default
-      - coolify
+    # No manual `networks:` here. In managed compose mode Coolify puts every
+    # service on the per-stack network and attaches Traefik to it, so the proxy
+    # can already reach frontend:8080. Declaring extra networks multi-homes the
+    # container; with no `traefik.docker.network` label Traefik then guesses an
+    # IP and can pick one it has no route to → intermittent ERR_CONNECTION_RESET.
     depends_on:
       backend:
         condition: service_started
@@ -206,10 +204,3 @@ volumes:
   redis-queue-data:
   sites:
   logs:
-
-networks:
-  # Coolify's shared proxy network (created by Coolify itself). Referenced as
-  # external so the frontend can join it for Traefik routing. The app's own
-  # network stays implicit as `default`.
-  coolify:
-    external: true
