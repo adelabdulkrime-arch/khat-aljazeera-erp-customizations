@@ -148,9 +148,21 @@ def _ensure_server_script(name, doctype, event, script):
 def execute():
     _ensure_service_item()
 
-    default_warehouse = frappe.db.get_value(
-        "Warehouse", {"warehouse_name": ["like", DEFAULT_WAREHOUSE_NAME_LIKE]}, "name"
-    )
+    # Resolve the stores warehouse without depending on the interface language.
+    # This used to match only the Arabic "%مخازن%", so on an English-language
+    # chart of accounts it silently found nothing, the Work Card default stayed
+    # empty, and every parts issue was skipped with a warning nobody read.
+    # Verified on the live system: warehouses were named "Stores - KAJ" etc.
+    default_warehouse = None
+    for pattern in (DEFAULT_WAREHOUSE_NAME_LIKE, "%Stores%", "%مخزن%"):
+        default_warehouse = frappe.db.get_value(
+            "Warehouse", {"warehouse_name": ["like", pattern], "is_group": 0}, "name"
+        )
+        if default_warehouse:
+            break
+    if not default_warehouse:
+        # Last resort: any leaf warehouse, so the flow is usable out of the box.
+        default_warehouse = frappe.db.get_value("Warehouse", {"is_group": 0}, "name")
 
     _ensure_custom_field("Work Card", "warehouse", "المستودع (لصرف القطع)", "Link", "Warehouse", insert_after="sec_parts", read_only=0, default=default_warehouse)
     _ensure_custom_field("Work Card", "stock_entry", "حركة المخزون المرتبطة", "Link", "Stock Entry", insert_after="warehouse", read_only=1)
