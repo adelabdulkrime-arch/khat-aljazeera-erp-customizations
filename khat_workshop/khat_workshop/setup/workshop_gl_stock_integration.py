@@ -25,7 +25,7 @@ SERVICE_ITEM_NAME = "خدمة إصلاح ورشة"
 DEFAULT_WAREHOUSE_NAME_LIKE = "%مخازن%"
 
 WORK_CARD_STOCK_SCRIPT = """
-if doc.status == "جاهزة للتسليم" and not doc.stock_entry:
+if not doc.stock_entry:
 	valid_rows = [p for p in (doc.parts or []) if p.item and p.qty]
 	if valid_rows and doc.warehouse:
 		company = frappe.db.get_single_value("Global Defaults", "default_company")
@@ -41,7 +41,9 @@ if doc.status == "جاهزة للتسليم" and not doc.stock_entry:
 		})
 		se.insert(ignore_permissions=True)
 		se.submit()
-		doc.stock_entry = se.name
+		# db_set, not attribute assignment: On Submit runs after the document is
+		# written, so a plain assignment would never persist.
+		doc.db_set("stock_entry", se.name)
 		skipped = len(doc.parts or []) - len(valid_rows)
 		if skipped:
 			frappe.msgprint(
@@ -56,6 +58,16 @@ if doc.status == "جاهزة للتسليم" and not doc.stock_entry:
 """
 
 
+
+
+WORK_CARD_CANCEL_SCRIPT = """
+if doc.stock_entry and frappe.db.exists("Stock Entry", doc.stock_entry):
+	se = frappe.get_doc("Stock Entry", doc.stock_entry)
+	if se.docstatus == 1:
+		se.cancel()
+		frappe.msgprint("تم عكس صرف قطع الغيار من المخزون: %s" % se.name)
+	doc.db_set("stock_entry", None)
+"""
 
 
 def _ensure_service_item():
@@ -126,7 +138,21 @@ def execute():
         _ensure_custom_field(dt, "work_card", "بطاقة العمل", "Link", "Work Card", insert_after=after, read_only=0)
         _ensure_custom_field(dt, "vehicle", "المركبة", "Link", "Customer Vehicle", insert_after="work_card", read_only=0)
 
-    _ensure_server_script("Work Card Issue Parts On Ready", "Work Card", "Before Save", WORK_CARD_STOCK_SCRIPT)
+    # Parts are issued ON SUBMIT, not on a status change.
+    #
+    # Previously any user could set the status to "جاهزة للتسليم" and that alone
+    # fired a real, submitted, irreversible Stock Entry — with no approval gate,
+    # and reverting the status did NOT reverse the stock. Submitting is now the
+    # deliberate act of approval, and Frappe locks the document once submitted.
+    #
+    # It also fixes a structural defect: the old script called submit() from
+    # inside Before Save, so a later validation failure could leave a submitted
+    # Stock Entry orphaned against an unsaved Work Card.
+    _ensure_server_script("Work Card Issue Parts On Ready", "Work Card", "On Submit", WORK_CARD_STOCK_SCRIPT)
+
+    # Cancelling the Work Card reverses the stock movement, closing the
+    # phantom-stock hole the audit flagged as the highest-risk mechanism.
+    _ensure_server_script("Work Card Reverse Parts On Cancel", "Work Card", "On Cancel", WORK_CARD_CANCEL_SCRIPT)
 
     # Retire the mirroring scripts. They existed only to copy the shadow
     # documents into real ones; with users working directly in Sales Invoice and

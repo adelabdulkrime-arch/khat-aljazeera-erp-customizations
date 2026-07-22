@@ -30,6 +30,9 @@ STEPS = [
     "workshop_sales",
     "workshop_general_settings",
     "workshop_scripts",
+    # Must precede gl_stock_integration: the parts-issue script binds to the
+    # On Submit event, which only exists once the doctype is submittable.
+    "workshop_work_card_control",
     "workshop_gl_stock_integration",
     # Must come AFTER gl_stock_integration, which deletes the mirroring Server
     # Scripts. Dropping a doctype while a Server Script still references it
