@@ -8,8 +8,10 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends default-mysql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Workshop customisation scripts — copied into a staging area
-COPY --chown=frappe:frappe workshop_*.py /opt/workshop-scripts/
+# The Khat Workshop app. Previously these were loose workshop_*.py scripts
+# staged in /opt and copied into apps/frappe/frappe/ at runtime — i.e. our code
+# was written into the framework itself. Now it is a real Frappe app.
+COPY --chown=frappe:frappe khat_workshop /home/frappe/frappe-bench/apps/khat_workshop
 
 # One-time init entrypoint
 COPY --chown=frappe:frappe docker/init.sh /opt/init.sh
@@ -25,6 +27,17 @@ RUN mkdir -p /backups && chown frappe:frappe /backups
 
 USER frappe
 WORKDIR /home/frappe/frappe-bench
+
+# Install the app into the bench virtualenv, editable — the same way frappe and
+# erpnext themselves are installed. This makes `khat_workshop` importable by
+# every service, which is only possible because ALL services now build from
+# this image (see the x-frappe-image anchor in docker-compose.yml).
+#
+# Registering the app with the SITE happens at runtime in init.sh, not here:
+# sites/apps.txt lives inside the `sites` volume and anything written to it at
+# build time would be masked the moment that volume is mounted.
+RUN /home/frappe/frappe-bench/env/bin/pip install --no-cache-dir \
+        -e /home/frappe/frappe-bench/apps/khat_workshop
 
 # NOTE: deliberately NO `CMD` override here.
 # The base image ships CMD ["start.sh"], which is what boots gunicorn for the

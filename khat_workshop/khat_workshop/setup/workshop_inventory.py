@@ -1,101 +1,63 @@
 # -*- coding: utf-8 -*-
-"""Build 'المحاسبة' (Accounting) dashboard matching Mazoon's screen — 5
-grouped sections, ~30 tiles, ALL routed to native ERPNext Accounts module
-features (Sales/Purchase Invoice, Payment Entry, Journal Entry, standard
-financial reports etc.) — nothing rebuilt from scratch, this module is
-ERPNext's own core strength."""
+"""Build 'المخزون' (Inventory) dashboard matching Mazoon's screen — 3 grouped
+sections, ~18 tiles, all routed to native ERPNext Stock module features."""
 import json
 import frappe
-from frappe.workshop_futuristic import FUTURISTIC_CSS, FUTURISTIC_JS
+from khat_workshop.setup.workshop_futuristic import FUTURISTIC_CSS, FUTURISTIC_JS
 
-WS_NAME = "Accounting Dashboard"
-WS_TITLE = "المحاسبة"
-BLOCK_NAME = "Accounting Dashboard Tiles"
+WS_NAME = "Inventory Dashboard"
+WS_TITLE = "المخزون"
+BLOCK_NAME = "Inventory Dashboard Tiles"
 
-# Each group: (group_title, [(label, action, target, icon, extra_route_options)])
-# action: list | new | page | tree | report
+# action: list | new | report
 GROUPS = [
-    ("فواتير الخدمات والإيرادات", [
-        ("عروض أسعار الخدمات", "list", "Quotation", "file", None),
-        ("إشعارات الدائن", "list", "Sales Invoice", "receipt", {"is_return": 1}),
-        ("الأقساط", "list", "Sales Invoice", "calendar", None),
-        ("مدفوعات فواتير الخدمات", "list", "Payment Entry", "credit-card", {"payment_type": "Receive"}),
-        ("فواتير الخدمات", "list", "Sales Invoice", "receipt", {"is_return": 0}),
-        ("إضافة فاتورة خدمات", "new", "Sales Invoice", "plus", None),
+    ("الإعداد", [
+        ("المستودعات", "list", "Warehouse", "warehouse", None),
+        ("البراندات", "list", "Brand", "tag", None),
+        ("الأصناف", "list", "Item Group", "layout-grid", None),
+        ("الوحدات", "list", "UOM", "wrench", None),
+        ("المنتجات", "list", "Item", "package-plus", None),
+        ("نقاط البيع", "list", "POS Profile", "credit-card", None),
     ]),
-    ("المصروفات والمدفوعات", [
-        ("الشيكات", "list", "Journal Entry", "credit-card", None),
-        ("فئات المصروفات", "list", "Account", "tag", {"root_type": "Expense", "is_group": 0}),
-        ("سندات الصرف", "list", "Payment Entry", "dollar-sign", {"payment_type": "Pay"}),
-        ("سندات القبض", "list", "Payment Entry", "dollar-sign", {"payment_type": "Receive"}),
-        ("دفعات المصروفات", "list", "Payment Entry", "credit-card",
-         {"payment_type": "Pay", "party_type": "Supplier"}),
-        ("فواتير المصروفات", "list", "Journal Entry", "file-text", None),
+    ("العمليات", [
+        ("سياسات إعادة الطلب", "list", "Item", "settings", None),
+        ("أوامر الإتلاف", "list", "Stock Entry", "trash", {"stock_entry_type": "Material Issue"}),
+        ("تحويلات المخزون", "list", "Stock Entry", "truck", {"stock_entry_type": "Material Transfer"}),
+        ("الجرد", "list", "Stock Reconciliation", "file-check", None),
+        ("الدفعات", "list", "Batch", "layout-grid", None),
+        ("دفتر المخزون", "report", "Stock Ledger", "file-text", None),
     ]),
-    ("المشتريات", [
-        ("مدفوعات المشتريات", "list", "Payment Entry", "credit-card",
-         {"payment_type": "Pay", "party_type": "Supplier"}),
-        ("المشتريات", "list", "Purchase Invoice", "receipt", None),
-        ("الموردون", "list", "Supplier", "truck", None),
-    ]),
-    ("المحاسبة والتقارير", [
-        ("التحويلات", "list", "Journal Entry", "trending-up", {"voucher_type": "Bank Entry"}),
-        ("الرصيد الافتتاحي", "page", "opening-invoice-creation-tool", "file-plus", None),
-        ("الشجرة المحاسبية", "tree", "Account", "chart-bar", None),
-        ("تسوية الرسوم والضرائب", "list", "Journal Entry", "settings", None),
-        ("إضافة قيد يدوي", "new", "Journal Entry", "plus", None),
-        ("القيود", "list", "Journal Entry", "file-text", None),
-        ("التسويات البنكية", "page", "bank-reconciliation-tool", "credit-card", None),
-        ("الفترات المحاسبية", "list", "Accounting Period", "calendar", None),
-        ("طرق الدفع", "list", "Mode of Payment", "credit-card", None),
-        ("الأصول", "list", "Asset", "wrench", None),
-        ("أرصدة النقدية والبنوك", "list", "Bank Account", "dollar-sign", None),
-        ("التدفقات النقدية", "report", "Cash Flow", "trending-up", None),
-        ("مستحقات الموردين", "report", "Accounts Payable", "receipt", None),
-        ("مديونيات العملاء", "report", "Accounts Receivable", "receipt", None),
-        ("التقارير", "report", "Balance Sheet", "chart-bar", None),
-    ]),
-    ("العملاء", [
-        ("العملاء", "list", "Customer", "users", None),
+    ("التقارير", [
+        ("تقرير الإتلاف والفاقد", "list", "Stock Entry", "trash",
+         {"stock_entry_type": "Material Issue"}),
+        ("المخزون حسب الفرع", "report", "Stock Balance", "warehouse", None),
+        ("تقرير إعادة الطلب", "report", "Stock Projected Qty", "trending-up", None),
+        ("بطاقة الصنف", "list", "Item", "id-card", None),
+        ("تقرير الرصيد", "report", "Stock Balance", "chart-bar", None),
     ]),
 ]
 
 TRANSLATIONS = [
-    ("المحاسبة", "Accounting"),
-    ("فواتير الخدمات والإيرادات", "Service Invoices & Revenue"),
-    ("عروض أسعار الخدمات", "Service Quotations"),
-    ("إشعارات الدائن", "Credit Notes"),
-    ("الأقساط", "Installments"),
-    ("مدفوعات فواتير الخدمات", "Service Invoice Payments"),
-    ("فواتير الخدمات", "Service Invoices"),
-    ("إضافة فاتورة خدمات", "Add Service Invoice"),
-    ("المصروفات والمدفوعات", "Expenses & Payments"),
-    ("الشيكات", "Cheques"),
-    ("فئات المصروفات", "Expense Categories"),
-    ("سندات الصرف", "Payment Vouchers"),
-    ("سندات القبض", "Receipt Vouchers"),
-    ("دفعات المصروفات", "Expense Payments"),
-    ("فواتير المصروفات", "Expense Invoices"),
-    ("مدفوعات المشتريات", "Purchase Payments"),
-    ("المشتريات", "Purchases"),
-    ("الموردون", "Suppliers"),
-    ("المحاسبة والتقارير", "Accounting & Reports"),
-    ("التحويلات", "Transfers"),
-    ("الرصيد الافتتاحي", "Opening Balance"),
-    ("الشجرة المحاسبية", "Chart of Accounts"),
-    ("تسوية الرسوم والضرائب", "Tax & Fee Reconciliation"),
-    ("إضافة قيد يدوي", "Add Manual Journal Entry"),
-    ("القيود", "Journal Entries"),
-    ("التسويات البنكية", "Bank Reconciliation"),
-    ("الفترات المحاسبية", "Accounting Periods"),
-    ("طرق الدفع", "Payment Methods"),
-    ("الأصول", "Assets"),
-    ("أرصدة النقدية والبنوك", "Cash & Bank Balances"),
-    ("التدفقات النقدية", "Cash Flow"),
-    ("مستحقات الموردين", "Supplier Payables"),
-    ("مديونيات العملاء", "Customer Receivables"),
+    ("المخزون", "Inventory"),
+    ("الإعداد", "Setup"),
+    ("المستودعات", "Warehouses"),
+    ("البراندات", "Brands"),
+    ("الوحدات", "Units"),
+    ("المنتجات", "Products"),
+    ("نقاط البيع", "Points of Sale"),
+    ("العمليات", "Operations"),
+    ("سياسات إعادة الطلب", "Reorder Policies"),
+    ("أوامر الإتلاف", "Disposal Orders"),
+    ("تحويلات المخزون", "Stock Transfers"),
+    ("الجرد", "Stock Reconciliation"),
+    ("الدفعات", "Batches"),
+    ("دفتر المخزون", "Stock Ledger"),
     ("التقارير", "Reports"),
-    ("العملاء", "Customers"),
+    ("تقرير الإتلاف والفاقد", "Waste & Loss Report"),
+    ("المخزون حسب الفرع", "Stock by Warehouse"),
+    ("تقرير إعادة الطلب", "Reorder Report"),
+    ("بطاقة الصنف", "Item Card"),
+    ("تقرير الرصيد", "Balance Report"),
 ]
 
 STYLE = """
@@ -118,7 +80,6 @@ STYLE = """
 .acd-grid > .acd-tile:nth-child(n+5){ animation-delay:.09s; }
 .acd-tile.acd-primary { background:linear-gradient(135deg,#c0392b,#e63946); border-color:transparent;
   box-shadow:0 8px 20px rgba(230,57,70,.28); }
-.acd-tile.acd-primary:hover { box-shadow:0 12px 28px rgba(230,57,70,.36); }
 .acd-tile.acd-primary .acd-tile-lbl { color:#fff; }
 .acd-tile.acd-primary .acd-tile-ico { color:#fff !important; }
 .acd-tile-lbl { font-size:13.5px; font-weight:600; color:var(--text-color,#1a2b4a); }
@@ -236,15 +197,13 @@ root.querySelectorAll('.acd-tile').forEach(function(t){
     var a = t.dataset.action, tg = t.dataset.target;
     var filters = t.dataset.filters ? JSON.parse(t.dataset.filters) : null;
     if(a === 'list') {
-      if(filters) frappe.set_route('List', tg).then(function(){
-        var lv = cur_list;
-        if(lv && lv.doctype === tg){ Object.keys(filters).forEach(function(k){ lv.filter_area.add(tg, k, '=', filters[k]); }); }
+      frappe.set_route('List', tg).then(function(){
+        if(filters && cur_list && cur_list.doctype === tg){
+          Object.keys(filters).forEach(function(k){ cur_list.filter_area.add(tg, k, '=', filters[k]); });
+        }
       });
-      else frappe.set_route('List', tg);
     }
     else if(a === 'new') frappe.new_doc(tg);
-    else if(a === 'page') frappe.set_route(tg);
-    else if(a === 'tree') frappe.set_route('Tree', tg);
     else if(a === 'report') frappe.set_route('query-report', tg);
   });
 });
@@ -256,16 +215,14 @@ def _tiles_html():
     for group_title, tiles in GROUPS:
         cells = []
         for label, action, target, icon, filters in tiles:
-            primary = ' acd-primary' if action == 'new' else ''
             filt_attr = (' data-filters=\'%s\'' % json.dumps(filters)) if filters else ''
             cells.append(
-                '<div class="acd-tile%s" data-action="%s" data-target="%s"%s>'
+                '<div class="acd-tile" data-action="%s" data-target="%s"%s>'
                 '<span class="acd-tile-lbl" data-i18n="%s">%s</span>'
-                '<svg class="icon icon-sm acd-tile-ico" style="color:%s;">'
+                '<svg class="icon icon-sm acd-tile-ico" style="color:#e63946;">'
                 '<use href="#icon-%s"></use></svg></div>'
-                % (primary, action, frappe.utils.escape_html(target), filt_attr,
-                   frappe.utils.escape_html(label), label,
-                   '#fff' if action == 'new' else '#e63946', icon)
+                % (action, frappe.utils.escape_html(target), filt_attr,
+                   frappe.utils.escape_html(label), label, icon)
             )
         groups_html.append(
             '<div class="acd-group"><div class="acd-group-title" data-i18n="%s">%s</div>'
@@ -285,8 +242,8 @@ def _make_block():
     })
     d.insert(ignore_permissions=True)
     d.append("roles", {"role": "System Manager"})
-    d.append("roles", {"role": "Accounts Manager"})
-    d.append("roles", {"role": "محاسب"})
+    d.append("roles", {"role": "Stock Manager"})
+    d.append("roles", {"role": "مدير المستودع"})
     d.save(ignore_permissions=True)
     frappe.db.commit()
     return d.name
@@ -309,18 +266,18 @@ def execute():
         frappe.db.commit()
 
     content = [
-        {"id": "ac_hdr", "type": "header",
-         "data": {"text": '<span class="h4"><b>المحاسبة</b></span>', "col": 12}},
-        {"id": "ac_cb", "type": "custom_block",
+        {"id": "inv_hdr", "type": "header",
+         "data": {"text": '<span class="h4"><b>المخزون</b></span>', "col": 12}},
+        {"id": "inv_cb", "type": "custom_block",
          "data": {"custom_block_name": block_name, "col": 12}},
     ]
 
     ws = frappe.get_doc({
         "doctype": "Workspace", "name": WS_NAME, "label": WS_NAME, "title": WS_TITLE,
-        "public": 1, "is_hidden": 0, "icon": "accounting", "module": "Core",
+        "public": 1, "is_hidden": 0, "icon": "stock", "module": "Core",
         "content": json.dumps(content, ensure_ascii=False),
         "shortcuts": [], "links": [], "number_cards": [], "quick_lists": [], "charts": [],
-        "sequence_id": 3,
+        "sequence_id": 4,
     })
     ws.append("custom_blocks", {"custom_block_name": block_name, "label": block_name})
     ws.insert(ignore_permissions=True)
@@ -329,17 +286,14 @@ def execute():
         frappe.delete_doc("Workspace Sidebar", WS_NAME, force=1, ignore_permissions=True)
     frappe.get_doc({
         "doctype": "Workspace Sidebar", "name": WS_NAME, "title": WS_NAME,
-        "header_icon": "accounting", "module": "Core", "standard": 0, "items": [],
+        "header_icon": "stock", "module": "Core", "standard": 0, "items": [],
     }).insert(ignore_permissions=True)
 
-    # Deprioritize the native "Invoicing"/"Financial Reports" workspaces so
-    # our own Accounting dashboard is the primary entry point (kept, not
-    # hidden — still reachable, just not competing for top sidebar slot).
-    for wsname, seq in [("Invoicing", 30), ("Financial Reports", 31)]:
-        if frappe.db.exists("Workspace", wsname):
-            frappe.db.set_value("Workspace", wsname, "sequence_id", seq)
+    # Deprioritize native "Stock" workspace (we still keep it reachable)
+    if frappe.db.exists("Workspace", "Stock"):
+        frappe.db.set_value("Workspace", "Stock", "sequence_id", 32)
 
     frappe.db.commit()
     frappe.clear_cache()
     total_tiles = sum(len(t) for _, t in GROUPS)
-    print("ACCOUNTING_DASHBOARD_DONE groups=%d tiles=%d" % (len(GROUPS), total_tiles))
+    print("INVENTORY_DASHBOARD_DONE groups=%d tiles=%d" % (len(GROUPS), total_tiles))

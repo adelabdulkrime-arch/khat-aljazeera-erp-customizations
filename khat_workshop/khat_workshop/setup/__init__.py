@@ -1,0 +1,71 @@
+"""Ordered, idempotent setup steps for the Khat Workshop app.
+
+Invoked by the `after_migrate` hook, so every `bench migrate` re-applies the
+full customisation set — the same behaviour init.sh used to provide by copying
+scripts into apps/frappe/frappe/ and executing them one at a time.
+"""
+
+import importlib
+import traceback
+
+import frappe
+
+# Order matters:
+#   - workshop_setup creates the custom DocTypes and roles everything else
+#     references, so it MUST be first.
+#   - workshop_oman_setup2 retags the chart of accounts to OMR and must run
+#     BEFORE workshop_oman_setup performs the currency switch.
+#
+# workshop_futuristic is deliberately absent: it is a shared CSS/JS library
+# imported by the dashboard builders and exposes no execute(). Listing it here
+# is what previously produced an "has no attribute 'execute'" failure on every
+# single deploy.
+STEPS = [
+    "workshop_setup",
+    "workshop_home",
+    "workshop_dashboard",
+    "workshop_accounting",
+    "workshop_inventory",
+    "workshop_purchasing",
+    "workshop_sales",
+    "workshop_general_settings",
+    "workshop_scripts",
+    "workshop_gl_stock_integration",
+    "workshop_invoice_whatsapp",
+    "workshop_translations",
+    "workshop_oman_setup2",
+    "workshop_oman_setup",
+]
+
+
+def run_all():
+    """Run every setup step in order.
+
+    A failing step is logged and skipped rather than aborting the run: losing
+    one dashboard is better than losing every customisation after it. Each step
+    is committed on success and rolled back on failure, so a partial failure
+    cannot leave half-written state behind.
+    """
+    failures = []
+
+    for name in STEPS:
+        try:
+            module = importlib.import_module("khat_workshop.setup.%s" % name)
+            module.execute()
+            frappe.db.commit()
+            print("[khat_workshop]   OK    %s" % name)
+        except Exception:
+            frappe.db.rollback()
+            failures.append(name)
+            print("[khat_workshop]   FAIL  %s" % name)
+            print(traceback.format_exc())
+
+    if failures:
+        print(
+            "[khat_workshop] finished with %d failure(s): %s"
+            % (len(failures), ", ".join(failures))
+        )
+    else:
+        print("[khat_workshop] all %d steps OK" % len(STEPS))
+
+    frappe.clear_cache()

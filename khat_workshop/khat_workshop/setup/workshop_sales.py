@@ -1,52 +1,50 @@
 # -*- coding: utf-8 -*-
-"""Build 'المشتريات' (Purchasing) dashboard matching Mazoon's screen — flat
-tile row + stat cards, all routed to native ERPNext Buying module features."""
+"""Build 'المبيعات' (Sales) dashboard matching Mazoon's screen — stat cards +
+flat tile grid, all routed to native ERPNext Selling module features
+(Quotation/Sales Order/Delivery Note/Sales Invoice/POS/Customer)."""
 import json
 import frappe
-from frappe.workshop_futuristic import FUTURISTIC_CSS, FUTURISTIC_JS
+from khat_workshop.setup.workshop_futuristic import FUTURISTIC_CSS, FUTURISTIC_JS
 
-WS_NAME = "Purchasing Dashboard"
-WS_TITLE = "المشتريات"
-BLOCK_NAME = "Purchasing Dashboard Tiles"
+WS_NAME = "Sales Dashboard"
+WS_TITLE = "المبيعات"
+BLOCK_NAME = "Sales Dashboard Tiles"
 
-# action: list | report
+# action: list | page | report
 TILES = [
-    ("طلبات الشراء", "list", "Material Request", "file-text", {"material_request_type": "Purchase"}),
-    ("أوامر الشراء", "list", "Purchase Order", "shopping-cart", None),
-    ("إشعارات الاستلام", "list", "Purchase Receipt", "truck", None),
-    ("فواتير المورد", "list", "Purchase Invoice", "receipt", {"is_return": 0}),
-    ("مدفوعات الموردين", "list", "Payment Entry", "credit-card",
-     {"payment_type": "Pay", "party_type": "Supplier"}),
-    ("مرتجعات الشراء", "list", "Purchase Invoice", "trending-down", {"is_return": 1}),
-    ("الموردون", "list", "Supplier", "users", None),
-    ("تقارير المشتريات", "report", "Purchase Analytics", "chart-bar", None),
+    ("عروض الأسعار", "list", "Quotation", "file", None),
+    ("أوامر البيع", "list", "Sales Order", "shopping-cart", None),
+    ("أذون التسليم", "list", "Delivery Note", "truck", None),
+    ("فواتير البيع", "list", "Sales Invoice", "receipt", {"is_return": 0}),
+    ("سندات القبض", "list", "Payment Entry", "dollar-sign", {"payment_type": "Receive"}),
+    ("مرتجعات المبيعات", "list", "Sales Invoice", "trending-down", {"is_return": 1}),
+    ("التقارير", "report", "Sales Analytics", "chart-bar", None),
+    ("نقطة البيع", "page", "point-of-sale", "credit-card", None),
+    ("عرض الفواتير", "list", "Sales Invoice", "receipt", None),
+    ("إدارة الورديات", "list", "POS Opening Entry", "history", None),
+    ("العملاء", "list", "Customer", "users", None),
 ]
 
 NUMBER_CARDS = [
-    ("Purchasing Total Invoices", "إجمالي عدد فواتير المشتريات", "Purchase Invoice", "Count", None, "#318ad8", None),
-    ("Purchasing Total Amount", "إجمالي المشتريات", "Purchase Invoice", "Sum", "grand_total", "#e67e22", None),
-    ("Purchasing Total Paid", "إجمالي المدفوع", "Payment Entry", "Sum", "paid_amount", "#1f9d55",
-     {"payment_type": "Pay", "party_type": "Supplier"}),
-    ("Purchasing Suppliers", "الموردون", "Supplier", "Count", None, "#7c7c7c", None),
-    ("Purchasing Open Orders", "الأوامر المفتوحة", "Purchase Order", "Count", None, "#cb2929", None),
-    ("Purchasing Pending Requests", "طلبات معلقة", "Material Request", "Count", None, "#9c27b0", None),
+    ("Sales Pending Orders", "أوامر البيع المعلقة", "Sales Order", "Count", None, "#cb2929"),
+    ("Sales Receivables", "الذمم المدينة", "Sales Invoice", "Sum", "outstanding_amount", "#e67e22"),
+    ("Sales Total Amount", "إجمالي المبيعات", "Sales Invoice", "Sum", "grand_total", "#1f9d55"),
+    ("Sales Total Customers", "العملاء", "Customer", "Count", None, "#7c7c7c"),
 ]
 
 TRANSLATIONS = [
-    ("المشتريات", "Purchasing"),
-    ("طلبات الشراء", "Purchase Requests"),
-    ("أوامر الشراء", "Purchase Orders"),
-    ("إشعارات الاستلام", "Receipt Notes"),
-    ("فواتير المورد", "Supplier Invoices"),
-    ("مدفوعات الموردين", "Supplier Payments"),
-    ("مرتجعات الشراء", "Purchase Returns"),
-    ("الموردون", "Suppliers"),
-    ("تقارير المشتريات", "Purchase Reports"),
-    ("إجمالي عدد فواتير المشتريات", "Total Purchase Invoice Count"),
-    ("إجمالي المشتريات", "Total Purchases"),
-    ("إجمالي المدفوع", "Total Paid"),
-    ("الأوامر المفتوحة", "Open Orders"),
-    ("طلبات معلقة", "Pending Requests"),
+    ("المبيعات", "Sales"),
+    ("عروض الأسعار", "Quotations"),
+    ("أوامر البيع", "Sales Orders"),
+    ("أذون التسليم", "Delivery Notes"),
+    ("فواتير البيع", "Sales Invoices"),
+    ("سندات القبض", "Receipt Vouchers"),
+    ("مرتجعات المبيعات", "Sales Returns"),
+    ("نقطة البيع", "Point of Sale"),
+    ("عرض الفواتير", "View Invoices"),
+    ("إدارة الورديات", "Shift Management"),
+    ("أوامر البيع المعلقة", "Pending Sales Orders"),
+    ("الذمم المدينة", "Receivables"),
 ]
 
 STYLE = """
@@ -183,6 +181,7 @@ root.querySelectorAll('.acd-tile').forEach(function(t){
         }
       });
     }
+    else if(a === 'page') frappe.set_route(tg);
     else if(a === 'report') frappe.set_route('query-report', tg);
   });
 });
@@ -206,15 +205,14 @@ def _tiles_html():
 
 def _make_number_cards():
     result = []
-    for name, label, dt, func, based_on, color, filters in NUMBER_CARDS:
+    for name, label, dt, func, based_on, color in NUMBER_CARDS:
         for existing in frappe.get_all("Number Card", filters={"label": label}, pluck="name"):
             frappe.delete_doc("Number Card", existing, force=1, ignore_permissions=True)
-        filters_json = json.dumps([[dt, k, "=", v] for k, v in (filters or {}).items()])
         doc = {
             "doctype": "Number Card", "label": label, "type": "Document Type",
             "document_type": dt, "function": func, "is_public": 1,
             "show_percentage_stats": 1, "stats_time_interval": "Daily",
-            "color": color, "filters_json": filters_json,
+            "color": color, "filters_json": "[]",
         }
         if func == "Sum" and based_on:
             doc["aggregate_function_based_on"] = based_on
@@ -235,8 +233,9 @@ def _make_block():
     })
     d.insert(ignore_permissions=True)
     d.append("roles", {"role": "System Manager"})
-    d.append("roles", {"role": "Purchase User"})
-    d.append("roles", {"role": "مسؤول المشتريات"})
+    d.append("roles", {"role": "Sales User"})
+    d.append("roles", {"role": "مندوب مبيعات"})
+    d.append("roles", {"role": "كاشير"})
     d.save(ignore_permissions=True)
     frappe.db.commit()
     return d.name
@@ -260,25 +259,26 @@ def execute():
         frappe.db.commit()
 
     content = [
-        {"id": "pur_hdr", "type": "header",
-         "data": {"text": '<span class="h4"><b>المشتريات</b></span>', "col": 12}},
-        {"id": "pur_cb", "type": "custom_block",
-         "data": {"custom_block_name": block_name, "col": 12}},
+        {"id": "sal_hdr", "type": "header",
+         "data": {"text": '<span class="h4"><b>المبيعات</b></span>', "col": 12}},
     ]
     number_cards = []
     for idx, (name, label) in enumerate(made_cards):
-        content.append({"id": "pur_nc_%d" % idx, "type": "number_card",
+        content.append({"id": "sal_nc_%d" % idx, "type": "number_card",
                         "data": {"number_card_name": name, "col": 3}})
         number_cards.append({"number_card_name": name, "label": label})
 
+    content.append({"id": "sal_cb", "type": "custom_block",
+                    "data": {"custom_block_name": block_name, "col": 12}})
+
     ws = frappe.get_doc({
         "doctype": "Workspace", "name": WS_NAME, "label": WS_NAME, "title": WS_TITLE,
-        "public": 1, "is_hidden": 0, "icon": "buying", "module": "Core",
+        "public": 1, "is_hidden": 0, "icon": "sell", "module": "Core",
         "content": json.dumps(content, ensure_ascii=False),
         "shortcuts": [], "links": [], "number_cards": number_cards,
         "quick_lists": [], "charts": [],
         "custom_blocks": [{"custom_block_name": block_name, "label": block_name}],
-        "sequence_id": 5,
+        "sequence_id": 6,
     })
     ws.insert(ignore_permissions=True)
 
@@ -286,12 +286,12 @@ def execute():
         frappe.delete_doc("Workspace Sidebar", WS_NAME, force=1, ignore_permissions=True)
     frappe.get_doc({
         "doctype": "Workspace Sidebar", "name": WS_NAME, "title": WS_NAME,
-        "header_icon": "buying", "module": "Core", "standard": 0, "items": [],
+        "header_icon": "sell", "module": "Core", "standard": 0, "items": [],
     }).insert(ignore_permissions=True)
 
-    if frappe.db.exists("Workspace", "Buying"):
-        frappe.db.set_value("Workspace", "Buying", "sequence_id", 33)
+    if frappe.db.exists("Workspace", "Selling"):
+        frappe.db.set_value("Workspace", "Selling", "sequence_id", 34)
 
     frappe.db.commit()
     frappe.clear_cache()
-    print("PURCHASING_DASHBOARD_DONE tiles=%d cards=%d" % (len(TILES), len(number_cards)))
+    print("SALES_DASHBOARD_DONE tiles=%d cards=%d" % (len(TILES), len(number_cards)))

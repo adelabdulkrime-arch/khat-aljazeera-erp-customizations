@@ -4,7 +4,7 @@
 the grouped menu. All DB-persisted."""
 import json
 import frappe
-from frappe.workshop_futuristic import FUTURISTIC_CSS, FUTURISTIC_JS
+from khat_workshop.setup.workshop_futuristic import FUTURISTIC_CSS, FUTURISTIC_JS
 
 LABEL = "Workshop"
 TITLE = "ورشة الصيانة"

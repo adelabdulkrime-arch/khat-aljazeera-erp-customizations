@@ -110,57 +110,48 @@ bench use "${SITE_NAME}" 2>/dev/null || true
 bench --site "${SITE_NAME}" set-config host_name "http://frontend:8080" \
   && log "host_name set" || warn "could not set host_name (non-fatal)"
 
-# ── 4. Apply workshop customisations in the required order ───────────────────
-# Shared library modules: copied so the dashboard builders can import them,
-# but NOT executed — they expose no execute(). Running them produced a
-# guaranteed "has no attribute 'execute'" failure on every single deploy.
-# They must still be copied, or the imports in the dashboards would break.
-LIBS=(
-  workshop_futuristic          # shared CSS/JS design layer + command palette
-)
+# ── 4. Install the Khat Workshop app, then migrate ───────────────────────────
+# The customisations are now a real Frappe app (apps/khat_workshop), installed
+# into the venv at image build time. We no longer copy any .py file into
+# apps/frappe/frappe/.
+#
+# Two things must still happen at RUNTIME:
+#   1. register the app in sites/apps.txt — that file lives inside the `sites`
+#      volume, so anything written at build time would be masked by the mount;
+#   2. install the app on the site and migrate. The `after_migrate` hook then
+#      re-applies every idempotent setup step, which is what the old
+#      copy-and-execute loop did, only through a supported mechanism.
+APP="khat_workshop"
 
-SCRIPTS=(
-  workshop_setup               # creates all custom DocTypes — MUST be first
-  workshop_home
-  workshop_dashboard
-  workshop_accounting
-  workshop_inventory
-  workshop_purchasing
-  workshop_sales
-  workshop_general_settings
-  workshop_scripts
-  workshop_gl_stock_integration
-  workshop_invoice_whatsapp
-  workshop_translations
-  workshop_oman_setup2         # retag chart of accounts to OMR (before currency switch)
-  workshop_oman_setup          # Oman localisation: OMR currency, 5% VAT, timezone
-)
+if grep -qxF "$APP" sites/apps.txt 2>/dev/null; then
+  log "$APP already registered in sites/apps.txt"
+else
+  # apps.txt may have no trailing newline; add one before appending.
+  if [ -s sites/apps.txt ] && [ -n "$(tail -c 1 sites/apps.txt)" ]; then
+    echo "" >> sites/apps.txt
+  fi
+  echo "$APP" >> sites/apps.txt
+  log "registered $APP in sites/apps.txt"
+fi
 
-log "Staging shared library modules (copied, not executed)..."
-for module in "${LIBS[@]}"; do
-  src="/opt/workshop-scripts/${module}.py"
-  if [ ! -f "$src" ]; then
-    warn "lib not found, skipping: $src"
-    continue
-  fi
-  cp "$src" "apps/frappe/frappe/${module}.py" && log "  LIB   ${module}"
-done
+if bench --site "${SITE_NAME}" list-apps 2>/dev/null | grep -qw "$APP"; then
+  log "$APP already installed on ${SITE_NAME}"
+else
+  log "installing $APP on ${SITE_NAME}..."
+  bench --site "${SITE_NAME}" install-app "$APP" \
+    && log "install-app OK" \
+    || warn "install-app failed (migrate may still apply setup)"
+fi
 
-log "Applying workshop customisations..."
-for module in "${SCRIPTS[@]}"; do
-  src="/opt/workshop-scripts/${module}.py"
-  dst="apps/frappe/frappe/${module}.py"
-  if [ ! -f "$src" ]; then
-    warn "not found, skipping: $src"
-    continue
-  fi
-  cp "$src" "$dst"
-  if bench --site "${SITE_NAME}" execute "frappe.${module}.execute"; then
-    log "  OK    ${module}"
-  else
-    warn "  ${module} failed (continuing)"
-  fi
-done
+# Not fatal on failure: init failing would block backend from ever starting
+# (depends_on: service_completed_successfully), turning a partial setup problem
+# into a total outage. run_all() already isolates per-step failures.
+log "running bench migrate (re-applies all setup steps via after_migrate)..."
+if bench --site "${SITE_NAME}" migrate; then
+  log "migrate OK"
+else
+  warn "bench migrate FAILED — check the output above"
+fi
 
 set +x
 log "=============================================="

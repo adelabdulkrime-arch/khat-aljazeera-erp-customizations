@@ -1,0 +1,5 @@
+[pre_model_sync]
+
+[post_model_sync]
+# Setup is applied via the `after_migrate` hook (see hooks.py), not as patches,
+# because the steps are idempotent and must re-run on every deploy.

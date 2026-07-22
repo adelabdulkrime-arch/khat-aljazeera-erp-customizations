@@ -218,7 +218,7 @@ function send_whatsapp(frm){
     Promise.all([
         frappe.db.get_value('Customer', frm.doc.customer, 'mobile_no'),
         frappe.db.get_single_value('Workshop Settings', 'country_code'),
-        frappe.call('frappe.workshop_invoice_whatsapp.get_invoice_pdf_url', {invoice: frm.doc.name}),
+        frappe.call('khat_workshop.setup.workshop_invoice_whatsapp.get_invoice_pdf_url', {invoice: frm.doc.name}),
     ]).then(([customerRes, countryCode, pdfRes])=>{
         frappe.dom.unfreeze();
         let phone = (customerRes.message && customerRes.message.mobile_no || '').replace(/[^0-9]/g, '');
