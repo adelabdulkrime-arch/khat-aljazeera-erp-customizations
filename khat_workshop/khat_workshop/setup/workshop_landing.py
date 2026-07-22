@@ -14,12 +14,26 @@ Three problems this fixes, all first-impression issues:
 3. Modules irrelevant to a vehicle workshop were on display, which makes the
    system feel unfitted and gives staff places to wander into.
 
-Idempotent. Hiding is reversible: nothing is deleted, only flagged.
+4. Opening the bare domain landed on the legacy /desk module grid instead of
+   the desk. That page is built from Module Def records, so it ignores
+   workspace ordering and hiding entirely and shows none of our dashboards —
+   the customisation looked absent when it was in fact applied. Pointing
+   home_page at "app" sends the root URL, and every post-login redirect that
+   has no explicit target, to the real desk.
+
+Idempotent. Every change here is reversible: nothing is deleted, workspaces
+are only flagged, and home_page can be reset from Website Settings.
 """
 
 import frappe
 
 LANDING = "Home"
+
+# Website Settings home_page. "app" is the desk router; it resolves onward to
+# the user's default_workspace, which step 3 below pins to LANDING.
+# Guests hitting "/" are bounced to /login by the desk itself, which is the
+# behaviour we want — there is no public portal on this site.
+HOME_PAGE = "app"
 
 # Ordered exactly as the workshop should read it.
 ORDER = [
@@ -69,7 +83,12 @@ def execute():
         # applies to users created later too
         frappe.db.set_default("default_workspace", LANDING)
 
+    # 4. send "/" to the desk, not to the legacy /desk module grid
+    home = frappe.db.get_single_value("Website Settings", "home_page")
+    if home != HOME_PAGE:
+        frappe.db.set_single_value("Website Settings", "home_page", HOME_PAGE)
+
     frappe.db.commit()
     frappe.clear_cache()
-    print("LANDING order_fixed=%d hidden=%d users_landed=%d target=%s"
-          % (fixed, hidden, landed, LANDING))
+    print("LANDING order_fixed=%d hidden=%d users_landed=%d target=%s home_page=%s"
+          % (fixed, hidden, landed, LANDING, HOME_PAGE))
