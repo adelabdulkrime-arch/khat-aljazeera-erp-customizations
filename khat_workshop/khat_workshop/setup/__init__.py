@@ -36,6 +36,7 @@ STEPS = [
     "workshop_service_catalogue",
     # Needs Work Card Technician to exist, so it follows work_card_control.
     "workshop_labour_costing",
+    "workshop_vehicle_intake",
     "workshop_seed_data",
     "workshop_seed_parts",
     # Reads the seeded catalogue to derive its levels, so it must follow it.

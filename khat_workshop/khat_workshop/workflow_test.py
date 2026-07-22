@@ -80,6 +80,9 @@ def run():
             "status": status,
             "warehouse": wh,
             "complaint": "%s — حالة اختبار %d" % (line, idx),
+            # Intake condition is mandatory before submit; these synthetic
+            # vehicles have no damage to record.
+            "no_visible_damage": 1,
             "services": [{"service": svc, "qty": 1, "rate": 0}],
             "parts": [{"item": part, "part_name": part, "qty": qty, "rate": 0}],
         })

@@ -43,5 +43,9 @@ doc_events = {
     "Work Card": {
         "validate": "khat_workshop.costing.compute",
         "on_submit": "khat_workshop.costing.recompute_on_submit",
+        # before_submit, not validate: a draft may legitimately be half-filled
+        # while the car is still being walked around. What must never happen is
+        # work starting on a vehicle whose condition nobody recorded.
+        "before_submit": "khat_workshop.intake.validate_intake",
     }
 }
