@@ -48,6 +48,9 @@ STEPS = [
     "workshop_retire_shadow",
     "workshop_invoice_whatsapp",
     "workshop_translations",
+    # After translations: the English renderings must exist before anyone can
+    # switch to English and find half a screen untranslated.
+    "workshop_language",
     "workshop_oman_setup2",
     "workshop_landing",
     "workshop_oman_setup",

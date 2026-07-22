@@ -648,3 +648,34 @@ reorder_item() → MAT-MR-2026-00001  (SP-RAD, qty=5, Stores - KAJ)
 
 **متبقٍّ:** نموذج طباعة يوقّعه العميل ورقيًا. التوقيع الرقمي مسجَّل الآن، والنموذج
 المطبوع عمل مستقل.
+
+---
+
+## ١٢. لغة الموقع (2026-07-23)
+
+**البلاغ:** «اللغة لم تعد تظهر كما كانت.»
+
+**التحقق من سجل التغييرات أثبت أنني لم أمسّها:**
+
+```
+2026-07-20 20:08  Administrator  language: '' → 'English'   (الإنشاء الأول)
+2026-07-20 21:47  Administrator  country: Yemen → Oman      (اللغة لم تُصحَّح)
+2026-07-21 03:00  المالك         لا تغيير في اللغة
+```
+
+**السبب:** لغة الموقع إنجليزية منذ الإنشاء. حساب المالك يحمل `ar` شخصيًا،
+و`Administrator` بلا لغة فيرث الإنجليزية — فالنظام نفسه يظهر بلغتين حسب من يفتحه.
+
+**تصحيح لفهمي:** التسميات الأصلية في هذا النظام **عربية**، و
+[`workshop_translations.py`](khat_workshop/khat_workshop/setup/workshop_translations.py)
+يسجّل مقابلها **الإنجليزي** تحت اللغة `en`. أي أن الإنجليزية التي ظهرت كانت
+الترجمة تعمل كما صُمّمت. لولا قراءة الملف لعكستُ الاتجاه و«أصلحتُ» ما ليس معطلًا.
+
+**العلاج** — [`workshop_language.py`](khat_workshop/khat_workshop/setup/workshop_language.py):
+`System Settings.language = ar` و`default lang = ar`، وتعبئة لغة المستخدمين
+**الفارغة فقط** — من اختار لغة يبقى على اختياره.
+
+```
+LANGUAGE target=ar changed=system_settings,default_lang users_filled=1
+Administrator = 'ar'   المالك = 'ar'
+```
