@@ -341,7 +341,36 @@ dst="apps/frappe/frappe/${module}.py"
 النتائج: الكود يُمحى مع كل تحديث للصورة، لا `hooks.py`، لا migrations، لا إصدارات،
 ولا إمكانية إلغاء تثبيت. **البديل:** تطبيق `khat_workshop` يُثبَّت بـ `bench install-app`.
 
-### ب-٢ — إلغاء المستندات الموازية
+### ✅ ب-٢ — إلغاء المستندات الموازية — **مُنجز ومُتحقَّق منه**
+
+المستخدمون يعملون الآن مباشرةً في `Quotation` و`Sales Invoice` و`Payment Entry`،
+والرابط بالورشة انتقل إلى **حقول مخصصة** على تلك المستندات (`work_card`,
+`vehicle`) فلم يُفقد شيء.
+
+**ما حُذف:** `Repair Invoice` (+Item) · `Workshop Quotation` (+Item) ·
+`Workshop Payment` · `Service Package` (+Item) — سبعة DocTypes.
+
+**ما بقي (12 خاصًا بالورشة فعلًا، بلا مقابل في ERPNext):** `Work Card` وجداوله ·
+`Customer Vehicle` · `Vehicle Brand/Model` · `Workshop Technician` ·
+`Work Card Status` · `Commission Log` · `Maintenance Reminder` ·
+`Workshop Settings`.
+
+**الجسر اختفى ومعه عيوبه كلها:** لا فواتير بلا ضريبة، ولا انهيار البنود إلى
+`WORKSHOP-SERVICE`، ولا غياب معالجة الإلغاء، ولا `submit()` داخل `Before Save`
+يخلّف مستندات مُرحَّلة يتيمة. حُذفت أيضًا الـ Server Scripts التي أُنشئت يدويًا
+ولم تكن في المستودع أصلًا.
+
+**حارس أمان مقصود:** [`workshop_retire_shadow.py`](khat_workshop/khat_workshop/setup/workshop_retire_shadow.py)
+يحذف DocType **فقط** إذا كان **خالياً من المستندات**؛ ولو وُجدت بيانات لأبقاه
+وأبلغ. استرجاع البيانات أهم من إتمام الترحيل في موعده.
+
+**التحقق:** `RETIRE_SHADOW dropped=[السبعة] kept_with_data=none` · 4/4 اختفت ·
+الحقول المخصصة أُنشئت على المستندين · 15 خطوة `OK` · صفر أخطاء · `HTTP 200`.
+نسخة احتياطية أُخذت قبل التنفيذ (56 ملفًا).
+
+---
+
+### ب-٢ (المرجع الأصلي) — إلغاء المستندات الموازية
 | المخصص | الأصلي في ERPNext |
 |---|---|
 | `Repair Invoice` (+Item) | **Sales Invoice** |
