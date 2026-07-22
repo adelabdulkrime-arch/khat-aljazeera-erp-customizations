@@ -105,9 +105,16 @@ def _ensure_custom_field(doctype, fieldname, label, fieldtype="Link", options=No
 def _ensure_server_script(name, doctype, event, script):
     if frappe.db.exists("Server Script", name):
         doc = frappe.get_doc("Server Script", name)
+        # The event must be updated too, not just the body. This helper used to
+        # refresh only `script`, so moving the parts-issue trigger from
+        # Before Save to On Submit silently did nothing — the new code ran on
+        # the old event.
         doc.script = script
+        doc.reference_doctype = doctype
+        doc.doctype_event = event
+        doc.disabled = 0
         doc.save(ignore_permissions=True)
-        print("Updated Server Script:", name)
+        print("Updated Server Script: %s (event=%s)" % (name, event))
         return
     frappe.get_doc({
         "doctype": "Server Script",
