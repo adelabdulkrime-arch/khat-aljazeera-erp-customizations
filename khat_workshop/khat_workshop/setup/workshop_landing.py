@@ -17,23 +17,31 @@ Three problems this fixes, all first-impression issues:
 4. Opening the bare domain landed on the legacy /desk module grid instead of
    the desk. That page is built from Module Def records, so it ignores
    workspace ordering and hiding entirely and shows none of our dashboards —
-   the customisation looked absent when it was in fact applied. Pointing
-   home_page at "app" sends the root URL, and every post-login redirect that
-   has no explicit target, to the real desk.
+   the customisation looked absent when it was in fact applied.
+
+   NOTE, learned by breaking the site: this is NOT fixed by setting
+   Website Settings.home_page to "app". home_page must name a *website route*,
+   and "app" is not one, so the router 404s and the root URL dies for everyone.
+   A redirect is the correct mechanism.
 
 Idempotent. Every change here is reversible: nothing is deleted, workspaces
-are only flagged, and home_page can be reset from Website Settings.
+are only flagged, and the redirect row can be removed from Website Settings.
 """
 
 import frappe
 
 LANDING = "Home"
 
-# Website Settings home_page. "app" is the desk router; it resolves onward to
-# the user's default_workspace, which step 3 below pins to LANDING.
-# Guests hitting "/" are bounced to /login by the desk itself, which is the
-# behaviour we want — there is no public portal on this site.
-HOME_PAGE = "app"
+# Where "/" should land. Frappe strips surrounding slashes from a redirect
+# source, so source "/" becomes the pattern "$", which matches the empty path —
+# the root URL — and nothing else. Guests following it are bounced on to /login
+# by the desk itself; there is no public portal on this site.
+#
+# v16 moved the desk from /app to /desk and 301s the old path onward, so /app
+# still resolves and keeps this working on either version. The workspace is
+# named explicitly rather than relying on User.default_workspace, because bare
+# /desk opens v16's module launcher instead of honouring it.
+DESK_ROUTE = "/app/home"
 
 # Ordered exactly as the workshop should read it.
 ORDER = [
@@ -83,12 +91,33 @@ def execute():
         # applies to users created later too
         frappe.db.set_default("default_workspace", LANDING)
 
-    # 4. send "/" to the desk, not to the legacy /desk module grid
-    home = frappe.db.get_single_value("Website Settings", "home_page")
-    if home != HOME_PAGE:
-        frappe.db.set_single_value("Website Settings", "home_page", HOME_PAGE)
+    redirected = _redirect_root_to_desk()
 
     frappe.db.commit()
     frappe.clear_cache()
-    print("LANDING order_fixed=%d hidden=%d users_landed=%d target=%s home_page=%s"
-          % (fixed, hidden, landed, LANDING, HOME_PAGE))
+    print("LANDING order_fixed=%d hidden=%d users_landed=%d target=%s root_redirect=%s"
+          % (fixed, hidden, landed, LANDING, redirected))
+
+
+def _redirect_root_to_desk():
+    """Point "/" at the desk via Website Settings' redirect table.
+
+    home_page cannot do this — see the module docstring. Leaving home_page
+    empty keeps Frappe's own default behaviour intact as a fallback.
+    """
+    settings = frappe.get_single("Website Settings")
+    if not hasattr(settings, "route_redirects"):
+        # field renamed upstream; skip rather than fail the whole setup run
+        return "unsupported"
+
+    for row in settings.route_redirects:
+        if (row.source or "").strip() == "/":
+            if (row.target or "").strip() == DESK_ROUTE:
+                return "already set"
+            row.target = DESK_ROUTE
+            settings.save(ignore_permissions=True)
+            return "retargeted"
+
+    settings.append("route_redirects", {"source": "/", "target": DESK_ROUTE})
+    settings.save(ignore_permissions=True)
+    return "created"
