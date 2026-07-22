@@ -1,3 +1,16 @@
+# Every Frappe service builds from the SAME Dockerfile. Previously only `init`
+# did, while backend/frontend/workers ran the stock frappe/erpnext image — so
+# anything baked into the image (a custom app, an extra binary, /backups) was
+# visible ONLY to init and invisible to the containers that actually run the
+# system. That made it impossible to install a custom app or hrms.
+# Build layers are shared, so this costs cache, not disk.
+x-frappe-image: &frappe-image
+  build:
+    context: .
+    dockerfile: Dockerfile
+    args:
+      ERPNEXT_VERSION: ${ERPNEXT_VERSION:-v16}
+
 services:
 
   # ── Database ──────────────────────────────────────────────────────────────
@@ -31,7 +44,7 @@ services:
 
   # ── One-time: write common_site_config.json ───────────────────────────────
   configurator:
-    image: frappe/erpnext:${ERPNEXT_VERSION:-v16}
+    <<: *frappe-image
     restart: "no"
     entrypoint: ["bash", "-c"]
     command:
@@ -57,11 +70,7 @@ services:
 
   # ── One-time: create site + apply all workshop customisations ─────────────
   init:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        ERPNEXT_VERSION: ${ERPNEXT_VERSION:-v16}
+    <<: *frappe-image
     restart: "no"
     entrypoint: ["bash", "/opt/init.sh"]
     environment:
@@ -80,7 +89,7 @@ services:
 
   # ── Backend (gunicorn) ────────────────────────────────────────────────────
   backend:
-    image: frappe/erpnext:${ERPNEXT_VERSION:-v16}
+    <<: *frappe-image
     restart: unless-stopped
     environment:
       DB_HOST: db
@@ -97,7 +106,7 @@ services:
 
   # ── Frontend (nginx) — Coolify/Traefik routes to port 8080 ───────────────
   frontend:
-    image: frappe/erpnext:${ERPNEXT_VERSION:-v16}
+    <<: *frappe-image
     restart: unless-stopped
     # Strip any http(s):// scheme and trailing path from the site header before
     # handing off to nginx. Frappe rejects a site name containing a scheme, so
@@ -135,7 +144,7 @@ services:
 
   # ── WebSocket (Socket.io) ─────────────────────────────────────────────────
   websocket:
-    image: frappe/erpnext:${ERPNEXT_VERSION:-v16}
+    <<: *frappe-image
     restart: unless-stopped
     command: node /home/frappe/frappe-bench/apps/frappe/socketio.js
     environment:
@@ -151,7 +160,7 @@ services:
 
   # ── Workers ───────────────────────────────────────────────────────────────
   queue-short:
-    image: frappe/erpnext:${ERPNEXT_VERSION:-v16}
+    <<: *frappe-image
     restart: unless-stopped
     command: bench worker --queue short,default
     environment:
@@ -167,7 +176,7 @@ services:
         condition: service_completed_successfully
 
   queue-long:
-    image: frappe/erpnext:${ERPNEXT_VERSION:-v16}
+    <<: *frappe-image
     restart: unless-stopped
     command: bench worker --queue long
     environment:
@@ -183,7 +192,7 @@ services:
         condition: service_completed_successfully
 
   scheduler:
-    image: frappe/erpnext:${ERPNEXT_VERSION:-v16}
+    <<: *frappe-image
     restart: unless-stopped
     command: bench schedule
     environment:
@@ -209,7 +218,7 @@ services:
   # Backups are written to a SEPARATE volume (not the sites volume) so that
   # losing/corrupting the site data does not take the backups with it.
   backup:
-    image: frappe/erpnext:${ERPNEXT_VERSION:-v16}
+    <<: *frappe-image
     restart: unless-stopped
     entrypoint: ["bash", "-c"]
     command:

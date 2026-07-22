@@ -16,6 +16,13 @@ COPY --chown=frappe:frappe docker/init.sh /opt/init.sh
 # Strip Windows CRLF line endings that break bash path resolution on Linux
 RUN sed -i 's/\r$//' /opt/init.sh && chmod +x /opt/init.sh
 
+# Backup target. Created here (owned by frappe) so that when Docker first
+# populates the named `backups` volume it inherits frappe ownership. Without
+# this the volume is created root-owned, the container runs as frappe, and
+# every backup fails with Frappe's misleading "Database or site_config.json
+# may be corrupted" — which is really just EACCES.
+RUN mkdir -p /backups && chown frappe:frappe /backups
+
 USER frappe
 WORKDIR /home/frappe/frappe-bench
 
