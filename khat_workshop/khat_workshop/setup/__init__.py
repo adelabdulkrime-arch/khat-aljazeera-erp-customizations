@@ -34,6 +34,7 @@ STEPS = [
     # On Submit event, which only exists once the doctype is submittable.
     "workshop_work_card_control",
     "workshop_service_catalogue",
+    "workshop_seed_data",
     "workshop_gl_stock_integration",
     # Must come AFTER gl_stock_integration, which deletes the mirroring Server
     # Scripts. Dropping a doctype while a Server Script still references it
