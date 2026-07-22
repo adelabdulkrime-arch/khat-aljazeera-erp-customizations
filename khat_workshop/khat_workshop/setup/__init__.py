@@ -36,6 +36,8 @@ STEPS = [
     "workshop_service_catalogue",
     "workshop_seed_data",
     "workshop_seed_parts",
+    # Reads the seeded catalogue to derive its levels, so it must follow it.
+    "workshop_stock_alerts",
     "workshop_gl_stock_integration",
     # Must come AFTER gl_stock_integration, which deletes the mirroring Server
     # Scripts. Dropping a doctype while a Server Script still references it
