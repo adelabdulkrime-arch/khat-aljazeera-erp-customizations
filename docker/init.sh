@@ -143,23 +143,14 @@ else
     || warn "install-app failed (migrate may still apply setup)"
 fi
 
-# Expose the app's static assets at /assets/khat_workshop/...
-# `bench build` normally creates this symlink, but that needs node/yarn and the
-# runtime image has neither — it ships pre-built assets. For plain (non-bundled)
-# files the symlink is all that is actually required. It must be made at RUNTIME
-# because sites/assets lives inside the `sites` volume, and it is recreated
-# unconditionally so it can never go stale pointing at an old path.
-ASSET_LINK="sites/assets/${APP}"
-ASSET_SRC="/home/frappe/frappe-bench/apps/${APP}/${APP}/public"
-if [ -d "$ASSET_SRC" ]; then
-  mkdir -p sites/assets
-  rm -rf "$ASSET_LINK"
-  ln -s "$ASSET_SRC" "$ASSET_LINK" \
-    && log "linked $ASSET_LINK -> $ASSET_SRC" \
-    || warn "could not create asset symlink"
-else
-  warn "no public/ directory at $ASSET_SRC — skipping asset link"
-fi
+# NOTE: the app's static assets are wired up in the Dockerfile, NOT here.
+# The image entrypoint runs, on EVERY container start:
+#     rm -rf  /home/frappe/frappe-bench/sites/assets
+#     ln -s   /home/frappe/frappe-bench/assets  /home/frappe/frappe-bench/sites/assets
+# so sites/assets is not a directory in the volume at all — it is a symlink to
+# the assets baked into the image. Anything created under it at runtime is
+# deleted by the next container start, which is exactly what happened on the
+# first attempt.
 
 # Not fatal on failure: init failing would block backend from ever starting
 # (depends_on: service_completed_successfully), turning a partial setup problem

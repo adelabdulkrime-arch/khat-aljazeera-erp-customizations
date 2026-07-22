@@ -39,6 +39,22 @@ WORKDIR /home/frappe/frappe-bench
 RUN /home/frappe/frappe-bench/env/bin/pip install --no-cache-dir \
         -e /home/frappe/frappe-bench/apps/khat_workshop
 
+# Expose the app's static files at /assets/khat_workshop/... exactly the way the
+# image already does it for frappe and erpnext:
+#     assets/frappe  -> apps/frappe/frappe/public
+#     assets/erpnext -> apps/erpnext/erpnext/public
+#
+# This MUST be baked into the image rather than created at runtime. The image
+# entrypoint does, on every single container start:
+#     rm -rf sites/assets && ln -s /home/frappe/frappe-bench/assets sites/assets
+# so sites/assets is a symlink into the image, and anything written under it at
+# runtime is wiped by the next start.
+#
+# `bench build` would normally do this, but it needs node/yarn and this runtime
+# image has neither. A plain symlink is all a non-bundled .js file requires.
+RUN ln -sfn /home/frappe/frappe-bench/apps/khat_workshop/khat_workshop/public \
+            /home/frappe/frappe-bench/assets/khat_workshop
+
 # NOTE: deliberately NO `CMD` override here.
 # The base image ships CMD ["start.sh"], which is what boots gunicorn for the
 # backend service. This Dockerfile used to end with CMD ["/opt/init.sh"], which
