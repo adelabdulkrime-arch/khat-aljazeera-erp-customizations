@@ -198,9 +198,58 @@ services:
       init:
         condition: service_completed_successfully
 
+  # ── Automated backups ─────────────────────────────────────────────────────
+  # Frappe's scheduler does NOT create backups. In a normal bench install that
+  # job is a HOST cron entry, which simply does not exist inside containers —
+  # so a containerised deploy silently has no backups at all until you add
+  # something like this. Verified on the server: the backups directory was
+  # empty and the only backup-related scheduled job was the one that DELETES
+  # downloadable backups.
+  #
+  # Backups are written to a SEPARATE volume (not the sites volume) so that
+  # losing/corrupting the site data does not take the backups with it.
+  backup:
+    image: frappe/erpnext:${ERPNEXT_VERSION:-v16}
+    restart: unless-stopped
+    entrypoint: ["bash", "-c"]
+    command:
+      - |
+        RETENTION_DAYS="$${BACKUP_RETENTION_DAYS:-14}"
+        INTERVAL="$${BACKUP_INTERVAL_SECONDS:-86400}"
+        echo "[backup] loop start — every $${INTERVAL}s, keeping $${RETENTION_DAYS} days"
+        while true; do
+          SITE="$$(cat sites/currentsite.txt 2>/dev/null)"
+          if [ -n "$$SITE" ]; then
+            echo "[backup] $$(date -u '+%Y-%m-%dT%H:%M:%SZ') backing up $$SITE"
+            if bench --site "$$SITE" backup --with-files --backup-path /backups; then
+              echo "[backup] OK"
+              # Prune anything older than the retention window.
+              find /backups -type f -mtime "+$${RETENTION_DAYS}" -delete 2>/dev/null || true
+            else
+              echo "[backup] FAILED for $$SITE"
+            fi
+          else
+            echo "[backup] currentsite.txt not readable yet — skipping this cycle"
+          fi
+          sleep "$$INTERVAL"
+        done
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+    volumes:
+      - sites:/home/frappe/frappe-bench/sites
+      - backups:/backups
+    depends_on:
+      init:
+        condition: service_completed_successfully
+
 volumes:
   db-data:
   redis-cache-data:
   redis-queue-data:
   sites:
   logs:
+  # Deliberately separate from `sites` so backups survive site-data loss.
+  backups:
