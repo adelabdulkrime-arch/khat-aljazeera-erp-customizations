@@ -44,6 +44,7 @@ STEPS = [
     "workshop_invoice_whatsapp",
     "workshop_translations",
     "workshop_oman_setup2",
+    "workshop_landing",
     "workshop_oman_setup",
 ]
 
