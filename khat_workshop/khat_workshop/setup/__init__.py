@@ -34,6 +34,8 @@ STEPS = [
     # On Submit event, which only exists once the doctype is submittable.
     "workshop_work_card_control",
     "workshop_service_catalogue",
+    # Needs Work Card Technician to exist, so it follows work_card_control.
+    "workshop_labour_costing",
     "workshop_seed_data",
     "workshop_seed_parts",
     # Reads the seeded catalogue to derive its levels, so it must follow it.

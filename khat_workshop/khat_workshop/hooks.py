@@ -29,3 +29,19 @@ after_migrate = ["khat_workshop.setup.run_all"]
 # so anything needing esbuild could not be built. Plain files only require the
 # sites/assets/khat_workshop symlink, which init.sh creates.
 app_include_js = "/assets/khat_workshop/js/desk.js"
+
+# Cost and margin on every Work Card.
+#
+# A Server Script cannot do this: the calculation reads Item valuation and the
+# linked Stock Entry, and the same code has to run on both save and submit.
+# doc_events keeps it in one version-controlled place next to the fields it
+# fills (see khat_workshop.setup.workshop_labour_costing).
+#
+# on_submit as well as validate because parts cost is only exact once the parts
+# have actually been issued, which happens after the card is submitted.
+doc_events = {
+    "Work Card": {
+        "validate": "khat_workshop.costing.compute",
+        "on_submit": "khat_workshop.costing.recompute_on_submit",
+    }
+}
