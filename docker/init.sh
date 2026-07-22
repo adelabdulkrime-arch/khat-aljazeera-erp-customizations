@@ -152,6 +152,21 @@ for APP in $APPS; do
   fi
 done
 
+# Server Scripts must be enabled or the whole automation layer is inert.
+#
+# Found the hard way: the parts-issue and reversal scripts existed, were visible
+# in the UI, and Work Cards submitted without a single error — but nothing was
+# ever deducted from stock, because Frappe refuses to run Server Scripts unless
+# this flag is set. A system in that state looks perfectly healthy and silently
+# never moves inventory.
+#
+# Set here rather than left to manual configuration, because it lives in
+# common_site_config.json inside the sites volume and would otherwise be lost on
+# any clean rebuild.
+bench set-config -g server_script_enabled true \
+  && log "server_script_enabled = true" \
+  || warn "could not enable server scripts — automation will NOT run"
+
 # NOTE: the app's static assets are wired up in the Dockerfile, NOT here.
 # The image entrypoint runs, on EVERY container start:
 #     rm -rf  /home/frappe/frappe-bench/sites/assets
