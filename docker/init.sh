@@ -121,27 +121,36 @@ bench --site "${SITE_NAME}" set-config host_name "http://frontend:8080" \
 #   2. install the app on the site and migrate. The `after_migrate` hook then
 #      re-applies every idempotent setup step, which is what the old
 #      copy-and-execute loop did, only through a supported mechanism.
-APP="khat_workshop"
+# hrms first: it brings the HR module (payroll, attendance, leave). khat_workshop
+# second, since its customisations sit on top of what the other apps provide.
+APPS="hrms khat_workshop"
 
-if grep -qxF "$APP" sites/apps.txt 2>/dev/null; then
-  log "$APP already registered in sites/apps.txt"
-else
-  # apps.txt may have no trailing newline; add one before appending.
-  if [ -s sites/apps.txt ] && [ -n "$(tail -c 1 sites/apps.txt)" ]; then
-    echo "" >> sites/apps.txt
+for APP in $APPS; do
+  if [ ! -d "apps/${APP}" ]; then
+    warn "apps/${APP} missing from the image — skipping"
+    continue
   fi
-  echo "$APP" >> sites/apps.txt
-  log "registered $APP in sites/apps.txt"
-fi
 
-if bench --site "${SITE_NAME}" list-apps 2>/dev/null | grep -qw "$APP"; then
-  log "$APP already installed on ${SITE_NAME}"
-else
-  log "installing $APP on ${SITE_NAME}..."
-  bench --site "${SITE_NAME}" install-app "$APP" \
-    && log "install-app OK" \
-    || warn "install-app failed (migrate may still apply setup)"
-fi
+  if grep -qxF "$APP" sites/apps.txt 2>/dev/null; then
+    log "$APP already registered in sites/apps.txt"
+  else
+    # apps.txt may have no trailing newline; add one before appending.
+    if [ -s sites/apps.txt ] && [ -n "$(tail -c 1 sites/apps.txt)" ]; then
+      echo "" >> sites/apps.txt
+    fi
+    echo "$APP" >> sites/apps.txt
+    log "registered $APP in sites/apps.txt"
+  fi
+
+  if bench --site "${SITE_NAME}" list-apps 2>/dev/null | grep -qw "$APP"; then
+    log "$APP already installed on ${SITE_NAME}"
+  else
+    log "installing $APP on ${SITE_NAME}..."
+    bench --site "${SITE_NAME}" install-app "$APP" \
+      && log "install-app $APP OK" \
+      || warn "install-app $APP failed (migrate may still apply setup)"
+  fi
+done
 
 # NOTE: the app's static assets are wired up in the Dockerfile, NOT here.
 # The image entrypoint runs, on EVERY container start:
