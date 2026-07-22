@@ -24,6 +24,17 @@ SERVICE_ITEM_CODE = "WORKSHOP-SERVICE"
 SERVICE_ITEM_NAME = "خدمة إصلاح ورشة"
 DEFAULT_WAREHOUSE_NAME_LIKE = "%مخازن%"
 
+# The five service lines the workshop actually operates. Leading blank so the
+# field starts unset rather than silently defaulting every job to Mechanical.
+SERVICE_LINES = "\n".join([
+    "",
+    "ميكانيكا",
+    "سمكرة وحوادث",
+    "دهان",
+    "كهرباء",
+    "تكييف",
+])
+
 WORK_CARD_STOCK_SCRIPT = """
 if not doc.stock_entry:
 	valid_rows = [p for p in (doc.parts or []) if p.item and p.qty]
@@ -150,6 +161,22 @@ def execute():
     for dt, after in (("Sales Invoice", "customer"), ("Quotation", "party_name")):
         _ensure_custom_field(dt, "work_card", "بطاقة العمل", "Link", "Work Card", insert_after=after, read_only=0)
         _ensure_custom_field(dt, "vehicle", "المركبة", "Link", "Customer Vehicle", insert_after="work_card", read_only=0)
+
+    # Service line — audit finding #2.
+    #
+    # Nothing distinguished Mechanical / Body / Paint / Electrical / HVAC, so
+    # profit per department was impossible to calculate — the single most
+    # important management figure in a multi-discipline workshop.
+    #
+    # Added now, deliberately, while Work Card and Sales Invoice hold ZERO
+    # documents: today it is one field, after a thousand job cards it is a data
+    # migration. Placed on the invoice as well as the job card so revenue can be
+    # grouped by department without joining back through the workshop.
+    _ensure_custom_field("Work Card", "service_line", "خط الخدمة", "Select",
+                         SERVICE_LINES, insert_after="status", read_only=0)
+    for dt in ("Sales Invoice", "Quotation"):
+        _ensure_custom_field(dt, "service_line", "خط الخدمة", "Select",
+                             SERVICE_LINES, insert_after="vehicle", read_only=0)
 
     # Parts are issued AFTER SUBMIT, not on a status change.
     #
