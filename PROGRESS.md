@@ -503,3 +503,29 @@ dst="apps/frappe/frappe/${module}.py"
    Property Setter أو Custom Field أو ترحيل صريح.
 4. **يوجد منطق حيّ خارج المستودع** (Server Scripts يدوية) — انظر القسم ٤.
 5. **لا تُنفَّذ بنود المرحلة ب أثناء المرحلة أ.**
+
+---
+
+## ٨. صفحة الهبوط بعد الدخول (2026-07-22)
+
+**العَرَض:** بعد الدخول تظهر شبكة وحدات ERPNext عامة — لا اللوحات السبع.
+
+**التشخيص:** الشبكة المعروضة هي المسار القديم `/desk`، وهي صفحة تُبنى من
+`Module Def` لا من `Workspace`، فلا تتأثر بالترتيب ولا بالإخفاء ولا تعرض أيًّا
+من لوحاتنا. الفحص المباشر على الخادم أثبت أن الإعداد **سليم وناجٍ من إعادة النشر**:
+
+```
+default_workspace = Home          (Administrator + adelabdulkrime@gmail.com)
+seq 1..7 = Home, General Settings, Accounting, Inventory, Purchasing, Sales, Workshop
+hidden=1 على 11 وحدة غير ذات صلة
+```
+
+فالمشكلة كانت في **نقطة الدخول** لا في التخصيص.
+
+**العلاج:** `Website Settings.home_page` كان فارغًا، فلم يكن الجذر `/` يُحلّ إلى
+سطح المكتب. ضُبط على `app` ضمن [`workshop_landing.py`](khat_workshop/khat_workshop/setup/workshop_landing.py)
+ليعمل تلقائيًا في كل نشر. قابل للتراجع من Website Settings؛ ولا بوّابة عامة
+مُقدَّمة من هذا الموقع.
+
+**درس:** غياب التخصيص عن الشاشة لا يعني غيابه عن النظام — تحقَّق من الحالة على
+الخادم قبل إعادة البناء.
