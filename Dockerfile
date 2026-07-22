@@ -26,4 +26,11 @@ RUN mkdir -p /backups && chown frappe:frappe /backups
 USER frappe
 WORKDIR /home/frappe/frappe-bench
 
-CMD ["/opt/init.sh"]
+# NOTE: deliberately NO `CMD` override here.
+# The base image ships CMD ["start.sh"], which is what boots gunicorn for the
+# backend service. This Dockerfile used to end with CMD ["/opt/init.sh"], which
+# was harmless while only `init` used the image — but once every service builds
+# from it, `backend` inherited that CMD and ran the init script instead of
+# gunicorn. nginx then had no upstream and the whole site returned 502.
+# `init` sets its own entrypoint in docker-compose.yml, so it does not need a
+# default here.
