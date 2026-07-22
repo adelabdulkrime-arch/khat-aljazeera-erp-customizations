@@ -24,10 +24,10 @@ TILES = [
 
     ("بطاقات العمل", "list", "Work Card", "file-text", "#318ad8"),
     ("حالات بطاقة العمل", "list", "Work Card Status", "toggle-right", "#318ad8"),
-    ("عروض الأسعار", "list", "Workshop Quotation", "file", "#f4a900"),
-    ("فواتير الإصلاح", "list", "Repair Invoice", "receipt", "#e67e22"),
-    ("الدفعات", "list", "Workshop Payment", "credit-card", "#1f9d55"),
-    ("الباقات", "list", "Service Package", "gift", "#9c27b0"),
+    ("عروض الأسعار", "list", "Quotation", "file", "#f4a900"),
+    ("فواتير الإصلاح", "list", "Sales Invoice", "receipt", "#e67e22"),
+    ("الدفعات", "list", "Payment Entry", "credit-card", "#1f9d55"),
+    ("الباقات", "list", "Product Bundle", "gift", "#9c27b0"),
 
     ("الفنيون", "list", "Workshop Technician", "wrench", "#7c7c7c"),
     ("إعدادات الورشة", "single", "Workshop Settings", "settings", "#7c7c7c"),
@@ -41,9 +41,12 @@ NUMBER_CARDS = [
     ("Workshop Total Work Cards", "بطاقات العمل", "Work Card", "Count", None, "#318ad8"),
     ("Workshop Total Customers", "العملاء", "Customer", "Count", None, "#7c7c7c"),
     ("Workshop Total Vehicles", "المركبات", "Customer Vehicle", "Count", None, "#00b8d9"),
-    ("Workshop Total Invoices", "فواتير الإصلاح", "Repair Invoice", "Count", None, "#e67e22"),
-    ("Workshop Total Payments", "إجمالي المدفوعات", "Workshop Payment", "Sum", "amount", "#1f9d55"),
-    ("Workshop Outstanding", "المتبقيات", "Repair Invoice", "Sum", "outstanding", "#cb2929"),
+    ("Workshop Total Invoices", "فواتير الإصلاح", "Sales Invoice", "Count", None, "#e67e22"),
+    # Field names follow the NATIVE doctypes now, not the retired shadow ones:
+    # Workshop Payment.amount -> Payment Entry.paid_amount
+    # Repair Invoice.outstanding -> Sales Invoice.outstanding_amount
+    ("Workshop Total Payments", "إجمالي المدفوعات", "Payment Entry", "Sum", "paid_amount", "#1f9d55"),
+    ("Workshop Outstanding", "المتبقيات", "Sales Invoice", "Sum", "outstanding_amount", "#cb2929"),
 ]
 
 LINK_GROUPS = [
@@ -56,8 +59,8 @@ LINK_GROUPS = [
         ("الفنيون", "Workshop Technician"), ("سجل صرف العمولات", "Commission Log"),
     ]),
     ("المبيعات والمالية", [
-        ("عروض الأسعار", "Workshop Quotation"), ("فواتير الإصلاح", "Repair Invoice"),
-        ("الدفعات", "Workshop Payment"), ("الباقات", "Service Package"),
+        ("عروض الأسعار", "Quotation"), ("فواتير الإصلاح", "Sales Invoice"),
+        ("الدفعات", "Payment Entry"), ("الباقات", "Product Bundle"),
     ]),
     ("المتابعة والإعدادات", [
         ("تذكرات الصيانة", "Maintenance Reminder"), ("إعدادات الورشة", "Workshop Settings"),
@@ -333,8 +336,8 @@ async function doSearch(kind, q){
       const r = await frappe.db.get_list('Customer Vehicle', { or_filters: [['plate_number','like','%'+q+'%'],['customer','like','%'+q+'%']], fields:['name','plate_number','customer','brand','model'], limit:10 });
       rows = r.map(function(x){ return {_dt:'Customer Vehicle', _name:x.name, _label:(x.plate_number||x.name)+' — '+(x.customer||'')+' '+(x.brand||'')+' '+(x.model||'')}; });
     } else if(kind === 'invoice'){
-      const r = await frappe.db.get_list('Repair Invoice', { or_filters: [['name','like','%'+q+'%'],['customer','like','%'+q+'%']], fields:['name','customer','grand_total','status'], limit:10 });
-      rows = r.map(function(x){ return {_dt:'Repair Invoice', _name:x.name, _label:x.name+' — '+(x.customer||'')+' — '+(x.grand_total||0)+' ('+(x.status||'')+')'}; });
+      const r = await frappe.db.get_list('Sales Invoice', { or_filters: [['name','like','%'+q+'%'],['customer','like','%'+q+'%']], fields:['name','customer','grand_total','status'], limit:10 });
+      rows = r.map(function(x){ return {_dt:'Sales Invoice', _name:x.name, _label:x.name+' — '+(x.customer||'')+' — '+(x.grand_total||0)+' ('+(x.status||'')+')'}; });
     }
     renderResults(kind, rows);
   } catch(e){ console.error('workshop search', e); }

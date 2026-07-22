@@ -246,115 +246,18 @@ def execute():
     # ---------------------------------------------------------------
     # 7. Workshop Quotation — عرض السعر
     # ---------------------------------------------------------------
-    log["Workshop Quotation Item"] = make_dt(
-        "Workshop Quotation Item",
-        [
-            f("description", "البيان", "Data", reqd=1, in_list_view=1),
-            f("qty", "الكمية", "Float", default="1", in_list_view=1),
-            f("rate", "السعر", "Currency", in_list_view=1),
-            f("amount", "الإجمالي", "Currency", in_list_view=1, read_only=1),
-        ],
-        istable=1,
-    )
-    log["Workshop Quotation"] = make_dt(
-        "Workshop Quotation",
-        [
-            f("naming_series", "التسلسل", "Select", options="WQTN-.YYYY.-", default="WQTN-.YYYY.-", reqd=1),
-            f("customer", "العميل", "Link", options="Customer", reqd=1, in_list_view=1),
-            f("vehicle", "المركبة", "Link", options="Customer Vehicle", in_list_view=1),
-            f("cb1", "", "Column Break"),
-            f("date", "التاريخ", "Date", default="Today", in_list_view=1),
-            f("valid_till", "صالح حتى", "Date"),
-            f("status", "الحالة", "Select", options="مسودة\nمرسل\nمقبول\nمرفوض", default="مسودة", in_list_view=1),
-            f("sec1", "البنود", "Section Break"),
-            f("items", "البنود", "Table", options="Workshop Quotation Item"),
-            f("sec2", "الإجماليات", "Section Break"),
-            f("total", "الإجمالي", "Currency", read_only=1),
-            f("cb2", "", "Column Break"),
-            f("discount", "الخصم", "Currency"),
-            f("grand_total", "الإجمالي النهائي", "Currency", read_only=1, in_list_view=1),
-        ],
-        autoname="naming_series:", naming_rule="By \"Naming Series\" field",
-    )
 
     # ---------------------------------------------------------------
     # 8. Repair Invoice — فاتورة الإصلاح
     # ---------------------------------------------------------------
-    log["Repair Invoice Item"] = make_dt(
-        "Repair Invoice Item",
-        [
-            f("description", "البيان", "Data", reqd=1, in_list_view=1),
-            f("qty", "الكمية", "Float", default="1", in_list_view=1),
-            f("rate", "السعر", "Currency", in_list_view=1),
-            f("amount", "الإجمالي", "Currency", in_list_view=1, read_only=1),
-        ],
-        istable=1,
-    )
-    log["Repair Invoice"] = make_dt(
-        "Repair Invoice",
-        [
-            f("naming_series", "التسلسل", "Select", options="RINV-.YYYY.-", default="RINV-.YYYY.-", reqd=1),
-            f("work_card", "بطاقة العمل", "Link", options="Work Card", in_list_view=1),
-            f("customer", "العميل", "Link", options="Customer", reqd=1, in_list_view=1),
-            f("vehicle", "المركبة", "Link", options="Customer Vehicle", in_list_view=1),
-            f("cb1", "", "Column Break"),
-            f("date", "التاريخ", "Date", default="Today", in_list_view=1),
-            f("status", "الحالة", "Select", options="غير مدفوعة\nمدفوعة جزئياً\nمدفوعة", default="غير مدفوعة", in_list_view=1),
-            f("sec1", "البنود", "Section Break"),
-            f("items", "البنود", "Table", options="Repair Invoice Item"),
-            f("sec2", "الإجماليات", "Section Break"),
-            f("total", "الإجمالي", "Currency", read_only=1),
-            f("discount", "الخصم", "Currency"),
-            f("grand_total", "الإجمالي النهائي", "Currency", read_only=1, in_list_view=1),
-            f("cb2", "", "Column Break"),
-            f("paid_amount", "المدفوع", "Currency", read_only=1),
-            f("outstanding", "المتبقي", "Currency", read_only=1, in_list_view=1),
-        ],
-        autoname="naming_series:", naming_rule="By \"Naming Series\" field",
-    )
 
     # ---------------------------------------------------------------
     # 9. Workshop Payment — الدفعة
     # ---------------------------------------------------------------
-    log["Workshop Payment"] = make_dt(
-        "Workshop Payment",
-        [
-            f("naming_series", "التسلسل", "Select", options="WPAY-.YYYY.-", default="WPAY-.YYYY.-", reqd=1),
-            f("invoice", "فاتورة الإصلاح", "Link", options="Repair Invoice", reqd=1, in_list_view=1),
-            f("customer", "العميل", "Link", options="Customer", fetch_from="invoice.customer", read_only=1, in_list_view=1),
-            f("cb1", "", "Column Break"),
-            f("date", "التاريخ", "Date", default="Today", in_list_view=1),
-            f("amount", "المبلغ", "Currency", reqd=1, in_list_view=1),
-            f("mode_of_payment", "طريقة الدفع", "Link", options="Mode of Payment", in_list_view=1),
-            f("reference", "مرجع", "Data"),
-        ],
-        autoname="naming_series:", naming_rule="By \"Naming Series\" field",
-    )
 
     # ---------------------------------------------------------------
     # 10. Service Package — الباقة
     # ---------------------------------------------------------------
-    log["Service Package Item"] = make_dt(
-        "Service Package Item",
-        [
-            f("service", "الخدمة", "Data", reqd=1, in_list_view=1),
-            f("qty", "الكمية", "Float", default="1", in_list_view=1),
-            f("rate", "السعر", "Currency", in_list_view=1),
-        ],
-        istable=1,
-    )
-    log["Service Package"] = make_dt(
-        "Service Package",
-        [
-            f("package_name", "اسم الباقة", "Data", reqd=1, in_list_view=1, unique=1),
-            f("price", "السعر", "Currency", in_list_view=1),
-            f("is_active", "نشطة", "Check", default="1"),
-            f("description", "الوصف", "Small Text"),
-            f("sec1", "الخدمات المشمولة", "Section Break"),
-            f("items", "الخدمات", "Table", options="Service Package Item"),
-        ],
-        autoname="field:package_name", naming_rule="By fieldname",
-    )
 
     # ---------------------------------------------------------------
     # 11. Maintenance Reminder — تذكرة الصيانة

@@ -55,111 +55,7 @@ if doc.status == "جاهزة للتسليم" and not doc.stock_entry:
 		)
 """
 
-REPAIR_INVOICE_SI_SCRIPT = """
-if not doc.sales_invoice and doc.customer and doc.items and (doc.grand_total or 0) > 0:
-	company = frappe.db.get_single_value("Global Defaults", "default_company")
-	# Pull the company's DEFAULT sales tax template (Oman VAT 5%) and copy its
-	# rows onto the invoice. Without this the generated Sales Invoice posts with
-	# ZERO tax, which is a compliance problem, not just a display bug.
-	tax_template = frappe.db.get_value(
-		"Sales Taxes and Charges Template", {"company": company, "is_default": 1}, "name"
-	)
-	tax_rows = []
-	if tax_template:
-		for t in frappe.get_all(
-			"Sales Taxes and Charges", filters={"parent": tax_template},
-			fields=["charge_type", "account_head", "description", "rate"], order_by="idx"
-		):
-			tax_rows.append({
-				"charge_type": t.charge_type, "account_head": t.account_head,
-				"description": t.description, "rate": t.rate,
-			})
-	si = frappe.get_doc({
-		"doctype": "Sales Invoice",
-		"customer": doc.customer,
-		"company": company,
-		"posting_date": doc.date or frappe.utils.nowdate(),
-		"due_date": doc.date or frappe.utils.nowdate(),
-		"items": [
-			{
-				"item_code": "WORKSHOP-SERVICE",
-				"item_name": row.description or "خدمة إصلاح ورشة",
-				"description": row.description or "خدمة إصلاح ورشة",
-				"qty": row.qty or 1,
-				"rate": row.rate if row.rate else ((row.amount or 0) / (row.qty or 1)),
-			}
-			for row in doc.items
-		],
-		"taxes_and_charges": tax_template,
-		"taxes": tax_rows,
-		"discount_amount": doc.discount or 0,
-		"apply_discount_on": "Grand Total",
-		"remarks": "فاتورة مبيعات مُنشأة تلقائياً من فاتورة الإصلاح %s" % doc.name,
-	})
-	si.insert(ignore_permissions=True)
-	si.submit()
-	doc.sales_invoice = si.name
-	frappe.msgprint("تم إنشاء فاتورة مبيعات حقيقية مرتبطة: %s" % si.name)
-"""
 
-WORKSHOP_PAYMENT_PE_SCRIPT = """
-if doc.invoice:
-	sales_invoice = frappe.db.get_value("Repair Invoice", doc.invoice, "sales_invoice")
-	if sales_invoice and frappe.db.exists("Sales Invoice", sales_invoice):
-		si = frappe.get_doc("Sales Invoice", sales_invoice)
-		outstanding = si.outstanding_amount
-		if outstanding and outstanding > 0:
-			pay_amount = min(doc.amount or 0, outstanding)
-			if doc.amount and doc.amount > outstanding:
-				frappe.msgprint(
-					"تنبيه: المبلغ المدخل (%s) أكبر من المتبقي فعلياً على الفاتورة (%s). تم تسجيل %s فقط في سند القبض الحقيقي؛ راجع الفرق يدوياً." % (doc.amount, outstanding, pay_amount)
-				)
-			company = frappe.db.get_single_value("Global Defaults", "default_company")
-			receivable_account = frappe.db.get_value("Company", company, "default_receivable_account")
-			paid_to = None
-			if doc.mode_of_payment:
-				paid_to = frappe.db.get_value(
-					"Mode of Payment Account",
-					{"parent": doc.mode_of_payment, "company": company},
-					"default_account",
-				)
-			if not paid_to:
-				paid_to = frappe.db.get_value(
-					"Account", {"company": company, "account_type": "Cash", "is_group": 0}, "name"
-				)
-			currency = frappe.db.get_value("Company", company, "default_currency")
-			pe = frappe.get_doc({
-				"doctype": "Payment Entry",
-				"payment_type": "Receive",
-				"party_type": "Customer",
-				"party": doc.customer,
-				"company": company,
-				"mode_of_payment": doc.mode_of_payment,
-				"paid_from": receivable_account,
-				"paid_to": paid_to,
-				"paid_from_account_currency": currency,
-				"paid_to_account_currency": currency,
-				"source_exchange_rate": 1,
-				"target_exchange_rate": 1,
-				"posting_date": doc.date or frappe.utils.nowdate(),
-				"paid_amount": pay_amount,
-				"received_amount": pay_amount,
-				"reference_no": doc.reference or doc.name,
-				"reference_date": doc.date or frappe.utils.nowdate(),
-				"references": [{
-					"reference_doctype": "Sales Invoice",
-					"reference_name": si.name,
-					"allocated_amount": pay_amount,
-				}],
-			})
-			pe.insert(ignore_permissions=True)
-			pe.submit()
-			doc.db_set("payment_entry", pe.name)
-		else:
-			frappe.msgprint(
-				"تنبيه: فاتورة المبيعات المرتبطة مسددة بالكامل بالفعل - لم يتم إنشاء سند قبض حقيقي لهذه الدفعة. تحقق من صحة المبلغ المدخل."
-			)
-"""
 
 
 def _ensure_service_item():
@@ -222,12 +118,29 @@ def execute():
 
     _ensure_custom_field("Work Card", "warehouse", "المستودع (لصرف القطع)", "Link", "Warehouse", insert_after="sec_parts", read_only=0, default=default_warehouse)
     _ensure_custom_field("Work Card", "stock_entry", "حركة المخزون المرتبطة", "Link", "Stock Entry", insert_after="warehouse", read_only=1)
-    _ensure_custom_field("Repair Invoice", "sales_invoice", "فاتورة المبيعات المرتبطة", "Link", "Sales Invoice", insert_after="grand_total", read_only=1)
-    _ensure_custom_field("Workshop Payment", "payment_entry", "سند القبض المرتبط", "Link", "Payment Entry", insert_after="reference", read_only=1)
+
+    # Workshop context ON the native documents. Users now raise a real Quotation
+    # and a real Sales Invoice; these fields carry the workshop link that the
+    # retired shadow doctypes used to hold.
+    for dt, after in (("Sales Invoice", "customer"), ("Quotation", "party_name")):
+        _ensure_custom_field(dt, "work_card", "بطاقة العمل", "Link", "Work Card", insert_after=after, read_only=0)
+        _ensure_custom_field(dt, "vehicle", "المركبة", "Link", "Customer Vehicle", insert_after="work_card", read_only=0)
 
     _ensure_server_script("Work Card Issue Parts On Ready", "Work Card", "Before Save", WORK_CARD_STOCK_SCRIPT)
-    _ensure_server_script("Repair Invoice Create Sales Invoice", "Repair Invoice", "Before Save", REPAIR_INVOICE_SI_SCRIPT)
-    _ensure_server_script("Workshop Payment Create Payment Entry", "Workshop Payment", "After Insert", WORKSHOP_PAYMENT_PE_SCRIPT)
+
+    # Retire the mirroring scripts. They existed only to copy the shadow
+    # documents into real ones; with users working directly in Sales Invoice and
+    # Payment Entry there is nothing left to mirror — and with it goes the whole
+    # class of bugs it carried: no tax on the generated invoice, every line
+    # collapsed to WORKSHOP-SERVICE, no cancellation handling, and submit()
+    # inside Before Save leaving orphaned submitted documents.
+    for stale in ("Repair Invoice Create Sales Invoice",
+                  "Workshop Payment Create Payment Entry",
+                  "Update Invoice On Payment",
+                  "Update Invoice On Payment Delete"):
+        if frappe.db.exists("Server Script", stale):
+            frappe.delete_doc("Server Script", stale, force=1, ignore_permissions=True)
+            print("removed Server Script:", stale)
 
     frappe.db.commit()
     frappe.clear_cache()

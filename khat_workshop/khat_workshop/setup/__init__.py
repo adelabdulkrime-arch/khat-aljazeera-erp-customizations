@@ -31,6 +31,10 @@ STEPS = [
     "workshop_general_settings",
     "workshop_scripts",
     "workshop_gl_stock_integration",
+    # Must come AFTER gl_stock_integration, which deletes the mirroring Server
+    # Scripts. Dropping a doctype while a Server Script still references it
+    # would leave the script pointing at nothing.
+    "workshop_retire_shadow",
     "workshop_invoice_whatsapp",
     "workshop_translations",
     "workshop_oman_setup2",
