@@ -6,3 +6,17 @@
 *.yaml  text eol=lf
 *.env*  text eol=lf
 *.md    text eol=lf
+
+# Added for the khat_workshop app. modules.txt and patches.txt are read
+# line-by-line by Frappe — a trailing \r would make the module resolve as
+# "Khat Workshop\r" and silently never match.
+*.txt      text eol=lf
+*.toml     text eol=lf
+*.json     text eol=lf
+Dockerfile text eol=lf
+
+# Never touch binary assets.
+*.png binary
+*.jpg binary
+*.gz  binary
+*.tar binary
