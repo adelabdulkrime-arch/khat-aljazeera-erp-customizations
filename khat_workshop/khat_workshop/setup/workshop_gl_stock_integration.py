@@ -151,7 +151,7 @@ def execute():
         _ensure_custom_field(dt, "work_card", "بطاقة العمل", "Link", "Work Card", insert_after=after, read_only=0)
         _ensure_custom_field(dt, "vehicle", "المركبة", "Link", "Customer Vehicle", insert_after="work_card", read_only=0)
 
-    # Parts are issued ON SUBMIT, not on a status change.
+    # Parts are issued AFTER SUBMIT, not on a status change.
     #
     # Previously any user could set the status to "جاهزة للتسليم" and that alone
     # fired a real, submitted, irreversible Stock Entry — with no approval gate,
@@ -161,11 +161,11 @@ def execute():
     # It also fixes a structural defect: the old script called submit() from
     # inside Before Save, so a later validation failure could leave a submitted
     # Stock Entry orphaned against an unsaved Work Card.
-    _ensure_server_script("Work Card Issue Parts On Ready", "Work Card", "On Submit", WORK_CARD_STOCK_SCRIPT)
+    _ensure_server_script("Work Card Issue Parts On Ready", "Work Card", "After Submit", WORK_CARD_STOCK_SCRIPT)
 
     # Cancelling the Work Card reverses the stock movement, closing the
     # phantom-stock hole the audit flagged as the highest-risk mechanism.
-    _ensure_server_script("Work Card Reverse Parts On Cancel", "Work Card", "On Cancel", WORK_CARD_CANCEL_SCRIPT)
+    _ensure_server_script("Work Card Reverse Parts On Cancel", "Work Card", "After Cancel", WORK_CARD_CANCEL_SCRIPT)
 
     # Retire the mirroring scripts. They existed only to copy the shadow
     # documents into real ones; with users working directly in Sales Invoice and
