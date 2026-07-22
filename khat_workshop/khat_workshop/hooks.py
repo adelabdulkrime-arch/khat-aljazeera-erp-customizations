@@ -16,3 +16,16 @@ app_license = "MIT"
 # Deliberately NOT patches.txt: patches are recorded as applied and run once,
 # which would mean a new patch entry for every dashboard tweak.
 after_migrate = ["khat_workshop.setup.run_all"]
+
+# Desk-level assets, loaded on EVERY desk page.
+#
+# desk.js (navbar language switcher, logout item, sidebar-header hiding) used to
+# be injected inside seven Custom HTML Block scripts, so it only ran on the seven
+# dashboards. Opening any standard page — /app/user, /app/role, a Sales Invoice —
+# dropped straight back to the stock navbar. Loading it here fixes that and means
+# the code exists once instead of seven times.
+#
+# Plain .js on purpose, NOT a .bundle.js: the runtime image ships no node/yarn,
+# so anything needing esbuild could not be built. Plain files only require the
+# sites/assets/khat_workshop symlink, which init.sh creates.
+app_include_js = "/assets/khat_workshop/js/desk.js"

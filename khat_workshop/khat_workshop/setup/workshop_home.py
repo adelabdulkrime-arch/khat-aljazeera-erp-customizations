@@ -5,7 +5,7 @@ module tiles (Workshop, Sales, Purchases, Stock, Accounting, General Settings)
 Stock, Invoicing already ship with ERPNext) — we only add the landing tiles."""
 import json
 import frappe
-from khat_workshop.setup.workshop_futuristic import FUTURISTIC_CSS, FUTURISTIC_JS, NAV_LANG_JS
+from khat_workshop.setup.workshop_futuristic import FUTURISTIC_CSS, FUTURISTIC_JS
 
 HOME_BLOCK_NAME = "Home Dashboard Tiles"
 
@@ -162,7 +162,7 @@ ICON_SPRITE_JS = r"""
 
 HOME_SCRIPT = """
 const root = (typeof root_element !== 'undefined' && root_element) ? root_element : document;
-""" + ICON_SPRITE_JS + NAV_LANG_JS + FUTURISTIC_JS + """
+""" + ICON_SPRITE_JS + FUTURISTIC_JS + """
 function translateAll(){
   root.querySelectorAll('[data-i18n]').forEach(function(el){ el.textContent = __(el.dataset.i18n); });
   root.querySelectorAll('[data-i18n-placeholder]').forEach(function(el){

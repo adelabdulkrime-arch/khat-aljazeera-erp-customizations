@@ -4,7 +4,7 @@
 the grouped menu. All DB-persisted."""
 import json
 import frappe
-from khat_workshop.setup.workshop_futuristic import FUTURISTIC_CSS, FUTURISTIC_JS, NAV_LANG_JS
+from khat_workshop.setup.workshop_futuristic import FUTURISTIC_CSS, FUTURISTIC_JS
 
 LABEL = "Workshop"
 TITLE = "ورشة الصيانة"
@@ -230,7 +230,7 @@ ICON_SPRITE_JS = r"""
 # Statistics section header (Mazoon-style), collapsing/expanding the 6
 # Number Card widgets below it. The header and the number cards are native
 # Frappe Workspace blocks rendered OUTSIDE this Custom HTML Block's shadow
-# root, so this reaches into `document` the same way NAV_LANG_JS does.
+# root, so this reaches into `document` the same way public/js/desk.js does.
 # Retries briefly since the header may render after this block's own script
 # runs (Editor.js blocks mount independently, in no guaranteed order).
 STATS_TOGGLE_JS = r"""
@@ -282,7 +282,7 @@ STATS_TOGGLE_JS = r"""
 
 BLOCK_SCRIPT = r"""
 const root = (typeof root_element !== 'undefined' && root_element) ? root_element : document;
-""" + ICON_SPRITE_JS + NAV_LANG_JS + STATS_TOGGLE_JS + FUTURISTIC_JS + r"""
+""" + ICON_SPRITE_JS + STATS_TOGGLE_JS + FUTURISTIC_JS + r"""
 function go(dt, name){ frappe.set_route('Form', dt, name); }
 
 // ---- Action tiles navigation ----

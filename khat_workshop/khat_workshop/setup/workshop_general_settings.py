@@ -4,7 +4,7 @@ General Settings screen — 11 tiles (Branches intentionally excluded per user
 request), reusing ERPNext's own native doctypes/pages wherever they exist."""
 import json
 import frappe
-from khat_workshop.setup.workshop_futuristic import FUTURISTIC_CSS, FUTURISTIC_JS, NAV_LANG_JS
+from khat_workshop.setup.workshop_futuristic import FUTURISTIC_CSS, FUTURISTIC_JS
 
 WS_NAME = "General Settings"
 WS_TITLE = "الإعدادات العامة"
@@ -125,7 +125,7 @@ ICON_SPRITE_JS = r"""
 
 SCRIPT = """
 const root = (typeof root_element !== 'undefined' && root_element) ? root_element : document;
-""" + ICON_SPRITE_JS + NAV_LANG_JS + FUTURISTIC_JS + """
+""" + ICON_SPRITE_JS + FUTURISTIC_JS + """
 function translateAll(){
   root.querySelectorAll('[data-i18n]').forEach(function(el){ el.textContent = __(el.dataset.i18n); });
 }
