@@ -32,7 +32,10 @@ TILES = [
 TRANSLATIONS = [
     ("الإعدادات العامة", "General Settings"),
     ("الإعدادات", "Settings"),
-    ("الأدوار والصلاحيات", "Roles & Permissions"),
+    # Must match the tile label exactly (TILES row 2 is "الأدوار"). It said
+    # "الأدوار والصلاحيات" before, which no tile uses, so __("الأدوار") found
+    # nothing and that one tile stayed Arabic while every other translated.
+    ("الأدوار", "Roles"),
     ("المستخدمون", "Users"),
     ("أدوار جهات الاتصال", "Contact Roles"),
     ("جهات الاتصال", "Contacts"),
