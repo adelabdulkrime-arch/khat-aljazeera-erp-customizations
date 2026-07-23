@@ -794,3 +794,23 @@ window.location.href = `/login?redirect-to=${encodeURIComponent(location.pathnam
 
 **ملاحظة أصول:** نسخة nginx من `desk.js` تتحدّث عند النشر لا بالنسخ اليدوي —
 يُتحقَّق بعد النشر.
+
+---
+
+## ١٧. شريط جانبي موحّد للتنقّل (2026-07-23)
+
+**الملاحظة:** الشريط الجانبي لـ«الرئيسية» يعرض ٥ روابط عامة موروثة من ERPNext
+(`Item, Home, Customer, Supplier, Sales Invoice`)، بينما اللوحات الست الأخرى
+شريطها فارغ — تضارب يبدو غير مكتمل.
+
+**السبب:** v16 يقود الشريط من doctype مستقل `Workspace Sidebar`، وسجل «Home»
+الافتراضي جاء بتلك الروابط، و[`workshop_home.py`](khat_workshop/khat_workshop/setup/workshop_home.py)
+لا ينشئ السجل فبقي على حاله.
+
+**العلاج (قرار المالك: تنقّل ثابت)** —
+[`workshop_sidebar_nav.py`](khat_workshop/khat_workshop/setup/workshop_sidebar_nav.py):
+شريط موحّد بسبعة روابط (`link_type=Workspace`) على **كل** لوحة، فيصبح قائمة
+تنقّل دائمة كما في موزون. `link_type=Workspace` أنظف من URL: تنقّل داخل التطبيق
+بلا إعادة تحميل ويُبرز اللوحة النشطة. يُعاد البناء كاملًا كل مرة فلا صفوف قديمة.
+
+**مؤكَّد:** السبع لوحات كلها تحمل الروابط السبعة المتطابقة.
