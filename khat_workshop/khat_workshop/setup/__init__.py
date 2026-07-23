@@ -56,6 +56,7 @@ STEPS = [
     "workshop_default_app",
     # After every dashboard exists, so the nav can link to all seven.
     "workshop_sidebar_nav",
+    "workshop_print_template",
     "workshop_oman_setup2",
     "workshop_landing",
     "workshop_oman_setup",

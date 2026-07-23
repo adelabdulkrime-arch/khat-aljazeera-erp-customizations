@@ -77,4 +77,9 @@ doc_events = {
     "Website Settings": {
         "validate": "khat_workshop.branding.ensure_public_branding",
     },
+    # Compose the printed header/footer/stamp from the uploaded images, and keep
+    # those images public so wkhtmltopdf can fetch them while rendering the PDF.
+    "Letter Head": {
+        "validate": "khat_workshop.print_template.compose",
+    },
 }
