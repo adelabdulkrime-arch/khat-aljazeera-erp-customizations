@@ -65,8 +65,18 @@ def ensure_public_branding(doc, method=None):
         fname = frappe.db.get_value("File", {"file_url": url}, "name")
         if not fname:
             continue
-        f = frappe.get_doc("File", fname)
-        if f.is_private:
-            f.is_private = 0
-            f.save(ignore_permissions=True)   # moves the file, rewrites file_url
-            doc.set(field, f.file_url)
+        # A failure to flip the file must not block saving Website Settings —
+        # the worst case is the branding image stays private and invisible,
+        # which the owner will see and report, whereas a raised exception would
+        # make the settings page unsaveable. Log it and move on.
+        try:
+            f = frappe.get_doc("File", fname)
+            if f.is_private:
+                f.is_private = 0
+                f.save(ignore_permissions=True)   # moves the file, rewrites file_url
+                doc.set(field, f.file_url)
+        except Exception:
+            frappe.log_error(
+                title="ensure_public_branding failed for %s" % field,
+                message=frappe.get_traceback(),
+            )

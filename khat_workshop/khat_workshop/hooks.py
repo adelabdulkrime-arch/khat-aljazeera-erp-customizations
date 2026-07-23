@@ -30,15 +30,6 @@ after_migrate = ["khat_workshop.setup.run_all"]
 # sites/assets/khat_workshop symlink, which init.sh creates.
 app_include_js = "/assets/khat_workshop/js/desk.js"
 
-# Cost and margin on every Work Card.
-#
-# A Server Script cannot do this: the calculation reads Item valuation and the
-# linked Stock Entry, and the same code has to run on both save and submit.
-# doc_events keeps it in one version-controlled place next to the fields it
-# fills (see khat_workshop.setup.workshop_labour_costing).
-#
-# on_submit as well as validate because parts cost is only exact once the parts
-# have actually been issued, which happens after the card is submitted.
 # Paint the uploaded background onto the login page. Runs server-side for every
 # web page; khat_workshop.branding gates it to /login and no-ops when unset.
 update_website_context = ["khat_workshop.branding.inject_login_background"]
@@ -64,6 +55,14 @@ add_to_apps_screen = [
     }
 ]
 
+# Work Card automation, plus keeping branding files public.
+#
+# The costing cannot be a Server Script: it reads Item valuation and the linked
+# Stock Entry, and the same code runs on both save and submit — on_submit as
+# well as validate because parts cost is only exact once the parts have been
+# issued, which happens after the card is submitted. doc_events keeps it in one
+# version-controlled place next to the fields it fills
+# (see khat_workshop.setup.workshop_labour_costing).
 doc_events = {
     "Work Card": {
         "validate": "khat_workshop.costing.compute",
