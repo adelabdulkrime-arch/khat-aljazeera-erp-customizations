@@ -31,6 +31,33 @@ NAV = [
     ("Workshop", "الورشة", "tool"),
 ]
 
+# Labels are authored in Arabic and rendered through __(), so an account in
+# English mode sees each one translated — but only where a translation exists.
+# Without these, half the rail showed English (Home, General Settings, which
+# already had translations) and half stayed Arabic. Register the English
+# rendering for every label so the rail is wholly one language either way.
+LABEL_EN = {
+    "الرئيسية": "Home",
+    "الإعدادات العامة": "General Settings",
+    "لوحة المحاسبة": "Accounting Dashboard",
+    "لوحة المخزون": "Inventory Dashboard",
+    "لوحة المشتريات": "Purchasing Dashboard",
+    "لوحة المبيعات": "Sales Dashboard",
+    "الورشة": "Workshop",
+}
+
+
+def _make_translations():
+    created = 0
+    for src, en in LABEL_EN.items():
+        if not frappe.db.exists("Translation", {"source_text": src, "language": "en"}):
+            frappe.get_doc({
+                "doctype": "Translation", "language": "en",
+                "source_text": src, "translated_text": en,
+            }).insert(ignore_permissions=True)
+            created += 1
+    return created
+
 
 def _items():
     rows = []
@@ -48,6 +75,7 @@ def _items():
 
 
 def execute():
+    created = _make_translations()
     items = _items()
     touched = 0
 
@@ -72,4 +100,5 @@ def execute():
 
     frappe.db.commit()
     frappe.clear_cache()
-    print("SIDEBAR_NAV items=%d applied_to=%d dashboards" % (len(items), touched))
+    print("SIDEBAR_NAV items=%d applied_to=%d dashboards translations=+%d"
+          % (len(items), touched, created))
