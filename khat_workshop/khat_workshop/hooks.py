@@ -39,6 +39,10 @@ app_include_js = "/assets/khat_workshop/js/desk.js"
 #
 # on_submit as well as validate because parts cost is only exact once the parts
 # have actually been issued, which happens after the card is submitted.
+# Paint the uploaded background onto the login page. Runs server-side for every
+# web page; khat_workshop.branding gates it to /login and no-ops when unset.
+update_website_context = ["khat_workshop.branding.inject_login_background"]
+
 doc_events = {
     "Work Card": {
         "validate": "khat_workshop.costing.compute",

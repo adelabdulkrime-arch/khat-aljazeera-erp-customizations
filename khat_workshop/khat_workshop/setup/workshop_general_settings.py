@@ -14,6 +14,9 @@ BLOCK_NAME = "General Settings Tiles"
 # action: list | form | page | myaccount
 TILES = [
     ("الإعدادات", "company", "Company", "settings", "#e63946"),
+    # One place for logo, favicon and login background — Website Settings is a
+    # Single, so it routes by doctype name with no document name.
+    ("الشعار والهوية", "single", "Website Settings", "image", "#e63946"),
     # NOTE: these two previously pointed at custom pages `roles-dashboard` /
     # `users-dashboard` that were never built, so the tiles opened a blank
     # screen. Routed to Frappe's built-in Role/User list views instead.
@@ -32,6 +35,7 @@ TILES = [
 TRANSLATIONS = [
     ("الإعدادات العامة", "General Settings"),
     ("الإعدادات", "Settings"),
+    ("الشعار والهوية", "Logo & Identity"),
     # Must match the tile label exactly (TILES row 2 is "الأدوار"). It said
     # "الأدوار والصلاحيات" before, which no tile uses, so __("الأدوار") found
     # nothing and that one tile stayed Arabic while every other translated.
@@ -137,6 +141,7 @@ root.querySelectorAll('.gsd-tile').forEach(function(t){
   t.addEventListener('click', function(){
     var a = t.dataset.action, tg = t.dataset.target;
     if(a === 'list') frappe.set_route('List', tg);
+    else if(a === 'single') frappe.set_route('Form', tg, tg);
     else if(a === 'form') frappe.set_route('Form', tg);
     else if(a === 'page') frappe.set_route(tg);
     else if(a === 'report') frappe.set_route('query-report', tg);
