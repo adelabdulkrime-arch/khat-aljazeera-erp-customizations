@@ -754,3 +754,43 @@ Administrator = 'ar'   المالك = 'ar'
 ```
 
 **متبقٍّ على المالك:** رفع الشعار والخلفية من بلاطة «الشعار والهوية».
+
+---
+
+## ١٦. الشعار والخلفية لا يظهران + الدخول لا يصل للوحة (2026-07-23)
+
+### أ) الخلفية والشعار لا يظهران — **ملفات خاصة**
+
+الملفان رُفعا **خاصَّين** (`/private/files/`). صفحة الدخول يراها زائر غير مسجَّل،
+والزائر لا يقرأ الملفات الخاصة → الصورة موجودة ومحجوبة. حُوِّلا إلى عامَّين
+(HTTP 200 لزائر، مؤكَّد). ورُمِّز مسار الخلفية في
+[`branding.py`](khat_workshop/khat_workshop/branding.py) (مسافات وعربية).
+
+**تحصين:** `ensure_public_branding` على `validate` لـ Website Settings — أي رفع
+مستقبلي خاصّ يُحوَّل عامًّا تلقائيًا عند الحفظ، فلا تتكرر المشكلة.
+
+### ب) الدخول يهبط على الشبكة لا اللوحة — **get_default_path**
+
+منطق Frappe: `redirect_to = get_default_path() or get_home_page()`.
+`get_home_page()` يعيد `/desk/home` (اللوحة)، لكن `get_default_path()` يحجبه: مع
+تطبيقَي سطح مكتب (erpnext, hrms) وبلا `default_app` يعيد **`/desk`** المجرّد =
+شبكة الوحدات.
+
+**العلاج:** تسجيل «خط الجزيرة» في شاشة التطبيقات بمسار `/desk/home`
+([`hooks.py` add_to_apps_screen](khat_workshop/khat_workshop/hooks.py)) وجعله
+`default_app` ([`workshop_default_app.py`](khat_workshop/khat_workshop/setup/workshop_default_app.py)).
+النتيجة المؤكَّدة: `get_default_path() = '/desk/home'`.
+
+### ج) بعد الخروج يعود لآخر صفحة — **redirect_to_login**
+
+زر الخروج في v16 (`desk.js:407`) ينفّذ:
+```js
+window.location.href = `/login?redirect-to=${encodeURIComponent(location.pathname+search)}`;
+```
+أي يحمل الصفحة الحالية عمدًا. **العلاج:** استبدال `frappe.app.logout` في
+[`desk.js`](khat_workshop/khat_workshop/public/js/desk.js) ليذهب إلى `/login`
+نظيفًا — استبدال دالة بالاسم لا حقن DOM، يتدهور بأمان إن غُيِّر الاسم. انتهاء
+الجلسة يبقى يحمل `redirect-to` (مطلوب — العودة لمكانك بعد المهلة).
+
+**ملاحظة أصول:** نسخة nginx من `desk.js` تتحدّث عند النشر لا بالنسخ اليدوي —
+يُتحقَّق بعد النشر.

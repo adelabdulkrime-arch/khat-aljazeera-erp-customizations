@@ -43,6 +43,27 @@ app_include_js = "/assets/khat_workshop/js/desk.js"
 # web page; khat_workshop.branding gates it to /login and no-ops when unset.
 update_website_context = ["khat_workshop.branding.inject_login_background"]
 
+# Register the workshop as an "app" whose route is the dashboard, /desk/home.
+#
+# This exists to fix where a login lands. frappe's login does
+# `redirect_to = get_default_path() or get_home_page()`. get_home_page() already
+# returns /desk/home (our dashboard), but get_default_path() shadows it: with
+# two desk apps (erpnext, hrms) and no default_app set, it returns bare /desk —
+# v16's module-launcher grid, not the dashboard. So every fresh login landed on
+# the grid.
+#
+# get_default_path() resolves default_app through get_route(), which reads this
+# hook. Pointing our entry at /desk/home and setting it as the default_app (see
+# setup/workshop_default_app) makes get_default_path() return the dashboard, so
+# login lands there. It also adds a branded "خط الجزيرة" tile to /apps.
+add_to_apps_screen = [
+    {
+        "name": "khat_workshop",
+        "title": "خط الجزيرة",
+        "route": "/desk/home",
+    }
+]
+
 doc_events = {
     "Work Card": {
         "validate": "khat_workshop.costing.compute",
@@ -51,5 +72,10 @@ doc_events = {
         # while the car is still being walked around. What must never happen is
         # work starting on a vehicle whose condition nobody recorded.
         "before_submit": "khat_workshop.intake.validate_intake",
-    }
+    },
+    # Keep the logo and login background public, so the login page (served to
+    # logged-out visitors) can actually load them.
+    "Website Settings": {
+        "validate": "khat_workshop.branding.ensure_public_branding",
+    },
 }

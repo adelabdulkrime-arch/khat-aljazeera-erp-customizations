@@ -53,6 +53,7 @@ STEPS = [
     "workshop_language",
     "workshop_navbar",
     "workshop_branding",
+    "workshop_default_app",
     "workshop_oman_setup2",
     "workshop_landing",
     "workshop_oman_setup",
