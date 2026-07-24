@@ -6,21 +6,12 @@ import frappe
 
 # (arabic, english)
 PAIRS = [
-    # --- Custom role names (shown on the Roles/Users Dashboard pages) ---
-    ("المدير", "Director"),
-    ("محاسب", "Accountant"),
-    ("موظف استقبال الورشة", "Workshop Receptionist"),
-    ("فني ورشة", "Workshop Technician"),
-    ("مدير الورشة", "Garage Manager"),
-    ("مسؤول المشتريات", "Purchasing Officer"),
-    ("مدير المستودع", "Warehouse Manager"),
-    ("كاشير", "Cashier"),
-    ("مندوب مبيعات", "Sales Representative"),
-    ("مدير المبيعات", "Head of Sales"),
-    ("مدير", "Manager"),
-    ("مسؤول", "Supervisor"),
-    ("موظف", "Staff"),
-    ("مدير النظام", "System Administrator"),
+    # Role-name translations were removed from here: workshop_roles now owns
+    # them, aligned to Mazoon (Super Admin, Sales Manager, Workshop Manager,
+    # Admin, Employee...). This step runs AFTER workshop_roles, so keeping the
+    # old pairs here silently overwrote the correct labels with stale ones
+    # (Garage Manager, Head of Sales, Supervisor, Staff, System Administrator) —
+    # caught by post-deploy verification when "Super Admin" came back empty.
 
     # --- Module / Workspace ---
     ("الرئيسية", "Home"),

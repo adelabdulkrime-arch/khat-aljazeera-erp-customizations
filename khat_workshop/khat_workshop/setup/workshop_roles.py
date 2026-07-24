@@ -84,6 +84,27 @@ def _upsert_translation(source, language, target):
     }).insert(ignore_permissions=True)
 
 
+# English role labels from before the Mazoon alignment. Their source texts are
+# no longer used for display, so the leftover Translation rows are dead — remove
+# them so nothing can render a role under an old name.
+STALE_EN_LABELS = (
+    "System Administrator", "Head of Sales", "Garage Manager",
+    "Supervisor", "Staff", "Director",
+)
+
+
+def _purge_stale_translations():
+    purged = 0
+    for name in frappe.get_all(
+        "Translation",
+        filters={"language": "en", "translated_text": ["in", STALE_EN_LABELS]},
+        pluck="name",
+    ):
+        frappe.delete_doc("Translation", name, force=1, ignore_permissions=True)
+        purged += 1
+    return purged
+
+
 def execute():
     created = 0
     for name, ar, en in ROLES:
@@ -100,6 +121,8 @@ def execute():
         _upsert_translation(name, "en", en)
         _upsert_translation(name, "ar", ar)
 
+    purged = _purge_stale_translations()
+
     frappe.db.commit()
     frappe.clear_cache()
-    print("ROLES aligned=%d created=%d" % (len(ROLES), created))
+    print("ROLES aligned=%d created=%d stale_purged=%d" % (len(ROLES), created, purged))
