@@ -27,6 +27,9 @@ STEPS = [
     "workshop_roles",
     "workshop_home",
     "workshop_dashboard",
+    # Creates the four reports the dashboard tiles link to, so clicking a
+    # report tile opens a report instead of a server error.
+    "workshop_reports",
     "workshop_accounting",
     "workshop_inventory",
     "workshop_purchasing",
