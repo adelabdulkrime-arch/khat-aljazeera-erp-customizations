@@ -66,7 +66,11 @@ add_to_apps_screen = [
 doc_events = {
     "Work Card": {
         "validate": "khat_workshop.costing.compute",
-        "on_submit": "khat_workshop.costing.recompute_on_submit",
+        "on_submit": [
+            "khat_workshop.costing.recompute_on_submit",
+            # Stamp the vehicle's last/next service date off this job card.
+            "khat_workshop.maintenance.set_next_service",
+        ],
         # before_submit, not validate: a draft may legitimately be half-filled
         # while the car is still being walked around. What must never happen is
         # work starting on a vehicle whose condition nobody recorded.
