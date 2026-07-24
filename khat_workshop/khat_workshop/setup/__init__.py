@@ -37,6 +37,7 @@ STEPS = [
     # On Submit event, which only exists once the doctype is submittable.
     "workshop_work_card_control",
     "workshop_service_catalogue",
+    "workshop_packages",
     # Needs Work Card Technician to exist, so it follows work_card_control.
     "workshop_labour_costing",
     "workshop_vehicle_intake",

@@ -82,4 +82,8 @@ doc_events = {
     "Letter Head": {
         "validate": "khat_workshop.print_template.compose",
     },
+    # Total a service package from its lines, applying the package discount.
+    "Workshop Package": {
+        "validate": "khat_workshop.packages.compute",
+    },
 }
