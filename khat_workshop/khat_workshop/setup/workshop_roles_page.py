@@ -22,6 +22,7 @@ import frappe
 
 from khat_workshop.setup.workshop_futuristic import FUTURISTIC_CSS, FUTURISTIC_JS
 from khat_workshop.setup.workshop_roles import ROLES
+from khat_workshop.setup.workshop_sidebar_nav import _items as _nav_items
 
 WS_NAME = "Workshop Roles"
 WS_TITLE = "الأدوار"
@@ -133,6 +134,29 @@ def execute():
     ws.append("custom_blocks", {"custom_block_name": block, "label": block})
     ws.insert(ignore_permissions=True)
 
+    _make_sidebar()
+
     frappe.db.commit()
     frappe.clear_cache()
     print("ROLES_PAGE workspace=%s block=%s roles=%d" % (WS_NAME, block, len(ROLES)))
+
+
+def _make_sidebar():
+    """Give this workspace the same seven-dashboard left rail as the others.
+
+    Without its own Workspace Sidebar record the hidden workspace rendered with
+    an empty rail, and navigating away (the edit link) left the sidebar in a
+    broken state. Reusing the shared nav keeps it identical to every dashboard.
+    """
+    if frappe.db.exists("Workspace Sidebar", WS_NAME):
+        sb = frappe.get_doc("Workspace Sidebar", WS_NAME)
+    else:
+        sb = frappe.new_doc("Workspace Sidebar")
+        sb.title = WS_NAME
+        sb.module = "Core"
+    sb.header_icon = "users"
+    sb.set("items", [])
+    for row in _nav_items():
+        sb.append("items", row)
+    sb.flags.ignore_permissions = True
+    sb.save(ignore_permissions=True)
