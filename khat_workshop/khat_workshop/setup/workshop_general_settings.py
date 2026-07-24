@@ -19,7 +19,9 @@ BLOCK_NAME = "General Settings Tiles"
 # native list/single views wherever they exist.
 TILES = [
     ("المستخدمون", "list", "User", "users", "#e63946"),
-    ("الأدوار", "list", "Role", "shield-user", "#e63946"),
+    # Not the raw Role list (60+ mixed-language platform roles) — our clean
+    # fourteen-role screen. See workshop_roles_page.
+    ("الأدوار", "workspace", "workshop-roles", "shield-user", "#e63946"),
     ("الإعدادات", "company", "Company", "settings", "#e63946"),
     # Logo, favicon and login background in one place — Website Settings is a
     # Single, so it routes by doctype name with no document name. Mazoon folds
@@ -142,6 +144,7 @@ root.querySelectorAll('.gsd-tile').forEach(function(t){
   t.addEventListener('click', function(){
     var a = t.dataset.action, tg = t.dataset.target;
     if(a === 'list') frappe.set_route('List', tg);
+    else if(a === 'workspace') window.location.href = '/app/' + tg;
     else if(a === 'single') frappe.set_route('Form', tg, tg);
     else if(a === 'form') frappe.set_route('Form', tg);
     else if(a === 'page') frappe.set_route(tg);
