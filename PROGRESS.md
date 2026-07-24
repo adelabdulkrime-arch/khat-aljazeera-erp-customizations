@@ -854,3 +854,25 @@ window.location.href = `/login?redirect-to=${encodeURIComponent(location.pathnam
 
 **يحتاج تحقّقًا بعد النشر:** موضع الختم في الـ PDF قد يحتاج ضبطًا — تصيير الطباعة
 لا يُختبَر إلا على الخادم.
+
+---
+
+## ٢٠. مواءمة القسم الأول (الإعدادات العامة) مع مازون (2026-07-24)
+
+عمل تحليل ومواءمة بعد رؤية مازون مباشرةً (التقاط شاشة). **بلا نشر — ضمن الدفعة.**
+
+### الأدوار — [`workshop_roles.py`](khat_workshop/khat_workshop/setup/workshop_roles.py)
+مواءمة قائمة الأدوار مع أدوار مازون الـ ١٤ (عربي/إنجليزي). إعادة استخدام الموجود
+(٥ أدوار عربية + المدمجة HR Manager/Sales Manager/Workshop Manager/Employee) دون
+تكرار أو كسر صلاحيات، وإنشاء الناقص، وتصحيح الترجمات المخالفة (System
+Administrator←Super Admin، Garage Manager←Workshop Manager، Staff←Employee...).
+**الصلاحيات (مصفوفة مازون) مؤجَّلة لمرحلة RBAC — هذه مواءمة أسماء وتسميات فقط.**
+
+### لوحة الإعدادات العامة — [`workshop_general_settings.py`](khat_workshop/khat_workshop/setup/workshop_general_settings.py)
+- ترتيب البلاطات على ترتيب مازون (المستخدمون، الأدوار، الإعدادات… أولًا).
+- حذف بلاطة «حسابي» (لا وجود لها في مازون).
+- «سجل نشاط النظام» ← «سجل النشاط».
+
+### درس تشغيلي
+تمرير الأحرف العربية عبر خط أنابيب console (base64→bench) يُنتج **mojibake**؛
+لذا يُكتب أي كود عربي في المستودع (UTF-8 سليم) ويُطبَّق عبر النشر، لا عبر console.

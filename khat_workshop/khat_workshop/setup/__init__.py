@@ -22,6 +22,9 @@ import frappe
 # single deploy.
 STEPS = [
     "workshop_setup",
+    # Right after setup, which creates the first roles: align the full list and
+    # labels with Mazoon's fourteen before anything else references them.
+    "workshop_roles",
     "workshop_home",
     "workshop_dashboard",
     "workshop_accounting",

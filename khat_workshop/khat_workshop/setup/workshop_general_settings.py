@@ -12,24 +12,26 @@ BLOCK_NAME = "General Settings Tiles"
 
 # (label, action, target, icon, color)
 # action: list | form | page | myaccount
+# Order and naming follow Mazoon's General Settings, minus Branches (excluded
+# for a single-site workshop) and the dashboard overview. "حسابي/My Account"
+# was dropped — Mazoon has no such tile; the account is reached from the avatar
+# menu. Users and Roles come first, as in Mazoon. Routes reuse ERPNext's own
+# native list/single views wherever they exist.
 TILES = [
-    ("الإعدادات", "company", "Company", "settings", "#e63946"),
-    # One place for logo, favicon and login background — Website Settings is a
-    # Single, so it routes by doctype name with no document name.
-    ("الشعار والهوية", "single", "Website Settings", "image", "#e63946"),
-    # NOTE: these two previously pointed at custom pages `roles-dashboard` /
-    # `users-dashboard` that were never built, so the tiles opened a blank
-    # screen. Routed to Frappe's built-in Role/User list views instead.
-    ("الأدوار", "list", "Role", "shield-user", "#e63946"),
     ("المستخدمون", "list", "User", "users", "#e63946"),
-    ("أدوار جهات الاتصال", "list", "Contact Role", "id-card", "#e63946"),
-    ("جهات الاتصال", "list", "Contact", "contact", "#e63946"),
-    ("حسابي", "myaccount", "User", "circle-user", "#e63946"),
+    ("الأدوار", "list", "Role", "shield-user", "#e63946"),
+    ("الإعدادات", "company", "Company", "settings", "#e63946"),
+    # Logo, favicon and login background in one place — Website Settings is a
+    # Single, so it routes by doctype name with no document name. Mazoon folds
+    # these into Settings; kept separate here until the Settings form is curated.
+    ("الشعار والهوية", "single", "Website Settings", "image", "#e63946"),
     ("الحقول المخصصة", "list", "Custom Field", "list-plus", "#e63946"),
-    ("نسخة احتياطية", "page", "backups", "file-down", "#e63946"),
-    ("قوالب الطباعة", "list", "Letter Head", "printer", "#e63946"),
+    ("جهات الاتصال", "list", "Contact", "contact", "#e63946"),
+    ("أدوار جهات الاتصال", "list", "Contact Role", "id-card", "#e63946"),
     ("الدول", "list", "Country", "globe", "#e63946"),
-    ("سجل نشاط النظام", "list", "Activity Log", "history", "#e63946"),
+    ("قوالب الطباعة", "list", "Letter Head", "printer", "#e63946"),
+    ("سجل النشاط", "list", "Activity Log", "history", "#e63946"),
+    ("نسخة احتياطية", "page", "backups", "file-down", "#e63946"),
 ]
 
 TRANSLATIONS = [
@@ -43,12 +45,11 @@ TRANSLATIONS = [
     ("المستخدمون", "Users"),
     ("أدوار جهات الاتصال", "Contact Roles"),
     ("جهات الاتصال", "Contacts"),
-    ("حسابي", "My Account"),
     ("الحقول المخصصة", "Custom Fields"),
     ("نسخة احتياطية", "Backup"),
     ("قوالب الطباعة", "Print Templates"),
     ("الدول", "Countries"),
-    ("سجل نشاط النظام", "System Activity Log"),
+    ("سجل النشاط", "Activity Log"),
 ]
 
 
