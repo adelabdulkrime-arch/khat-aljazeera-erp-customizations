@@ -1,4 +1,13 @@
-ARG ERPNEXT_VERSION=v16
+# Pinned to an immutable digest instead of the moving `v16` tag. `v16` is
+# updated often upstream; every time it moved, Docker's cache for the base was
+# invalidated and the expensive hrms build in stage 1 (~15-20 min) ran again —
+# which is why every deploy was slow even though the host keeps a 3GB build
+# cache. Pinning freezes the base so that cache is reused and deploys drop to a
+# few minutes.
+#
+# Re-pin deliberately when you want a newer ERPNext base:
+#   docker buildx imagetools inspect frappe/erpnext:v16   # copy the Digest
+ARG ERPNEXT_IMAGE=frappe/erpnext@sha256:a951e8c905161ec50246d5f6da8e324d89ffb8bb3b407b3508208890f6a9483c
 
 # ── Stage 1: build the hrms (Frappe HR) assets ───────────────────────────────
 # HR left ERPNext core at v14 and lives in the separate `hrms` app. Simply
@@ -14,7 +23,7 @@ ARG ERPNEXT_VERSION=v16
 # Keeping it as a separate stage means the build toolchain, the git clone and
 # ~750MB of SPA node_modules stay out of the final image; only the built app is
 # copied across.
-FROM frappe/erpnext:${ERPNEXT_VERSION} AS hrms-builder
+FROM ${ERPNEXT_IMAGE} AS hrms-builder
 
 USER root
 RUN apt-get update \
@@ -45,7 +54,7 @@ RUN rm -rf apps/hrms/.git \
     && du -sh apps/hrms
 
 # ── Stage 2: the runtime image ───────────────────────────────────────────────
-FROM frappe/erpnext:${ERPNEXT_VERSION}
+FROM ${ERPNEXT_IMAGE}
 
 USER root
 

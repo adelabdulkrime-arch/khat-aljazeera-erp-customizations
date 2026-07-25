@@ -8,8 +8,11 @@ x-frappe-image: &frappe-image
   build:
     context: .
     dockerfile: Dockerfile
+    # The base is pinned to an immutable digest inside the Dockerfile (see the
+    # ERPNEXT_IMAGE ARG) so the build cache holds and deploys stay fast. Override
+    # here only to build against a different base.
     args:
-      ERPNEXT_VERSION: ${ERPNEXT_VERSION:-v16}
+      ERPNEXT_IMAGE: ${ERPNEXT_IMAGE:-frappe/erpnext@sha256:a951e8c905161ec50246d5f6da8e324d89ffb8bb3b407b3508208890f6a9483c}
 
 services:
 
