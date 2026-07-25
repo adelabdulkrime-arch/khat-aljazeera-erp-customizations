@@ -35,9 +35,11 @@ STEPS = [
     "workshop_purchasing",
     "workshop_sales",
     "workshop_general_settings",
-    # After general_settings (its tile points here) and after workshop_roles
-    # (its ROLES list is the data source).
-    "workshop_roles_page",
+    # Translate every role name to Arabic and English + a list client script,
+    # so the standard Role list reads consistently in the chosen language. Also
+    # tears down the earlier custom Roles page. After workshop_roles (its ROLES
+    # provide the workshop labels) and general_settings (owns the tile).
+    "workshop_role_i18n",
     "workshop_scripts",
     # Must precede gl_stock_integration: the parts-issue script binds to the
     # On Submit event, which only exists once the doctype is submittable.

@@ -19,9 +19,10 @@ BLOCK_NAME = "General Settings Tiles"
 # native list/single views wherever they exist.
 TILES = [
     ("المستخدمون", "list", "User", "users", "#e63946"),
-    # Not the raw Role list (60+ mixed-language platform roles) — our clean
-    # fourteen-role screen. See workshop_roles_page.
-    ("الأدوار", "workspace", "workshop-roles", "shield-user", "#e63946"),
+    # Back to the standard Role list per the owner's request. Consistent-language
+    # display of role names is handled by workshop_role_i18n (translations + a
+    # list client script), since the list shows role identifiers untranslated.
+    ("الأدوار", "list", "Role", "shield-user", "#e63946"),
     ("الإعدادات", "company", "Company", "settings", "#e63946"),
     # Logo, favicon and login background in one place — Website Settings is a
     # Single, so it routes by doctype name with no document name. Mazoon folds
