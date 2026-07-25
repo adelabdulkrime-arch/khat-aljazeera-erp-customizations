@@ -1,0 +1,36 @@
+{
+  "id": "khat-aljazeera-workshop",
+  "name": "خط الجزيرة — إدارة الورشة",
+  "short_name": "خط الجزيرة",
+  "description": "نظام إدارة ورشة صيانة السيارات وقطع الغيار",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/desk/home",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "any",
+  "background_color": "#1a2b4a",
+  "theme_color": "#1a2b4a",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/assets/khat_workshop/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/khat_workshop/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/khat_workshop/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

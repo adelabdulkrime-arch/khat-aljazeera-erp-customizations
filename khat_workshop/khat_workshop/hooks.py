@@ -28,7 +28,23 @@ after_migrate = ["khat_workshop.setup.run_all"]
 # Plain .js on purpose, NOT a .bundle.js: the runtime image ships no node/yarn,
 # so anything needing esbuild could not be built. Plain files only require the
 # sites/assets/khat_workshop symlink, which init.sh creates.
-app_include_js = "/assets/khat_workshop/js/desk.js"
+#
+# pwa.js turns the desk into an installable app (manifest + icons + service
+# worker). It is added to BOTH app_include_js (desk) and web_include_js (login /
+# portal) so "install" works whether the user triggers it before or after login.
+app_include_js = [
+    "/assets/khat_workshop/js/desk.js",
+    "/assets/khat_workshop/js/pwa.js",
+]
+
+# Same PWA bootstrap on the website + login pages (desk assets do not load there).
+web_include_js = ["/assets/khat_workshop/js/pwa.js"]
+
+# Serve the service worker at the origin root (/sw.js) with an origin-wide scope.
+# It cannot be a static file: Frappe's www renderer blacklists .js, and /assets
+# files only get a /assets/khat_workshop/ scope — too narrow to control /app.
+# See khat_workshop.pwa for the full rationale.
+page_renderer = ["khat_workshop.pwa.ServiceWorkerRenderer"]
 
 # Paint the uploaded background onto the login page. Runs server-side for every
 # web page; khat_workshop.branding gates it to /login and no-ops when unset.
