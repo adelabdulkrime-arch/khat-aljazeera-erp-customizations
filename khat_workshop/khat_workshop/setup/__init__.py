@@ -70,6 +70,9 @@ STEPS = [
     # After every dashboard exists, so the nav can link to all seven.
     "workshop_sidebar_nav",
     "workshop_print_template",
+    # Late: every doctype the matrix references (Work Card, packages, sales,
+    # stock…) and every role must already exist before permissions attach.
+    "workshop_permissions",
     "workshop_oman_setup2",
     "workshop_landing",
     "workshop_oman_setup",
