@@ -25,6 +25,11 @@ STEPS = [
     # Right after setup, which creates the first roles: align the full list and
     # labels with Mazoon's fourteen before anything else references them.
     "workshop_roles",
+    # Needs the roles above to exist before it can hand them to the client's
+    # trial account. Early rather than late on purpose: workshop_landing, near
+    # the end, stamps a default workspace onto every enabled System User, so
+    # creating the account here means it is picked up by that pass.
+    "workshop_demo_user",
     "workshop_home",
     "workshop_dashboard",
     # Creates the four reports the dashboard tiles link to, so clicking a

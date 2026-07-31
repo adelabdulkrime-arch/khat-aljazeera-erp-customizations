@@ -18,7 +18,7 @@
 - **Frappe/ERPNext v16** عبر **Docker Compose** على Docker Desktop (Windows 11).
 - مجلد المشروع: `C:\Users\lenovo-Thinkpad\Desktop\frappe_docker`
 - ملف الكومبوز اسمه **`compose.yaml`** (وليس docker-compose.yml).
-- الموقع: **erp.local** — الدخول: **Administrator / Admin@2026**
+- الموقع: **erp.local** — الدخول: **Administrator**، وكلمة المرور هي قيمة `ADMIN_PASSWORD` في متغيّرات البيئة (Coolify، أو ملف `.env` محلياً). لا تُكتب هنا.
 - الرابط في المتصفح: **http://localhost:8080/app** (أو `/desk`)
 
 ### أوامر التشغيل:

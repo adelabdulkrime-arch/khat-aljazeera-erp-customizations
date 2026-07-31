@@ -83,6 +83,11 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       SITE_NAME: ${SITE_NAME:-erp.local}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      # Password for the client's trial account (setup/workshop_demo_user).
+      # Only this container needs it: `bench migrate` — and with it the
+      # after_migrate hook that creates the account — runs here and nowhere
+      # else. Left empty the account is still created, just without a password.
+      DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:-}
     volumes:
       - sites:/home/frappe/frappe-bench/sites
       - logs:/home/frappe/frappe-bench/logs
