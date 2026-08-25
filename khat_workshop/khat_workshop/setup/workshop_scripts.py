@@ -112,6 +112,30 @@ frappe.ui.form.on('Work Card', {
     discount: (frm)=> totals(frm),
     validate: (frm)=> totals(frm),
     customer: (frm)=> autofill_returning_customer(frm),
+    refresh: (frm)=>{
+        if(frm.is_new() || !frm.doc.customer) return;
+        // Quotation has no stock-deduction gate -- normally produced
+        // *before* work starts, to get customer approval.
+        frm.add_custom_button(__('إنشاء عرض سعر'), ()=>{
+            frappe.call({
+                method: 'khat_workshop.setup.workshop_work_card_to_invoice.create_quotation',
+                args: {work_card: frm.doc.name},
+                freeze: true, freeze_message: __('جاري إنشاء عرض السعر...'),
+            }).then(r=>{ if(r.message) frappe.set_route('Form', 'Quotation', r.message); });
+        }, __('إنشاء'));
+        // Invoice only once the card is submitted -- that is the point
+        // parts actually left the warehouse (see workshop_gl_stock_integration),
+        // matching diagnose -> deduct -> bill.
+        if(frm.doc.docstatus === 1){
+            frm.add_custom_button(__('إنشاء فاتورة'), ()=>{
+                frappe.call({
+                    method: 'khat_workshop.setup.workshop_work_card_to_invoice.create_sales_invoice',
+                    args: {work_card: frm.doc.name},
+                    freeze: true, freeze_message: __('جاري إنشاء الفاتورة...'),
+                }).then(r=>{ if(r.message) frappe.set_route('Form', 'Sales Invoice', r.message); });
+            }, __('إنشاء'));
+        }
+    },
 });
 function autofill_returning_customer(frm){
     if(!frm.doc.customer) return;
@@ -168,45 +192,21 @@ frappe.ui.form.on('Work Card Technician', {
 });
 """
 
-QUOTATION_JS = r"""
-frappe.ui.form.on('Workshop Quotation Item', {
-    qty: calc, rate: calc, items_remove: (frm)=> totals(frm),
-});
-function calc(frm, cdt, cdn){
-    let r=locals[cdt][cdn];
-    frappe.model.set_value(cdt,cdn,'amount',(r.qty||0)*(r.rate||0));
-    totals(frm);
-}
-function totals(frm){
-    let t=0; (frm.doc.items||[]).forEach(r=> t+=(r.amount||0));
-    frm.set_value('total', t);
-    frm.set_value('grand_total', t-(frm.doc.discount||0));
-}
-frappe.ui.form.on('Workshop Quotation', {
-    discount:(frm)=>totals(frm), validate:(frm)=>totals(frm),
-});
-"""
+# QUOTATION_JS and INVOICE_JS (targeting the shadow "Workshop Quotation" and
+# "Repair Invoice" doctypes) removed 2026-08-25 -- both doctypes were dropped
+# by workshop_retire_shadow.py, leaving these two Client Scripts pointing at
+# doctypes with no form to render on. Real Quotation/Sales Invoice compute
+# their own totals/tax natively, so nothing needed porting there. What DID
+# need porting -- the WhatsApp send button -- lives below as
+# SALES_INVOICE_JS, now targeting the real Sales Invoice. The old pull_wc()
+# (Work Card -> invoice item copy) is replaced entirely by the server-side
+# workshop_work_card_to_invoice.create_sales_invoice(), called from the new
+# "إنشاء فاتورة" button added to WORK_CARD_JS above -- building the invoice
+# via doc.insert() lets ERPNext's own controller compute item_name/uom/tax
+# correctly instead of a second, hand-rolled copy of that logic in JS.
 
-INVOICE_JS = r"""
-frappe.ui.form.on('Repair Invoice Item', {
-    qty: calc, rate: calc, items_remove: (frm)=> totals(frm),
-});
-function calc(frm, cdt, cdn){
-    let r=locals[cdt][cdn];
-    frappe.model.set_value(cdt,cdn,'amount',(r.qty||0)*(r.rate||0));
-    totals(frm);
-}
-function totals(frm){
-    let t=0; (frm.doc.items||[]).forEach(r=> t+=(r.amount||0));
-    frm.set_value('total', t);
-    let g = t-(frm.doc.discount||0);
-    frm.set_value('grand_total', g);
-    frm.set_value('outstanding', g-(frm.doc.paid_amount||0));
-}
-frappe.ui.form.on('Repair Invoice', {
-    discount:(frm)=>totals(frm), validate:(frm)=>totals(frm),
-    onload:(frm)=>{ if(frm.is_new() && frm.doc.work_card && !(frm.doc.items||[]).length){ pull_wc(frm); } },
-    work_card:(frm)=>{ if(frm.doc.work_card){ pull_wc(frm); } },
+SALES_INVOICE_JS = r"""
+frappe.ui.form.on('Sales Invoice', {
     refresh:(frm)=>{
         if(!frm.is_new() && frm.doc.customer){
             frm.add_custom_button(__('إرسال عبر واتساب'), ()=>send_whatsapp(frm));
@@ -237,10 +237,10 @@ function send_whatsapp(frm){
             phone = inferred + phone.replace(/^0+/, '');
         }
         let pdfUrl = pdfRes && pdfRes.message;
-        let text = 'مرحباً ' + frm.doc.customer + '،\n'
+        let text = 'مرحباً ' + (frm.doc.customer_name || frm.doc.customer) + '،\n'
             + 'فاتورتكم رقم ' + frm.doc.name + ' من ورشة خط الجزيرة.\n'
             + 'الإجمالي: ' + format_currency(frm.doc.grand_total) + '\n'
-            + 'المتبقي: ' + format_currency(frm.doc.outstanding) + '\n'
+            + 'المتبقي: ' + format_currency(frm.doc.outstanding_amount) + '\n'
             + (pdfUrl ? ('لعرض/تحميل الفاتورة:\n' + pdfUrl + '\n') : '')
             + 'شكراً لتعاملكم معنا.';
         window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(text), '_blank');
@@ -248,24 +248,6 @@ function send_whatsapp(frm){
         frappe.dom.unfreeze();
         frappe.msgprint({message: __('تعذّر تجهيز رابط الفاتورة'), indicator: 'red'});
         console.error(e);
-    });
-}
-function pull_wc(frm){
-    frappe.db.get_doc('Work Card', frm.doc.work_card).then(wc=>{
-        frm.set_value('customer', wc.customer);
-        frm.set_value('vehicle', wc.vehicle);
-        frm.clear_table('items');
-        (wc.services||[]).forEach(s=>{
-            let r=frm.add_child('items');
-            r.description=s.service; r.qty=s.qty; r.rate=s.rate; r.amount=s.amount;
-        });
-        (wc.parts||[]).forEach(p=>{
-            let r=frm.add_child('items');
-            r.description=p.part_name||(p.item||''); r.qty=p.qty; r.rate=p.rate; r.amount=p.amount;
-        });
-        frm.set_value('discount', wc.discount||0);
-        frm.refresh_field('items');
-        totals(frm);
     });
 }
 """
@@ -300,28 +282,15 @@ function contact_whatsapp(frm){
 }
 """
 
-# Server Script: when a Workshop Payment is created, recompute its invoice.
-# paid_amount is capped at grand_total and outstanding floored at 0 so an
-# overpayment/duplicate entry can't display a negative amount owed -- it
-# instead shows fully paid, matching what the real linked Sales Invoice
-# actually reflects (see workshop_gl_stock_integration.py's own capping).
-PAYMENT_SERVER = r"""
-inv = frappe.get_doc("Repair Invoice", doc.invoice)
-paid_raw = frappe.db.sql(
-    "select coalesce(sum(amount),0) from `tabWorkshop Payment` where invoice=%s",
-    inv.name)[0][0]
-paid = min(paid_raw, inv.grand_total or 0)
-inv.db_set("paid_amount", paid)
-outstanding = max((inv.grand_total or 0) - paid, 0)
-inv.db_set("outstanding", outstanding)
-if paid <= 0:
-    status = "غير مدفوعة"
-elif outstanding > 0:
-    status = "مدفوعة جزئياً"
-else:
-    status = "مدفوعة"
-inv.db_set("status", status)
-"""
+# PAYMENT_SERVER (recomputed a "Repair Invoice"'s paid_amount/outstanding/
+# status whenever a "Workshop Payment" was created/deleted) removed
+# 2026-08-25 -- both referenced doctypes were dropped by
+# workshop_retire_shadow.py, so this Server Script had been silently firing
+# against nothing since that migration ran. Nothing to port: this is exactly
+# the bookkeeping ERPNext's native Payment Entry already does the moment it
+# is linked to and submitted against a real Sales Invoice (paid_amount,
+# outstanding_amount and status all update automatically, with proper
+# cancellation handling this hand-rolled version never had).
 
 
 def _client_script(name, dt, js, view="Form"):
@@ -334,9 +303,14 @@ def _client_script(name, dt, js, view="Form"):
 
 
 def execute():
+    # Drop the two scripts that used to target the retired shadow doctypes,
+    # in case they are still sitting in the DB from before 2026-08-25.
+    for stale_name in ("Workshop Quotation Totals", "Repair Invoice Totals"):
+        if frappe.db.exists("Client Script", stale_name):
+            frappe.delete_doc("Client Script", stale_name, force=1, ignore_permissions=True)
+
     _client_script("Work Card Totals", "Work Card", WORK_CARD_JS)
-    _client_script("Workshop Quotation Totals", "Workshop Quotation", QUOTATION_JS)
-    _client_script("Repair Invoice Totals", "Repair Invoice", INVOICE_JS)
+    _client_script("Sales Invoice Workshop Actions", "Sales Invoice", SALES_INVOICE_JS)
     _client_script("Customer WhatsApp Button", "Customer", CUSTOMER_JS)
     _client_script("Customer Vehicle Duplicate Check", "Customer Vehicle", CUSTOMER_VEHICLE_JS)
     _client_script("Customer Vehicle List WhatsApp", "Customer Vehicle", CUSTOMER_VEHICLE_LIST_JS, view="List")
@@ -363,33 +337,11 @@ def execute():
         if not frappe.db.get_single_value("Workshop Settings", "country_code"):
             frappe.db.set_single_value("Workshop Settings", "country_code", "968")
 
-    # Server script for payment -> invoice
-    if frappe.db.exists("Server Script", "Update Invoice On Payment"):
-        frappe.delete_doc("Server Script", "Update Invoice On Payment",
-                          force=1, ignore_permissions=True)
-    frappe.get_doc({
-        "doctype": "Server Script",
-        "name": "Update Invoice On Payment",
-        "script_type": "DocType Event",
-        "reference_doctype": "Workshop Payment",
-        "doctype_event": "After Insert",
-        "disabled": 0,
-        "script": PAYMENT_SERVER,
-    }).insert(ignore_permissions=True)
-
-    # Also recompute on payment delete/cancel via On Trash
-    if frappe.db.exists("Server Script", "Update Invoice On Payment Delete"):
-        frappe.delete_doc("Server Script", "Update Invoice On Payment Delete",
-                          force=1, ignore_permissions=True)
-    frappe.get_doc({
-        "doctype": "Server Script",
-        "name": "Update Invoice On Payment Delete",
-        "script_type": "DocType Event",
-        "reference_doctype": "Workshop Payment",
-        "doctype_event": "After Delete",
-        "disabled": 0,
-        "script": PAYMENT_SERVER,
-    }).insert(ignore_permissions=True)
+    # Drop the two dead Server Scripts from before 2026-08-25 if still present
+    # (see the PAYMENT_SERVER removal note above).
+    for stale_name in ("Update Invoice On Payment", "Update Invoice On Payment Delete"):
+        if frappe.db.exists("Server Script", stale_name):
+            frappe.delete_doc("Server Script", stale_name, force=1, ignore_permissions=True)
 
     frappe.db.commit()
     frappe.clear_cache()

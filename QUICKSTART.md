@@ -1,153 +1,102 @@
 # دليل التشغيل السريع — Quick Start
 
-دليل لتجهيز البيئة على جهاز جديد وتشغيل عرض تجريبي (demo) بأسرع وقت، ثم نشر سكربتات التخصيص.
+> **⚠️ تحديث 2026-08-25:** هذا الملف كان يوثّق طريقة نشر **قديمة** (نسخ ملفات `.py` منفردة داخل `apps/frappe/frappe/` وتشغيلها بـ`bench execute frappe.X.execute`). المشروع تجاوز هذي الطريقة — `khat_workshop` الآن **تطبيق Frappe حقيقي** (`hooks.py` + `after_migrate`)، يُبنى ويُنشر بالكامل عبر `Dockerfile` + `docker-compose.yml`. الدليل الصحيح بالأسفل.
 
-> هذا المستودع **لا يحوي تطبيق Frappe** — فقط سكربتات `.py` تُنشر فوق تثبيت **frappe_docker** قياسي.
+دليل نشر المشروع على سيرفر جديد (VPS عادي أو Coolify) من الصفر.
+
 > راجع [`HANDOFF.md`](HANDOFF.md) للتفاصيل الكاملة و[`README.md`](README.md) لوظيفة كل ملف.
 
 ---
 
-## 0) المتطلبات المسبقة (Prerequisites)
+## 0) المتطلبات المسبقة
 
-على الجهاز الجديد ثبّت:
-
-- **Docker Desktop** (Windows/Mac/Linux) — شغّله وتأكد أنه يعمل: `docker version`
-- **Git** — `git version`
-- على ويندوز: استخدم **Git Bash** لأوامر docker (وليس PowerShell) — راجع ملاحظة `MSYS_NO_PATHCONV` أدناه.
-
-الموارد المقترحة لـ Docker: **4 CPU / 8GB RAM** على الأقل.
+- سيرفر فيه **Docker + Docker Compose** (أو حساب **Coolify** يشير لهذا السيرفر)
+- **دومين** يشير لعنوان IP السيرفر (أو subdomain مجاني من Coolify نوع `*.sslip.io` للتجربة)
+- 4 CPU / 8GB RAM موصى بها كحد أدنى (نفس ما تحتاجه أي نشرة ERPNext)
 
 ---
 
-## 1) إحضار هذا المستودع (بعد نسخه من الجهاز الأول)
+## 1) طريقة Coolify (الموصى بها — الملفات مبنية لها تحديداً)
 
-فُكّ ضغط `khat-aljazeera-erp-customizations.zip` — بداخله مجلد المشروع كاملاً مع تاريخ Git (`.git`).
+`docker-compose.yml` مكتوب خصيصاً ليتوافق مع شبكة Coolify التلقائية (Traefik) — لاحظ التعليق بالملف: *"In managed compose mode Coolify puts every service on the per-stack network and attaches Traefik to it"*.
 
-```bash
-cd khat-aljazeera-erp-customizations
-git log --oneline        # تأكد أن التاريخ موجود
-```
+1. **مشروع جديد بـ Coolify** ← Add Resource ← **Docker Compose** ← اربطه بمستودع Git لهذا المشروع (أو ارفع الملفات مباشرة).
+2. Coolify يقرأ `docker-compose.yml` تلقائياً ويعرض الخدمات (db, backend, frontend, init...).
+3. **Environment Variables** — انسخ من [``.env.example`](.env.example) وعبّي القيم الحقيقية في إعدادات المشروع بـCoolify (**وليس** بملف `.env` على القرص):
 
-### الربط بمستودع بعيد والدفع (Push)
-```bash
-git remote add origin <رابط-المستودع-على-GitHub-أو-غيره>
-git push -u origin master
-```
+   | المتغيّر | القيمة |
+   |---|---|
+   | `SITE_NAME` | دومين حقيقي بدون `http://` — مثال: `erp.khataljazeera.com` أو الدومين المجاني اللي يعطيه Coolify (`xxxxx.sslip.io`) |
+   | `ADMIN_PASSWORD` | كلمة مرور قوية لحساب `Administrator` |
+   | `DEMO_USER_PASSWORD` | كلمة مرور حساب العميل التجريبي (`Admin` / `admin@khataljazeera.om`) — اتركه فارغ يمنع الدخول بهذا الحساب تماماً بدل كلمة مرور افتراضية |
+   | `DB_ROOT_PASSWORD` | كلمة مرور MariaDB root |
+   | `MYSQL_PASSWORD` | كلمة مرور مستخدم قاعدة بيانات الموقع |
+   | `ERPNEXT_VERSION` | `v16` (أو تاغ آخر من [إصدارات frappe_docker](https://github.com/frappe/frappe_docker/releases)) |
 
----
-
-## 2) تشغيل ERPNext v16 عبر Docker (أسرع طريق للـ demo)
-
-في مجلد **منفصل** (بجانب هذا المستودع، وليس بداخله):
-
-```bash
-git clone https://github.com/frappe/frappe_docker
-cd frappe_docker
-docker compose -f pwd.yml up -d
-```
-
-- سينزّل الصور ويُنشئ موقعاً افتراضياً — انتظر **5–10 دقائق** في أول مرة.
-- تابع تقدّم إنشاء الموقع:
-  ```bash
-  docker compose -f pwd.yml logs -f create-site
-  ```
-- عند الانتهاء افتح: **http://localhost:8080**
-  - المستخدم الافتراضي في `pwd.yml`: **Administrator** / كلمة المرور: **admin**
-
-> **بيئة الإنتاج الأصلية** (كما في HANDOFF) تستخدم ملف `compose.yaml` مخصّص، الموقع باسم **erp.local** والدخول باسم **Administrator** بكلمة المرور المحفوظة في متغيّر البيئة `ADMIN_PASSWORD`. للـ demo السريع اكتفِ بـ `pwd.yml` أعلاه، وعدّل اسم الموقع في أوامر النشر حسب موقعك الفعلي.
-
-### حساب العميل التجريبي
-
-إلى جانب `Administrator` يُنشئ النظام تلقائياً — مع كل نشر — حساباً غير إداري ليجرّب به العميل:
-
-| | |
-|---|---|
-| اسم الدخول | `Admin` (سجلّ المستخدم نفسه: `admin@khataljazeera.om`) |
-| كلمة المرور | قيمة متغيّر البيئة `DEMO_USER_PASSWORD` |
-| الأدوار | مدير الورشة + محاسب + مدير المستودع + مسؤول المشتريات + مندوب مبيعات |
-
-يدير به العميل الدورة كاملة (استقبال مركبة ← بطاقة عمل ← صرف قطع ← فاتورة ← سند قبض) ويرى اللوحات السبع، لكنه **لا يحمل `System Manager`**: لا يحذف بيانات ولا يغيّر إعدادات النظام ولا يضيف مستخدمين.
-
-إن تُرك `DEMO_USER_PASSWORD` فارغاً يُنشأ الحساب بلا كلمة مرور — أي لا يمكن الدخول به إطلاقاً. هذا مقصود: فشلٌ مغلق أفضل من كلمة مرور افتراضية قابلة للتخمين. تغيير القيمة يدوّر كلمة المرور مع النشر التالي. التفاصيل في [`workshop_demo_user.py`](khat_workshop/khat_workshop/setup/workshop_demo_user.py).
-
-اعرف اسم موقعك الفعلي واسم حاوية الـ backend:
-```bash
-docker compose -f pwd.yml exec backend bench --site all list-apps   # يطبع اسم الموقع
-docker compose -f pwd.yml ps                                        # أسماء الحاويات
-```
+4. **Domain**: بإعدادات خدمة `frontend` بـCoolify، اربط الدومين نفسه المكتوب بـ`SITE_NAME` بالضبط (نفس القيمة، حرفياً — أي فرق يكسر التوجيه).
+5. اضغط **Deploy**. أول نشرة تاخذ عدة دقائق (بناء الصورة + `bench new-site` + تثبيت hrms/khat_workshop + `bench migrate`).
+6. **تابع التقدّم**: من داخل Coolify افتح لوق حاوية `init` — أو من الطرفية:
+   ```bash
+   docker logs -f <اسم-حاوية-init>
+   ```
+   أو اقرأ اللوق المحفوظ داخل الـvolume المشترك حتى لو انحذفت الحاوية:
+   ```bash
+   docker run --rm -v <اسم-المشروع>_sites:/s alpine cat /s/init.log
+   ```
+7. لما تخلص: `https://<SITE_NAME>` — `Administrator` بكلمة `ADMIN_PASSWORD`، أو حساب العميل التجريبي `Admin` بكلمة `DEMO_USER_PASSWORD`.
 
 ---
 
-## 3) نشر سكربتات التخصيص
-
-كل ملف يُنسخ داخل حاوية backend ثم يُنفَّذ عبر `bench execute`. اضبط المتغيّرين:
+## 2) طريقة VPS عادي (بدون Coolify)
 
 ```bash
-SITE=frontend          # أو erp.local حسب موقعك
-COMPOSE="-f pwd.yml"   # أو احذفه إن كنت تستخدم compose.yaml مباشرة
+git clone <رابط-المستودع> khat-erp && cd khat-erp
+cp .env.example .env
+nano .env   # عبّي القيم الحقيقية (SITE_NAME بدومين فعلي يشير للسيرفر، وكل كلمات المرور)
+docker compose up -d --build
 ```
 
-### نشر ملف واحد
-```bash
-MSYS_NO_PATHCONV=1 docker compose $COMPOSE cp workshop_scripts.py \
-  backend:/home/frappe/frappe-bench/apps/frappe/frappe/workshop_scripts.py
-
-MSYS_NO_PATHCONV=1 docker compose $COMPOSE exec backend \
-  bench --site $SITE execute frappe.workshop_scripts.execute
-```
-
-### نشر كل الملفات دفعة واحدة (نفّذ من داخل مجلد هذا المستودع)
-
-رتّب التنفيذ بحيث يأتي `workshop_futuristic.py` (الوحدة المشتركة) **أولاً**:
-
-```bash
-for f in workshop_futuristic.py \
-         workshop_home.py \
-         workshop_dashboard.py \
-         workshop_accounting.py \
-         workshop_inventory.py \
-         workshop_purchasing.py \
-         workshop_sales.py \
-         workshop_general_settings.py \
-         workshop_scripts.py \
-         workshop_gl_stock_integration.py \
-         workshop_invoice_whatsapp.py \
-         workshop_translations.py; do
-  echo "=== $f ==="
-  mod="${f%.py}"
-  MSYS_NO_PATHCONV=1 docker compose $COMPOSE cp "$f" \
-    "backend:/home/frappe/frappe-bench/apps/frappe/frappe/$f"
-  MSYS_NO_PATHCONV=1 docker compose $COMPOSE exec backend \
-    bench --site "$SITE" execute "frappe.$mod.execute"
-done
-```
-
-السكربتات **idempotent** — يمكن إعادة تشغيلها بأمان.
+- أول تشغيل يبني الصورة (تحميل base image + بناء hrms) — قد ياخذ **15-20 دقيقة** أول مرة، أسرع بكثير بعدها لأن الطبقات محفوظة بالكاش (السبب موثّق بأعلى `Dockerfile`).
+- بدون Coolify/Traefik، لازم تعكس منفذ `frontend` (8080 داخلياً) لمنفذ 80/443 بنفسك — عبر nginx/Caddy عكسي على السيرفر نفسه، أو بإضافة `ports: ["80:8080"]` تحت خدمة `frontend` بـ`docker-compose.yml` مباشرة إذا مافيه بروكسي تاني قدامه.
+- تابع التقدّم: `docker compose logs -f init`
 
 ---
 
-## 4) ملاحظات مهمة (Gotchas)
+## 3) بعد أول نشرة ناجحة — التحديثات اللاحقة
 
-- **`MSYS_NO_PATHCONV=1`** ضروري قبل كل أمر docker على **Git Bash / ويندوز**، وإلا تُفسد المسارات داخل الحاوية.
-- بعد تعديل `workshop_futuristic.py` أعِد التشغيل ثم أعِد تنفيذ **كل** اللوحات السبع (الـ JS يُخبز داخل كل لوحة عند التنفيذ):
-  ```bash
-  docker compose $COMPOSE restart backend websocket queue-short queue-long
-  docker compose $COMPOSE restart frontend    # لتفادي 502 من nginx بعد إعادة التشغيل
-  ```
-- **الدولايتايبات المخصّصة** (`Work Card`, `Repair Invoice`, `Workshop Payment`, `Customer Vehicle`, `Workshop Technician`, `Service Package`, `Workshop Settings`) تأتي من تطبيق الورشة المخصّص **غير المُضمَّن هنا**. لذلك في demo نظيف:
-  - ستعمل: طبقة التصميم، اللوحات، الترجمات.
-  - قد تفشل جزئياً: السكربتات التي تعتمد على تلك الدولايتايبات (`workshop_scripts`, `workshop_gl_stock_integration`, `workshop_invoice_whatsapp`) حتى تُنشأ الدولايتايبات أولاً.
-- **روابط PDF/واتساب** تعتمد على دومين عام حقيقي (HTTPS)؛ لن تعمل على هاتف العميل من `localhost`.
+**كل تعديل بالكود (زي التعديلات الأخيرة على `workshop_replacement_operations.py`, `workshop_document_numbering.py`, `workshop_work_card_to_invoice.py`...) يُنشر بإعادة بناء الصورة، مو بنسخ ملفات يدوياً:**
+
+```bash
+git pull                      # أو ادفع التعديلات لنفس المستودع اللي Coolify يراقبه
+docker compose up -d --build  # أو زر "Redeploy" بـ Coolify
+```
+
+`init` يعيد التشغيل تلقائياً في كل نشرة (`bench migrate` يُعاد تنفيذه، والذي بدوره يُعيد تشغيل STEPS كاملة داخل `setup/__init__.py` — كلها idempotent فآمنة تتكرر). ما تحتاج تدخل بالحاويات يدوياً ولا تنسخ ملفات `.py` بنفسك.
+
+**لو تبي تشغّل خطوة واحدة بس يدوياً** (مثلاً وأنت تختبر تعديل معيّن قبل نشرة كاملة):
+```bash
+docker compose exec backend bench --site <SITE_NAME> execute khat_workshop.setup.workshop_replacement_operations.execute
+```
+(استبدل الاسم بأي ملف من `khat_workshop/khat_workshop/setup/` — لاحظ المسار `khat_workshop.setup.<اسم_الملف>.execute`، مختلف عن الشكل القديم `frappe.<اسم_الملف>.execute` لأن الكود صار تطبيق منفصل، مو داخل frappe نفسها).
+
+---
+
+## 4) ملاحظات مهمة
+
+- **الدولايتايبات المخصّصة موجودة فعلاً هنا** (`Work Card`, `Customer Vehicle`, `Workshop Technician`, `Service Package`, `Workshop Settings`...) — تُنشأ تلقائياً بـ`workshop_setup.py` كأول خطوة بـ`STEPS`. ما تحتاج تطبيق ورشة منفصل (خلاف ما كان مكتوب هنا سابقاً).
+- **روابط PDF/واتساب** تعتمد على `host_name` مضبوط على `http://frontend:8080` (يضبطه `init.sh` تلقائياً) — يشتغل لأن wkhtmltopdf يجيب أصول الصفحة عبر شبكة Docker الداخلية، مو من `localhost`.
+- **Server Scripts** لازم تكون مفعّلة (`server_script_enabled=true`) وإلا طبقة الأتمتة (خصم المخزون عند اعتماد بطاقة العمل...) تكون صامتة تماماً بدون أي خطأ ظاهر — `init.sh` يضبط هذا تلقائياً بكل نشرة.
+- **النسخ الاحتياطي**: خدمة `backup` بـ`docker-compose.yml` تاخذ نسخة كل 24 ساعة (`BACKUP_INTERVAL_SECONDS`) وتحتفظ بـ14 يوم (`BACKUP_RETENTION_DAYS`) بـvolume منفصل (`backups`) — منفصل عمداً عن بيانات الموقع حتى لو تعطّبت.
 
 ---
 
 ## 5) أوامر تشغيلية سريعة
 
 ```bash
-docker compose $COMPOSE ps          # حالة الحاويات
-docker compose $COMPOSE up -d        # تشغيل
-docker compose $COMPOSE stop         # إيقاف مؤقت
-docker compose $COMPOSE logs -f backend
+docker compose ps                    # حالة الحاويات
+docker compose logs -f backend       # لوق الباك إند
+docker compose logs -f init          # لوق أول نشرة/التحديث الأخير
+docker compose restart backend websocket queue-short queue-long frontend
+docker compose down                  # إيقاف (البيانات تبقى بالـvolumes)
 ```
-cd "C:/Users/adela/Documents/GitHub/khat-aljazeera-erp-customizations"
-git push
+

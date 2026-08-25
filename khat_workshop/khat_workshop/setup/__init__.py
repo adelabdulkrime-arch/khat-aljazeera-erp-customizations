@@ -50,6 +50,9 @@ STEPS = [
     # On Submit event, which only exists once the doctype is submittable.
     "workshop_work_card_control",
     "workshop_service_catalogue",
+    # Same item-group mechanism as the line above, one level more granular —
+    # the specific "تبديل X" operations the owner asked for by name.
+    "workshop_replacement_operations",
     "workshop_packages",
     # Needs Work Card Technician to exist, so it follows work_card_control.
     "workshop_labour_costing",
@@ -60,6 +63,10 @@ STEPS = [
     # Reads the seeded catalogue to derive its levels, so it must follow it.
     "workshop_stock_alerts",
     "workshop_gl_stock_integration",
+    # Needs the `vehicle` field the step above adds to Sales Invoice/Quotation.
+    # WI-/WQ- series so a workshop job is numbered differently from a plain
+    # counter sale, matching what the owner has seen in Mazoon.
+    "workshop_document_numbering",
     # Must come AFTER gl_stock_integration, which deletes the mirroring Server
     # Scripts. Dropping a doctype while a Server Script still references it
     # would leave the script pointing at nothing.
@@ -75,6 +82,9 @@ STEPS = [
     # After every dashboard exists, so the nav can link to all seven.
     "workshop_sidebar_nav",
     "workshop_print_template",
+    # Needs the `vehicle` custom field gl_stock_integration put on Sales
+    # Invoice/Quotation, and the Items workshop_replacement_operations seeds.
+    "workshop_operations_print_format",
     # Late: every doctype the matrix references (Work Card, packages, sales,
     # stock…) and every role must already exist before permissions attach.
     "workshop_permissions",

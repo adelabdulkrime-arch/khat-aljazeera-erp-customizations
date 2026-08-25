@@ -1,24 +1,37 @@
 # -*- coding: utf-8 -*-
-"""Generates a fresh public PDF copy of a Repair Invoice and returns its
+"""Generates a fresh public PDF copy of a Sales Invoice and returns its
 public URL so it can be embedded in a WhatsApp message (wa.me links only
 support pre-filled text, not attachments -- a link to the PDF is the closest
-equivalent without a paid WhatsApp Business API integration)."""
+equivalent without a paid WhatsApp Business API integration).
+
+RETARGETED 2026-08-25: this originally pointed at the shadow "Repair
+Invoice" doctype. That doctype was dropped by workshop_retire_shadow.py once
+the project moved to working directly in the real Sales Invoice -- which
+silently broke this button (no form exists for a deleted doctype, so nobody
+could even reach it to notice). Fixed by pointing every reference below at
+Sales Invoice instead, and by asking for our own itemised print format
+explicitly (PRINT_FORMAT) rather than the ERPNext default, which doesn't
+know about the workshop's plate/chassis/date/time layout.
+"""
 import frappe
 from frappe.utils.file_manager import save_file
 
 PDF_PREFIX = "invoice-"
+DOCTYPE = "Sales Invoice"
+# Must match the name workshop_operations_print_format.py creates.
+PRINT_FORMAT = "فاتورة تشغيل مفصّلة - خط الجزيرة"
 
 
 @frappe.whitelist()
 def get_invoice_pdf_url(invoice):
-    doc = frappe.get_doc("Repair Invoice", invoice)
+    doc = frappe.get_doc(DOCTYPE, invoice)
     if not doc.has_permission("read"):
         frappe.throw(frappe._("ليس لديك صلاحية لعرض هذه الفاتورة"))
 
     # Regenerate every time (rather than reuse) so the PDF always reflects
     # the invoice's current amounts/status -- drop any previous copy first.
     old = frappe.get_all("File", filters={
-        "attached_to_doctype": "Repair Invoice",
+        "attached_to_doctype": DOCTYPE,
         "attached_to_name": invoice,
         "file_name": ["like", PDF_PREFIX + "%.pdf"],
     }, pluck="name")
@@ -35,7 +48,8 @@ def get_invoice_pdf_url(invoice):
     original_host = frappe.local.conf.get("host_name")
     frappe.local.conf.host_name = "http://frontend:8080"
     try:
-        pdf = frappe.get_print("Repair Invoice", invoice, as_pdf=True)
+        print_format = PRINT_FORMAT if frappe.db.exists("Print Format", PRINT_FORMAT) else None
+        pdf = frappe.get_print(DOCTYPE, invoice, print_format=print_format, as_pdf=True)
     finally:
         if original_host is None:
             frappe.local.conf.pop("host_name", None)
@@ -44,7 +58,7 @@ def get_invoice_pdf_url(invoice):
 
     file_doc = save_file(
         PDF_PREFIX + invoice.replace("/", "-") + ".pdf", pdf,
-        "Repair Invoice", invoice, is_private=0,
+        DOCTYPE, invoice, is_private=0,
     )
     frappe.db.commit()
 

@@ -215,11 +215,15 @@ root.querySelectorAll('.hm-card').forEach(function(a){
       const [vehicles, workCards, invoices] = await Promise.all([
         frappe.db.get_list('Customer Vehicle', { filters: { customer: customer.name }, fields: ['name', 'plate_number', 'brand', 'model'], limit: 20 }),
         frappe.db.get_list('Work Card', { filters: { customer: customer.name }, fields: ['name', 'status', 'entry_date', 'plate_number'], order_by: 'creation desc', limit: 5 }),
-        frappe.db.get_list('Repair Invoice', { filters: { customer: customer.name }, fields: ['name', 'grand_total', 'paid_amount', 'outstanding', 'status', 'date'], order_by: 'creation desc', limit: 10 }),
+        frappe.db.get_list('Sales Invoice', { filters: { customer: customer.name }, fields: ['name', 'grand_total', 'outstanding_amount', 'status', 'posting_date'], order_by: 'creation desc', limit: 10 }),
       ]);
       const totalInvoiced = invoices.reduce(function(s, i){ return s + (i.grand_total || 0); }, 0);
-      const totalPaid = invoices.reduce(function(s, i){ return s + (i.paid_amount || 0); }, 0);
-      const totalOutstanding = invoices.reduce(function(s, i){ return s + (i.outstanding || 0); }, 0);
+      const totalOutstanding = invoices.reduce(function(s, i){ return s + (i.outstanding_amount || 0); }, 0);
+      // Sales Invoice.paid_amount is only reliably populated for POS invoices --
+      // for normal credit invoices (paid later via a separate Payment Entry) it
+      // stays 0 even once fully paid. grand_total - outstanding_amount is what
+      // ERPNext itself treats as "actually paid" regardless of how it was paid.
+      const totalPaid = totalInvoiced - totalOutstanding;
 
       let html = '';
       html += '<div class="hm-profile-head">';
@@ -254,7 +258,7 @@ root.querySelectorAll('.hm-card').forEach(function(a){
       if(invoices.length){
         html += '<div class="hm-profile-section-title">' + __('الفواتير') + '</div>';
         html += '<div class="hm-profile-list">' + invoices.map(function(i){
-          return '<div class="hm-profile-row" data-dt="Repair Invoice" data-name="' + encodeURIComponent(i.name) + '">' +
+          return '<div class="hm-profile-row" data-dt="Sales Invoice" data-name="' + encodeURIComponent(i.name) + '">' +
             '<span>' + i.name + ' · ' + fmt(i.grand_total) + '</span>' +
             '<span class="hm-badge">' + frappe.utils.escape_html(i.status || '') + '</span></div>';
         }).join('') + '</div>';
