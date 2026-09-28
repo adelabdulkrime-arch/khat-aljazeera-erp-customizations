@@ -1,0 +1,34 @@
+# Overlay لنشر النظام على VPS عادي (Oracle Cloud وغيره) — بدون Coolify.
+#
+# docker-compose.yml الأساسي مبني لـCoolify، حيث Traefik يتولّى TLS وتوجيه
+# الدومين، ولذلك خدمة frontend تستخدم `expose` فقط بلا منافذ منشورة وبلا HTTPS.
+# على سيرفر عادي ما فيه من يقوم بهذا الدور، فهذا الملف يضيف Caddy كبروكسي عكسي
+# يُصدر شهادة Let's Encrypt ويجدّدها تلقائياً.
+#
+# الاستخدام (لاحظ -f مرتين، الترتيب مهم):
+#   docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d --build
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    # المنفذان 80 و443 لازم يكونان مفتوحين بجدار Oracle وبـiptables داخل السيرفر.
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # نفس قيمة SITE_NAME بالضبط — Caddy يصدر الشهادة لهذا الدومين
+      SITE_NAME: ${SITE_NAME:?SITE_NAME مطلوب}
+      # بريد لتنبيهات Let's Encrypt بخصوص انتهاء الشهادات
+      ACME_EMAIL: ${ACME_EMAIL:-admin@example.com}
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data      # الشهادات — هذا الفوليوم يمنع إعادة الإصدار عند كل تشغيل
+      - caddy-config:/config
+    depends_on:
+      frontend:
+        condition: service_started
+
+volumes:
+  caddy-data:
+  caddy-config:

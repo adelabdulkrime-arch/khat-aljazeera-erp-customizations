@@ -1,0 +1,30 @@
+# Caddy يصدر شهادة HTTPS تلقائياً ويجدّدها، ويمرّر الطلبات لحاوية frontend.
+{
+	email {$ACME_EMAIL}
+}
+
+{$SITE_NAME} {
+	encode zstd gzip
+
+	# مسار websocket الخاص بـFrappe (الإشعارات الفورية وتحديث القوائم).
+	# لازم يسبق القاعدة العامة، وإلا وصلت طلباته لـnginx بدل socket.io.
+	handle /socket.io/* {
+		reverse_proxy websocket:9000
+	}
+
+	handle {
+		reverse_proxy frontend:8080 {
+			# nginx داخل frontend مضبوط على قراءة X-Forwarded-For (راجع
+			# UPSTREAM_REAL_IP_HEADER بـdocker-compose.yml) ليظهر IP المستخدم
+			# الحقيقي في سجلات Frappe بدل IP البروكسي.
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+			header_up Host {host}
+		}
+	}
+
+	# رفع الملفات (مرفقات، صور قطع الغيار) — يطابق CLIENT_MAX_BODY_SIZE=50m
+	request_body {
+		max_size 50MB
+	}
+}

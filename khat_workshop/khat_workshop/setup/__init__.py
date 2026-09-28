@@ -21,6 +21,13 @@ import frappe
 # is what previously produced an "has no attribute 'execute'" failure on every
 # single deploy.
 STEPS = [
+    # FIRST, before anything else: completes ERPNext's setup wizard on a fresh
+    # site. `bench new-site --install-app erpnext` leaves setup_complete = 0,
+    # so the Company, chart of accounts, default UOMs and base Item Groups are
+    # never created — and every step below that creates an Item then dies on
+    # "Could not find Default Unit of Measure: Nos". Idempotent: a no-op once
+    # the site is already onboarded.
+    "workshop_company",
     "workshop_setup",
     # Right after setup, which creates the first roles: align the full list and
     # labels with Mazoon's fourteen before anything else references them.
@@ -57,6 +64,10 @@ STEPS = [
     # Needs Work Card Technician to exist, so it follows work_card_control.
     "workshop_labour_costing",
     "workshop_vehicle_intake",
+    # The mechanical counterpart to the intake check above, and it must follow
+    # it: its section is anchored to `customer_signature`, the last field
+    # vehicle_intake adds.
+    "workshop_inspection",
     "workshop_maintenance",
     "workshop_seed_data",
     "workshop_seed_parts",

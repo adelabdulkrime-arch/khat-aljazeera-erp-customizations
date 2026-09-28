@@ -54,3 +54,13 @@ common_site_config.json
 erp-backups/
 backups/
 *.backup
+
+# ---- تطبيق سطح المكتب (Electron) ----
+desktop/node_modules/
+desktop/release/
+# قاعدة `build/` بالأعلى تخص بايثون، وهي تستبعد مجلد أيقونات التطبيق أيضاً.
+# الأيقونة مولّدة من أيقونة الـPWA عبر build-icon.js، فلا داعي لحفظها، لكن
+# المجلد نفسه لازم يبقى معروفاً لأداة البناء (buildResources).
+!desktop/build/
+desktop/build/*
+!desktop/build/.gitkeep

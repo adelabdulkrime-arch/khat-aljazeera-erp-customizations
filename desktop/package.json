@@ -1,0 +1,54 @@
+{
+  "name": "khat-aljazeera-desktop",
+  "productName": "خط الجزيرة",
+  "version": "1.0.0",
+  "description": "نظام إدارة ورشة صيانة السيارات وقطع الغيار — خط الجزيرة",
+  "main": "src/main.js",
+  "author": {
+    "name": "Khat Aljazeera"
+  },
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --x64",
+    "dist:portable": "electron-builder --win portable --x64"
+  },
+  "devDependencies": {
+    "electron": "33.4.11",
+    "electron-builder": "^25.1.8",
+    "png-to-ico": "^2.1.8"
+  },
+  "build": {
+    "appId": "om.khataljazeera.workshop",
+    "productName": "Khat Aljazeera",
+    "copyright": "Khat Aljazeera",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "build/icon.ico"
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "setup.${ext}"
+    },
+    "nsis": {
+      "warningsAsErrors": false,
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "خط الجزيرة",
+      "installerLanguages": ["ar-SA", "en-US"],
+      "language": "1025",
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}

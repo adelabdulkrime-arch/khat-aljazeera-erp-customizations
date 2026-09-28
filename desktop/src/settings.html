@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<title>إعدادات الاتصال</title>
+<style>
+  :root { --navy:#1a2b4a; --ink:#e8edf7; --muted:#9fb0cc; --accent:#f0b429; --err:#ff8a8a; }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background:var(--navy); color:var(--ink); padding:24px;
+    font-family:"Segoe UI",Tahoma,sans-serif;
+  }
+  .box { width:100%; max-width:480px; }
+  h1 { font-size:22px; margin:0 0 10px; font-weight:600; text-align:center; }
+  p.hint { color:var(--muted); font-size:14px; line-height:1.8; margin:0 0 24px; text-align:center; }
+  label { display:block; font-size:13px; color:var(--muted); margin-bottom:8px; }
+  input {
+    width:100%; padding:12px 14px; font-size:15px; border-radius:10px; direction:ltr;
+    background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.18);
+    color:var(--ink); font-family:inherit; text-align:left;
+  }
+  input:focus { outline:none; border-color:var(--accent); }
+  .error { color:var(--err); font-size:13px; min-height:20px; margin:10px 2px 0; }
+  .row { display:flex; gap:12px; margin-top:18px; }
+  button {
+    flex:1; font-family:inherit; font-size:15px; padding:12px; border-radius:10px;
+    border:1px solid transparent; cursor:pointer; transition:filter .15s;
+  }
+  button:hover { filter:brightness(1.12); }
+  .primary { background:var(--accent); color:#1a2b4a; font-weight:600; }
+  .ghost { background:transparent; color:var(--muted); border-color:rgba(255,255,255,.2); }
+</style>
+</head>
+<body>
+  <div class="box">
+    <h1>إعدادات الاتصال</h1>
+    <p class="hint">عنوان سيرفر النظام الذي يتصل به التطبيق.</p>
+    <label for="server">عنوان السيرفر</label>
+    <input id="server" type="text" spellcheck="false" placeholder="https://khat-aljazeera.onemedia.xyz">
+    <div class="error" id="error"></div>
+    <div class="row">
+      <button class="primary" id="save">حفظ والاتصال</button>
+      <button class="ghost" id="cancel">رجوع</button>
+    </div>
+  </div>
+<script>
+  const input = document.getElementById('server');
+  const error = document.getElementById('error');
+
+  input.value = new URLSearchParams(location.search).get('server') || '';
+  input.focus();
+  input.select();
+
+  async function save() {
+    error.textContent = '';
+    const result = await window.khat.setServer(input.value);
+    if (!result.ok) error.textContent = result.error || 'تعذّر الحفظ';
+    // عند النجاح، العملية الرئيسية تُحمّل النظام تلقائياً
+  }
+
+  document.getElementById('save').addEventListener('click', save);
+  document.getElementById('cancel').addEventListener('click', () => window.khat.retry());
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
+</script>
+</body>
+</html>

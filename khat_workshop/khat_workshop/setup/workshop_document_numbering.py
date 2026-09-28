@@ -51,13 +51,26 @@ def _ensure_series_option(doctype, series):
     if series in lines:
         return "already present"
     lines.append(series)
-    # NOTE (2026-08-25): make_property_setter takes positional arguments --
-    # (doctype, fieldname, property, value, property_type) -- not a single
-    # dict. Verified against frappe/custom/doctype/property_setter/
-    # property_setter.py in the real framework source after a first version
-    # of this file called it with a dict and would have thrown a TypeError
-    # the first time this step actually ran.
-    frappe.make_property_setter(doctype, "naming_series", "options", "\n".join(lines), "Text")
+    # NOTE (2026-09-29): there are TWO functions named make_property_setter,
+    # and they take different arguments:
+    #
+    #   frappe.custom.doctype.property_setter.property_setter.make_property_setter
+    #       (doctype, fieldname, property, value, property_type, ...)   positional
+    #   frappe.make_property_setter                                      <- this one
+    #       (args: dict, ignore_validate=False, ...)                     a single dict
+    #
+    # An earlier comment here claimed the positional form was "verified against
+    # the real framework source" — but it had checked the first function while
+    # the code calls the second. The result was a hard TypeError ("takes from 1
+    # to 4 positional arguments but 5 were given") that killed this step on
+    # every single deploy, so the WI-/WQ- series were never registered.
+    frappe.make_property_setter({
+        "doctype": doctype,
+        "fieldname": "naming_series",
+        "property": "options",
+        "value": "\n".join(lines),
+        "property_type": "Text",
+    })
     return "added"
 
 
