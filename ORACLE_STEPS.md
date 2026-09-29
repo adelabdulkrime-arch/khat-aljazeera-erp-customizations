@@ -1,0 +1,125 @@
+# نشر النظام على Oracle Cloud — الخطوات العملية
+
+دليل مختصر ومحدّد. كل ما يمكن أتمتته مُؤتمت في [`deploy-oracle.sh`](deploy-oracle.sh) — ما تبقّى هنا هو ما يتطلب حضورك شخصياً (تسجيل بهويتك، بطاقة، رمز تحقق).
+
+**الوقت المتوقع:** 20 دقيقة عمل + 20 دقيقة انتظار بناء.
+
+---
+
+## المعطيات الجاهزة
+
+| البند | القيمة |
+|---|---|
+| الدومين | `khat.onemedia24.xyz` |
+| مُسجّل الدومين | Porkbun (`onemedia24.xyz`) |
+| البريد | `adelabdulkrime@gmail.com` |
+| مفتاح SSH العام | جاهز في `~/.ssh/id_ed25519.pub` |
+
+مفتاحك العام (ستلصقه عند إنشاء الخادم):
+```
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMqpNVekzQlXc35puYwiTLBJ4JCZOPBJCiqUcr9q/7zG adelabdulkrime@gmail.com
+```
+
+---
+
+## 1) الحساب — 10 دقائق (يتطلبك شخصياً)
+
+سجّل في [oracle.com/cloud/free](https://www.oracle.com/cloud/free/).
+
+- **المنطقة (Region):** اختر **Saudi Arabia (Jeddah)** أو **UAE (Dubai)** — الأقرب لعُمان. ⚠️ **لا يمكن تغييرها لاحقاً.**
+- بطاقة للتحقق فقط — **لا يُخصم منها شيء** ضمن Always Free.
+- تحقق برسالة نصية.
+
+> التسجيل يُرفض أحياناً بلا سبب واضح (مشكلة معروفة). جرّب بطاقة أخرى أو متصفحاً مختلفاً. إن استعصى: أي VPS بـ8GB (Hetzner ≈ €5/شهر) يعمل بنفس السكربت حرفياً.
+
+## 2) الخادم — 5 دقائق
+
+**Compute ← Instances ← Create Instance**
+
+| الإعداد | القيمة |
+|---|---|
+| Image | **Ubuntu 22.04** |
+| Shape | **Ampere — VM.Standard.A1.Flex** |
+| OCPUs / Memory | **4 نواة / 24GB** (كامل الحصة المجانية) |
+| Boot volume | 100GB |
+| SSH key | **Paste public key** ← الصق المفتاح أعلاه |
+
+> **ARM مقصود وآمن:** تحققتُ أن صورة ERPNext متعددة المعمارية وتدعم arm64. لا يحتاج `Dockerfile` أي تعديل.
+
+> «Out of capacity»؟ جرّب Availability Domain آخر أو أعد المحاولة لاحقاً — الطلب على ARM المجاني مرتفع.
+
+**بعد الإنشاء: انسخ Public IP address.**
+
+## 3) الدومين — دقيقتان
+
+في Porkbun ← `onemedia24.xyz` ← DNS ← **Add Record**:
+
+| الحقل | القيمة |
+|---|---|
+| Type | `A – Address record` |
+| Host | `khat` |
+| IPv4 Address | **عنوان الخادم من الخطوة 2** |
+| TTL | `600` |
+
+تحقق من الانتشار (قد يأخذ دقائق):
+```bash
+nslookup khat.onemedia24.xyz 1.1.1.1
+```
+
+## 4) فتح المنافذ في لوحة Oracle — دقيقتان
+
+صفحة الخادم ← الشبكة الفرعية (Subnet) ← **Security List** ← **Add Ingress Rules**:
+
+| Source CIDR | Protocol | Port |
+|---|---|---|
+| `0.0.0.0/0` | TCP | `80` |
+| `0.0.0.0/0` | TCP | `443` |
+
+> جدار أوبنتو الداخلي يتولاه السكربت تلقائياً — وهو أشهر سبب لـ«الموقع لا يفتح» حين يُنسى.
+
+## 5) النشر — أمر واحد
+
+من جهازك، ارفع ملفات المشروع ثم شغّل السكربت:
+
+```bash
+# 1. ارفع المشروع (استبدل <IP> بعنوان الخادم)
+scp -i ~/.ssh/id_ed25519 -r "C:/Users/adela/Desktop/نظام-خط-الجزيرة" ubuntu@<IP>:~/khat-erp
+
+# 2. ادخل ونفّذ
+ssh -i ~/.ssh/id_ed25519 ubuntu@<IP>
+bash ~/khat-erp/deploy-oracle.sh khat.onemedia24.xyz adelabdulkrime@gmail.com
+```
+
+السكربت يتولّى: Docker، ملف التبادل، جدار الحماية الداخلي، توليد كلمات مرور قوية، البناء، والتشغيل خلف Caddy بشهادة HTTPS تلقائية.
+
+**أول بناء: 15-25 دقيقة.** السكربت يعرض التقدّم ثم يطبع كلمة مرور `Administrator` عند الانتهاء.
+
+## 6) التحقق
+
+```bash
+sudo docker compose logs init | grep -E 'steps OK|failure'
+```
+**المتوقع:** `[khat_workshop] all 41 steps OK` بلا أي `FAIL`.
+
+ثم افتح `https://khat.onemedia24.xyz`.
+
+## 7) توجيه التطبيق المكتبي
+
+بعد نجاح النشر، في تطبيق سطح المكتب: **ملف ← إعدادات الاتصال…** ← اكتب:
+```
+https://khat.onemedia24.xyz
+```
+
+**الآن يعمل من أي مكان في العالم** — وهذا ما لا يوفّره التثبيت المحلي.
+
+---
+
+## بعد النشر — لا تتخطَّ هذه
+
+1. **احفظ كلمات المرور** التي طبعها السكربت (في `~/khat-erp/.env` على الخادم).
+2. **نسخ احتياطي خارج الخادم**:
+   ```bash
+   scp -i ~/.ssh/id_ed25519 -r ubuntu@<IP>:/var/lib/docker/volumes/khat-erp_backups/_data ./erp-backups
+   ```
+   **واختبر الاستعادة مرة واحدة على الأقل** — نسخة لم تُختبر ليست نسخة.
+3. **الحساب المجاني ليس ضماناً تعاقدياً** — Oracle قد تحذف الحسابات الخاملة. ادخل لوحة التحكم شهرياً، واحتفظ بنسخة محلية دورياً.
