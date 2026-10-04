@@ -68,17 +68,28 @@ fi
 
 log "4/7 فتح المنفذين 80 و443"
 # صور أوبنتو في Oracle تأتي بقواعد iptables تحجب كل شيء، حتى لو فتحت الجدار
-# السحابي من لوحة التحكم. نسيان هذه الخطوة هو أشهر سبب لـ"الموقع لا يفتح".
-for p in 80 443; do
-  sudo iptables -C INPUT -p tcp --dport "$p" -j ACCEPT 2>/dev/null \
-    || sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport "$p" -j ACCEPT
-done
-if command -v netfilter-persistent >/dev/null 2>&1; then
-  sudo netfilter-persistent save >/dev/null 2>&1 || true
+# السحابي من لوحة التحكم — ونسيان ذلك أشهر سبب لـ"الموقع لا يفتح". أما Hetzner
+# وContabo وDigitalOcean فتأتي مفتوحة، وبعضها يستخدم ufw بدل iptables الخام.
+# نتعامل مع الحالتين بدل افتراض Oracle.
+if command -v ufw >/dev/null 2>&1 && sudo ufw status 2>/dev/null | grep -q "Status: active"; then
+  sudo ufw allow 80/tcp  >/dev/null 2>&1 || true
+  sudo ufw allow 443/tcp >/dev/null 2>&1 || true
+  ok "فُتح المنفذان عبر ufw"
 else
-  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq iptables-persistent >/dev/null 2>&1 || true
+  for p in 80 443; do
+    sudo iptables -C INPUT -p tcp --dport "$p" -j ACCEPT 2>/dev/null \
+      || sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport "$p" -j ACCEPT 2>/dev/null \
+      || true
+  done
+  if command -v netfilter-persistent >/dev/null 2>&1; then
+    sudo netfilter-persistent save >/dev/null 2>&1 || true
+  else
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq iptables-persistent >/dev/null 2>&1 || true
+  fi
+  ok "فُتح المنفذان عبر iptables"
 fi
-ok "المنفذان مفتوحان داخلياً (لا تنسَ Security List في لوحة Oracle)"
+echo "    ملاحظة: على Oracle افتح أيضاً Security List من لوحة التحكم (0.0.0.0/0 على 80 و443)."
+echo "    على Hetzner/Contabo/DigitalOcean عادةً لا يلزم شيء إضافي."
 
 log "5/7 جلب الكود"
 if [ -d "$REPO_DIR/.git" ]; then
