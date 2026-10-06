@@ -1,0 +1,76 @@
+<!doctype html><meta charset="utf-8"><body style="margin:0;background:#000;color:#fff;font-family:sans-serif">
+<canvas id="c" width="1280" height="720" style="width:100%"></canvas>
+<div id="s" style="padding:8px">جاهز</div>
+<script>
+const W=1280,H=720,c=document.getElementById('c'),g=c.getContext('2d');
+const DUR=14000;
+let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const nodes=[...Array(70)].map(()=>({x:rnd()*W,y:rnd()*H,vx:(rnd()-.5)*.6,vy:(rnd()-.5)*.6,r:2+rnd()*3}));
+const ease=t=>t<0?0:t>1?1:t*t*(3-2*t);
+const scenes=[
+ {a:0,b:3.6,big:"الذكاء الاصطناعي",small:"عالمٌ جديد يتشكّل"},
+ {a:3.6,b:7,big:"يتعلّم من البيانات",small:"ملايين الأمثلة… في ثوانٍ"},
+ {a:7,b:10.6,big:"يخدم الإنسان",small:"الطب  •  التعليم  •  الإبداع"},
+ {a:10.6,b:14,big:"المستقبل يبدأ الآن",small:"كن جزءاً منه"}];
+function draw(t){
+  const hue=210+t*12;
+  const bg=g.createLinearGradient(0,0,W,H);
+  bg.addColorStop(0,`hsl(${hue},70%,10%)`);bg.addColorStop(1,`hsl(${hue+60},70%,18%)`);
+  g.fillStyle=bg;g.fillRect(0,0,W,H);
+  // network
+  const conn=90+t*14;
+  for(const n of nodes){n.x+=n.vx;n.y+=n.vy;if(n.x<0||n.x>W)n.vx*=-1;if(n.y<0||n.y>H)n.vy*=-1;}
+  const vis=Math.min(nodes.length,Math.floor(10+t*5));
+  for(let i=0;i<vis;i++)for(let j=i+1;j<vis;j++){
+    const a=nodes[i],b=nodes[j],d=Math.hypot(a.x-b.x,a.y-b.y);
+    if(d<conn){g.strokeStyle=`hsla(${hue+40},90%,70%,${(1-d/conn)*.5})`;g.lineWidth=1;g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);g.stroke();}
+  }
+  for(let i=0;i<vis;i++){const n=nodes[i];const p=.6+.4*Math.sin(t*3+i);
+    g.fillStyle=`hsla(${hue+50},100%,${70+p*20}%,.9)`;g.shadowColor=`hsl(${hue+50},100%,60%)`;g.shadowBlur=14;
+    g.beginPath();g.arc(n.x,n.y,n.r*(1+p*.4),0,7);g.fill();g.shadowBlur=0;}
+  // data pulses (scene 2)
+  if(t>3.6&&t<7.2){g.fillStyle='rgba(120,220,255,.8)';for(let k=0;k<40;k++){
+    const y=(k*53)%H,x=((t*400+k*97)%(W+100))-50;g.fillRect(x,y,26,2);}}
+  // icons (scene 3)
+  if(t>7&&t<10.8){const items=["⚕","📚","🎨"];items.forEach((s,i)=>{
+    const k=ease((t-7.2-i*.4)/.6);const x=W/2+(i-1)*230,y=520-Math.sin(t*2+i)*8;
+    g.save();g.globalAlpha=k;g.translate(x,y);g.scale(k,k);
+    g.fillStyle='rgba(255,255,255,.12)';g.strokeStyle='rgba(160,230,255,.8)';g.lineWidth=3;
+    g.beginPath();g.arc(0,0,70,0,7);g.fill();g.stroke();
+    g.font='72px "Segoe UI Emoji","Apple Color Emoji",sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillStyle='#fff';g.fillText(s,0,4);g.restore();});}
+  // text
+  const sc=scenes.find(s=>t>=s.a&&t<s.b)||scenes[3];
+  const lt=t-sc.a,len=sc.b-sc.a;
+  const inK=ease(lt/.7),outK=ease((len-lt)/.5);const k=Math.min(inK,outK);
+  g.save();g.globalAlpha=k;g.textAlign='center';g.direction='rtl';g.textBaseline='middle';
+  const ty=(t>7&&t<10.8)?230:H/2-20;
+  g.translate(W/2,ty+(1-inK)*40);
+  g.shadowColor='rgba(80,180,255,.9)';g.shadowBlur=30;
+  g.font='bold 104px "Segoe UI",Tahoma,Arial,sans-serif';g.fillStyle='#fff';g.fillText(sc.big,0,0);
+  g.shadowBlur=0;g.font='44px "Segoe UI",Tahoma,Arial,sans-serif';g.fillStyle='#bfe9ff';g.fillText(sc.small,0,100);
+  g.restore();
+  // progress bar
+  g.fillStyle='rgba(255,255,255,.25)';g.fillRect(0,H-6,W,6);g.fillStyle='#6fd6ff';g.fillRect(0,H-6,W*t/(DUR/1000),6);
+}
+async function record(){
+  const ac=new AudioContext(),dest=ac.createMediaStreamDestination();
+  const master=ac.createGain();master.gain.value=0;master.connect(dest);
+  [220,277.18,329.63,440].forEach((f,i)=>{const o=ac.createOscillator(),gn=ac.createGain();
+    o.type=i%2?'sine':'triangle';o.frequency.value=f;gn.gain.value=.12;o.connect(gn).connect(master);o.start();
+    const lfo=ac.createOscillator(),lg=ac.createGain();lfo.frequency.value=.2+i*.1;lg.gain.value=3;lfo.connect(lg).connect(o.detune);lfo.start();});
+  const now=ac.currentTime;master.gain.linearRampToValueAtTime(.7,now+1.5);master.gain.setValueAtTime(.7,now+DUR/1000-1.5);master.gain.linearRampToValueAtTime(0,now+DUR/1000);
+  const stream=c.captureStream(30);dest.stream.getAudioTracks().forEach(t=>stream.addTrack(t));
+  const mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')?'video/webm;codecs=vp9,opus':'video/webm';
+  const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:6e6});const chunks=[];
+  rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);
+  const done=new Promise(r=>rec.onstop=r);
+  rec.start();const t0=performance.now();
+  await new Promise(res=>{(function f(){const t=(performance.now()-t0)/1000;draw(t);document.getElementById('s').textContent='recording '+t.toFixed(1);
+    if(t*1000<DUR)requestAnimationFrame(f);else res();})();});
+  rec.stop();await done;ac.close();
+  const blob=new Blob(chunks,{type:'video/webm'});
+  await fetch('/upload',{method:'POST',body:blob});
+  document.getElementById('s').textContent='saved '+blob.size;window.__done=blob.size;
+}
+window.startRec=record;draw(2);
+</script>

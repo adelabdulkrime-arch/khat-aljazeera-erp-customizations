@@ -38,7 +38,15 @@ app_include_js = [
 ]
 
 # Same PWA bootstrap on the website + login pages (desk assets do not load there).
-web_include_js = ["/assets/khat_workshop/js/pwa.js"]
+# login_lang.js: مبدّل لغة على صفحة الدخول. الصفحة تُقدَّم قبل أن يُعرف
+# المستخدم، فلا تقرأ تفضيله من حسابه، وFrappe لا يعرض أي وسيلة لتغيير اللغة
+# هناك — فمن يجدها بلغة لا يقرؤها يعلق بلا مخرج. يضبط الزر كوكي
+# `preferred_language`، وهو ما يقرأه Frappe فعلاً للزائر غير المسجّل
+# (frappe/translate.py: "2. Cookie => preferred_language").
+web_include_js = [
+    "/assets/khat_workshop/js/pwa.js",
+    "/assets/khat_workshop/js/login_lang.js",
+]
 
 # Serve the service worker at the origin root (/sw.js) with an origin-wide scope.
 # It cannot be a static file: Frappe's www renderer blacklists .js, and /assets
