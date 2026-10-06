@@ -61,7 +61,11 @@ HOME_STYLE = """
 .hm-sectitle::before { content:""; width:4px; height:18px; background:#e63946; border-radius:3px; }
 /* ---- Module cards grid ---- */
 @keyframes kajFadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-.hm-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+/* auto-fit بدل repeat(3,1fr): ثلاثة أعمدة ثابتة كانت تُضغط على الشاشات
+   الأضيق حتى تلتف عناوين البطاقات على سطرين ("ورشة صيانة / السيارات")
+   وتُبتر أوصافها. الآن ينقص عدد الأعمدة تلقائياً بدل أن تضيق البطاقة، فتبقى
+   مقروءة على الشاشة الصغيرة والجوال — وهو ما يستخدمه فنيّو الورشة فعلاً. */
+.hm-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; }
 .hm-card { display:flex; align-items:center; gap:15px; background:var(--card-bg,#fff);
   border:1px solid var(--border-color,#eef0f4); border-radius:16px; padding:20px 22px;
   text-decoration:none !important; cursor:pointer; min-height:88px;
@@ -78,8 +82,16 @@ HOME_STYLE = """
 .hm-icon .icon { width:26px; height:26px; color:#fff; }
 .hm-icon svg use { stroke:#fff; }
 .hm-text { display:flex; flex-direction:column; flex:1; min-width:0; }
-.hm-title { font-size:16px; font-weight:700; color:var(--text-color,#1a2b4a); }
-.hm-desc { font-size:12.5px; color:var(--text-muted,#8a94a6); margin-top:3px; }
+/* العنوان يلتف ولا يُقص: محاولة أولى ثبّتته على سطر واحد (nowrap + ellipsis)
+   فصار "ورشة صيانة السيـ…" — وقصُّ اسم الوحدة أسوأ من التفافه، لأن المستخدم
+   يفقد معرفة ما تفتحه البطاقة. السطران مقبولان، والمهم أن تتساوى البطاقات:
+   align-items:center في .hm-card يتكفّل بذلك. */
+.hm-title { font-size:16px; font-weight:700; color:var(--text-color,#1a2b4a);
+  line-height:1.35; overflow-wrap:break-word; }
+/* الوصف يُسمح له بسطرين ثم يُقص — أطول من ذلك يُخرج البطاقات عن تساويها. */
+.hm-desc { font-size:12.5px; color:var(--text-muted,#8a94a6); margin-top:3px;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; }
 .hm-arrow { width:18px; height:18px; color:var(--text-muted,#c4ccd8); flex-shrink:0; transition:transform .2s; }
 .hm-card:hover .hm-arrow { transform:translateX(-4px); color:#e63946; }
 /* ---- Tablet & phone (touch-friendly) ---- */

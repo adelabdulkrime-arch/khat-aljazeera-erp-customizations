@@ -37,6 +37,12 @@ app_include_js = [
     "/assets/khat_workshop/js/pwa.js",
 ]
 
+# RTL fixes for cases where Frappe applies the Arabic direction to Latin text
+# and renders it reversed — "Ctrl+/" appeared as "/+Ctrl", and the user's email
+# in the sidebar came out backwards. Each rule addresses something seen on the
+# rendered screen, not a theoretical case.
+app_include_css = ["/assets/khat_workshop/css/rtl_fixes.css"]
+
 # Same PWA bootstrap on the website + login pages (desk assets do not load there).
 # login_lang.js: مبدّل لغة على صفحة الدخول. الصفحة تُقدَّم قبل أن يُعرف
 # المستخدم، فلا تقرأ تفضيله من حسابه، وFrappe لا يعرض أي وسيلة لتغيير اللغة
@@ -81,6 +87,10 @@ add_to_apps_screen = [
         "name": "khat_workshop",
         "title": "خط الجزيرة",
         "route": "/desk/home",
+        # Without a logo the apps screen and the desk sidebar fall back to a
+        # letter tile, while every other app shows its mark — the workshop's own
+        # app looked the least finished of the three.
+        "logo": "/assets/khat_workshop/icons/icon-192.png",
     }
 ]
 

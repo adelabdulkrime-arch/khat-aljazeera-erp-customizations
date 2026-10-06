@@ -127,7 +127,11 @@ FUTURISTIC_CSS = """
 CMDK_HEAD_CSS = """
 #kaj-cmdk-trigger { display:flex; align-items:center; }
 #kaj-cmdk-trigger-btn { cursor:pointer; display:flex; align-items:center; gap:5px;
-  padding:0 10px; height:100%; color:var(--text-color,#333); font-size:13px; font-weight:600; }
+  padding:0 10px; height:100%; color:var(--text-color,#333); font-size:13px; font-weight:600;
+  /* النص لاتيني بحت ("Ctrl+/")، وعلى واجهة RTL كان يُعرض "/+Ctrl" لأن محرك
+     الاتجاه يضع علامة + في غير موضعها. العزل يُبقي الزر في مكانه بالتخطيط
+     العربي بينما يُعرض نصه باتجاهه الصحيح. */
+  direction:ltr; unicode-bidi:isolate; }
 #kaj-cmdk-trigger-btn:hover { color:#e63946; }
 #kaj-cmdk-overlay { position:fixed; inset:0; background:rgba(10,16,28,.55); backdrop-filter:blur(4px);
   z-index:99999; display:none; align-items:flex-start; justify-content:center; padding-top:12vh; }

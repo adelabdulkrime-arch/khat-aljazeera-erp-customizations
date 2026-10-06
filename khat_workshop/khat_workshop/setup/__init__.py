@@ -101,6 +101,10 @@ STEPS = [
     "workshop_permissions",
     "workshop_oman_setup2",
     "workshop_landing",
+    # After landing, which is the last step that creates or reorders workspaces:
+    # this one reassigns them to khat_workshop (so the sidebar header stops
+    # reading "Frappe Framework" / "ERPNext") and hides the unused HR ones.
+    "workshop_workspace_polish",
     "workshop_oman_setup",
 ]
 
