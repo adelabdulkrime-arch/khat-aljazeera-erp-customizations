@@ -43,16 +43,50 @@
     'Back to sign in': 'العودة لتسجيل الدخول',
     'Resend': 'إعادة الإرسال',
     'Login with password': 'الدخول بكلمة السر',
+    // شاشتا «نسيت كلمة المرور» و«الدخول برابط البريد»: تُبنيان بجافاسكربت بعد
+    // تحميل قاموس الترجمة، فتبقى نصوصهما إنجليزية مهما أُضيف للقاموس. رُصدت
+    // على الشاشة المعروضة فعلاً.
+    'Please check your email.': 'تفقّد بريدك الإلكتروني.',
+    'Please check your email': 'تفقّد بريدك الإلكتروني',
+    "Didn't receive the link?": 'لم يصلك الرابط؟',
+    "Didn't receive the link": 'لم يصلك الرابط',
+    'Email is required.': 'البريد الإلكتروني مطلوب.',
+    'Email is required': 'البريد الإلكتروني مطلوب',
+    'Password is required.': 'كلمة السر مطلوبة.',
+    'Password is required': 'كلمة السر مطلوبة',
+    "Please enter your email, we'll send you password reset link":
+      'أدخل بريدك الإلكتروني وسنرسل لك رابط إعادة تعيين كلمة السر',
+    'Invalid login credentials': 'بيانات دخول غير صحيحة',
+    'Email': 'البريد الإلكتروني',
+    'Sent': 'أُرسل',
+    'Submit': 'إرسال',
+    'Verify': 'تحقّق',
   };
 
   function translateLate() {
     // عربية فقط — في الإنجليزية النص الأصلي هو الصحيح.
     if (currentLang() !== 'ar') return;
-    document.querySelectorAll('label, a, button').forEach(function (el) {
+
+    // الوسوم موسّعة: رسائل مثل "Please check your email" و"Email is required"
+    // تظهر في div/p/span لا في label أو button، فالاقتصار على الثلاثة الأولى
+    // كان يتركها إنجليزية.
+    var SEL = 'label, a, button, div, p, span, small, h1, h2, h3, h4';
+    document.querySelectorAll(SEL).forEach(function (el) {
       if (el.closest('#khat-lang-switch')) return;      // لا نترجم زرَّي اللغة
       if (el.children.length) return;                    // نص مباشر فقط
       var t = (el.textContent || '').trim();
-      if (LATE_STRINGS[t]) el.textContent = LATE_STRINGS[t];
+      if (!t || t.length > 90) return;
+      if (LATE_STRINGS[t]) { el.textContent = LATE_STRINGS[t]; return; }
+      // بعض الرسائل تأتي بنقطة أو بدونها حسب السياق، فنجرّب الشكلين بدل
+      // إضافة كل تنويعة يدوياً.
+      var bare = t.replace(/[.!]$/, '');
+      if (LATE_STRINGS[bare]) el.textContent = LATE_STRINGS[bare] + t.slice(bare.length);
+    });
+
+    // النصوص الإرشادية داخل الحقول.
+    document.querySelectorAll('input[placeholder]').forEach(function (el) {
+      var p = (el.placeholder || '').trim();
+      if (LATE_STRINGS[p]) el.placeholder = LATE_STRINGS[p];
     });
   }
 
