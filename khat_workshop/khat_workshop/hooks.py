@@ -86,6 +86,10 @@ add_to_apps_screen = [
     {
         "name": "khat_workshop",
         "title": "خط الجزيرة",
+        # /desk/home, not /desk: ERPNext registers "/desk" as its own route, and
+        # the desk resolves the current app by longest matching route — so with
+        # a bare /desk the Home workspace was attributed to ERPNext and the
+        # sidebar header read "ERPNext" on the system's own landing page.
         "route": "/desk/home",
         # Without a logo the apps screen and the desk sidebar fall back to a
         # letter tile, while every other app shows its mark — the workshop's own

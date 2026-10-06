@@ -52,3 +52,64 @@ frappe.provide("frappe");
 		}, 500);
 	}
 })();
+
+// ── اسم النظام في رأس الشريط الجانبي ────────────────────────────────────────
+//
+// الشريط كان يعرض اسم تطبيق آخر فوق نظام يُباع باسم «خط الجزيرة»:
+// "ERPNext" في الرئيسية و"Frappe Framework" داخل لوحة الورشة.
+//
+// السبب خلل في choose_app_name() بملف
+// frappe/public/js/frappe/ui/sidebar/sidebar.js: الحلقة تمرّ على التطبيقات،
+// وتضبط header_subtitle داخل فرع else — أي لكل تطبيق *لا* يطابق. فآخر تطبيق
+// غير مطابق يدهس النتيجة الصحيحة حتى حين تكون اللوحة مملوكة لنا وحدنا
+// (تحققت: khat_workshop هو التطبيق الوحيد الذي يتضمن لوحة Home).
+//
+// الدالة نفسها تخرج فوراً إذا كان app_name_style == "Default"، فتترك العنوان
+// كما هو. فنضبط هذه القيمة قبل بناء الشريط، ونضع العنوان الصحيح مرة واحدة.
+// إصلاح بقيمة إعداد يدعمها الإطار، لا بتعديل DOM يتكسّر مع أي تحديث.
+(function () {
+	'use strict';
+
+	var NAME = 'خط الجزيرة';
+
+	function apply() {
+		if (!window.frappe || !frappe.boot) return false;
+		frappe.boot.app_name_style = 'Default';
+		return true;
+	}
+
+	if (!apply()) {
+		var n = 0;
+		var t = setInterval(function () {
+			if (apply() || ++n > 40) clearInterval(t);
+		}, 250);
+	}
+
+	// العنوان يُعاد بناؤه عند كل تنقّل بين اللوحات، فنصححه بعد كل بناء بدل
+	// مرة واحدة عند التحميل.
+	function fixSubtitle() {
+		document.querySelectorAll('.header-subtitle').forEach(function (el) {
+			if (el.textContent.trim() !== NAME) el.textContent = NAME;
+		});
+	}
+
+	function watch() {
+		if (!document.body) return;
+		fixSubtitle();
+		var pending = false;
+		new MutationObserver(function () {
+			if (pending) return;
+			pending = true;
+			requestAnimationFrame(function () {
+				pending = false;
+				fixSubtitle();
+			});
+		}).observe(document.body, { childList: true, subtree: true });
+	}
+
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', watch);
+	} else {
+		watch();
+	}
+})();
