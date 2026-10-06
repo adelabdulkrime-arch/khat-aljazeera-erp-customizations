@@ -52,3 +52,31 @@
   unicode-bidi: isolate;
   text-align: inherit;
 }
+
+/* ── وضوح الأيقونات ──────────────────────────────────────────────────────
+ * أيقونات صفوف القوائم (القلب، التعليق) باهتة لدرجة تجعلها تبدو معطّلة، ولا
+ * يتغيّر مظهرها عند المرور — فلا شيء يدل أنها قابلة للنقر. رفع التباين قليلاً
+ * مع تفاعل عند المرور يجعل وظيفتها مفهومة قبل قراءة التلميح.
+ */
+.like-action,
+.comment-count {
+  opacity: 0.55;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  cursor: pointer;
+}
+.like-action:hover,
+.comment-count:hover {
+  opacity: 1;
+  transform: scale(1.12);
+}
+.like-action.liked {
+  opacity: 1;
+}
+
+/* أزرار جداول الصفوف الفرعية: تظهر وتختفي حسب التحديد، وكانت بلا أي تمييز
+ * بصري عند المرور. */
+.grid-add-row:hover,
+.grid-remove-rows:hover,
+.grid-duplicate-row:hover {
+  filter: brightness(1.15);
+}

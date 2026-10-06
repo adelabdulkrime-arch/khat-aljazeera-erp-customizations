@@ -35,6 +35,10 @@ after_migrate = ["khat_workshop.setup.run_all"]
 app_include_js = [
     "/assets/khat_workshop/js/desk.js",
     "/assets/khat_workshop/js/pwa.js",
+    # tooltips.js: تلميحات عربية لأيقونات القوائم وأشرطة الأدوات. Frappe يعرض
+    # القلب والتعليق وأزرار الصفوف بلا نص ولا title، فالمستخدم يمرّ عليها ولا
+    # يعرف وظيفتها — احتكاك يومي على نظام يستخدمه فنّيون لا تقنيون.
+    "/assets/khat_workshop/js/tooltips.js",
 ]
 
 # RTL fixes for cases where Frappe applies the Arabic direction to Latin text

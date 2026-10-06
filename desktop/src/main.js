@@ -22,6 +22,42 @@ function isInternal(targetUrl) {
   }
 }
 
+// ── التنقّل ────────────────────────────────────────────────────────────────
+// نافذة Electron بلا أزرار المتصفح، فالمستخدم يفقد الرجوع والأمام تماماً —
+// وهو ما يتوقعه أي شخص اعتاد الويب. هذه الدوال تُربط بثلاثة مداخل: قائمة
+// «تنقّل»، واختصارات لوحة المفاتيح (Alt+سهم)، وأزرار الفأرة الجانبية.
+//
+// في Electron 30+ تنتقل واجهة التاريخ إلى webContents.navigationHistory؛
+// نستخدمها حين تتوفر ونعود للواجهة القديمة إن لم تكن — فالملف يعمل على
+// الإصدارين دون تعديل.
+function nav() {
+  return mainWindow && mainWindow.webContents;
+}
+
+function canGoBack() {
+  const wc = nav();
+  if (!wc) return false;
+  return wc.navigationHistory ? wc.navigationHistory.canGoBack() : wc.canGoBack();
+}
+
+function canGoForward() {
+  const wc = nav();
+  if (!wc) return false;
+  return wc.navigationHistory ? wc.navigationHistory.canGoForward() : wc.canGoForward();
+}
+
+function goBack() {
+  const wc = nav();
+  if (!wc || !canGoBack()) return;
+  wc.navigationHistory ? wc.navigationHistory.goBack() : wc.goBack();
+}
+
+function goForward() {
+  const wc = nav();
+  if (!wc || !canGoForward()) return;
+  wc.navigationHistory ? wc.navigationHistory.goForward() : wc.goForward();
+}
+
 function loadServer() {
   if (!mainWindow) return;
   mainWindow.loadURL(`${serverOrigin}/desk/home`);
@@ -56,6 +92,38 @@ function createWindow() {
 
   mainWindow.once('ready-to-show', () => mainWindow.show());
   mainWindow.on('closed', () => { mainWindow = null; });
+
+  // أزرار الفأرة الجانبية (رجوع/أمام) — يتوقعها المستخدم من أي متصفح، ولا
+  // تعمل في نافذة Electron ما لم تُربط يدوياً.
+  mainWindow.on('app-command', (event, cmd) => {
+    if (cmd === 'browser-backward') goBack();
+    else if (cmd === 'browser-forward') goForward();
+  });
+
+  // اختصارات المتصفح المعتادة. قائمة «تنقّل» تغطي Alt+سهم، وهذه تضيف
+  // Backspace وAlt+سهم بالاتجاه اللاتيني لمن اعتاده — مع تجاهلها أثناء
+  // الكتابة في حقل، وإلا حذف المستخدم حرفاً فخرج من الصفحة.
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown') return;
+    const back =
+      (input.key === 'Backspace' && !input.control && !input.alt && !input.meta) ||
+      (input.alt && (input.key === 'ArrowLeft' || input.key === 'ArrowRight'));
+    if (!back) return;
+
+    // لا نتدخّل إن كان المؤشر داخل حقل إدخال.
+    mainWindow.webContents
+      .executeJavaScript(
+        `(() => { const e = document.activeElement;
+            return !!e && (e.tagName === 'INPUT' || e.tagName === 'TEXTAREA' || e.isContentEditable); })()`,
+        true
+      )
+      .then((typing) => {
+        if (typing) return;
+        if (input.key === 'Backspace' || input.key === 'ArrowRight') goBack();
+        else goForward();
+      })
+      .catch(() => {});
+  });
 
   // عنوان النافذة يبقى ثابتاً بدل ما يتغيّر مع كل صفحة
   mainWindow.on('page-title-updated', (event) => event.preventDefault());
@@ -107,12 +175,41 @@ function buildMenu() {
     {
       label: 'ملف',
       submenu: [
-        { label: 'تحديث الصفحة', accelerator: 'F5', click: () => loadServer() },
+        // تحديث الصفحة الحالية، لا العودة للرئيسية: كان F5 يُحمّل /desk/home
+        // فيفقد المستخدم مكانه كلما أراد تحديث قائمة.
+        {
+          label: 'تحديث الصفحة',
+          accelerator: 'F5',
+          click: () => { const wc = nav(); if (wc) wc.reload(); },
+        },
         { label: 'الصفحة الرئيسية', accelerator: 'Alt+Home', click: () => loadServer() },
         { type: 'separator' },
         { label: 'إعدادات الاتصال…', click: () => promptForServer() },
         { type: 'separator' },
         { label: 'خروج', role: 'quit' },
+      ],
+    },
+    {
+      // قائمة مستقلة للتنقّل: المستخدم يبحث عن الرجوع والأمام أولاً، فوضعها
+      // داخل «عرض» أو «ملف» يُخفيها عمّن يحتاجها.
+      label: 'تنقّل',
+      submenu: [
+        {
+          label: 'رجوع',
+          accelerator: 'Alt+Right',   // في RTL السهم الأيمن هو اتجاه الرجوع
+          click: () => goBack(),
+        },
+        {
+          label: 'أمام',
+          accelerator: 'Alt+Left',
+          click: () => goForward(),
+        },
+        { type: 'separator' },
+        {
+          label: 'الصفحة الرئيسية',
+          accelerator: 'Alt+Home',
+          click: () => loadServer(),
+        },
       ],
     },
     {
