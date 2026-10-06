@@ -64,3 +64,6 @@ desktop/release/
 !desktop/build/
 desktop/build/*
 !desktop/build/.gitkeep
+
+# سجلات مؤقتة من اختبار التطبيق المكتبي
+desktop/*.txt
