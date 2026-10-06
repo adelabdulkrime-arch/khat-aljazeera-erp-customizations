@@ -264,6 +264,28 @@ PAIRS = [
 # (site language is "ar" by default, but these still render in English).
 # Direction here is reversed: English source -> Arabic target.
 AR_FIXES = [
+    # --- Workspace names (2026-10-06) ---
+    # PAIRS registers these Arabic->English, which translates the desk when a
+    # user picks English. But the workspaces themselves are *named* in English
+    # by ERPNext, so on the Arabic desk — the default — the sidebar read
+    # "Sales Dashboard", "Workshop", "Payroll". The reverse direction was never
+    # registered, so the Arabic system showed an English sidebar.
+    ("Workshop", "الورشة"),
+    ("Sales Dashboard", "لوحة المبيعات"),
+    ("Purchasing Dashboard", "لوحة المشتريات"),
+    ("Inventory Dashboard", "لوحة المخزون"),
+    ("Accounting Dashboard", "لوحة المحاسبة"),
+    ("Financial Reports", "التقارير المالية"),
+    ("Home", "الرئيسية"),
+    # HR workspaces ship with hrms and stay visible to a workshop that uses it.
+    ("Payroll", "الرواتب"),
+    ("Leaves", "الإجازات"),
+    ("Expenses", "المصروفات"),
+    ("Performance", "الأداء"),
+    ("Tenure", "الخدمة الوظيفية"),
+    ("Shift & Attendance", "الورديات والحضور"),
+    ("Tax & Benefits", "الضرائب والمزايا"),
+
     # --- Login page (2026-10-06) ---
     # The login screen is the first thing anyone sees, and these four strings
     # stayed English on an Arabic site — caught by screenshotting the rendered
