@@ -59,6 +59,38 @@ HOME_STYLE = """
   letter-spacing:.15px; text-transform:uppercase;
   margin:4px 0 14px; display:flex; align-items:center; gap:8px; }
 .hm-sectitle::before { content:""; width:4px; height:18px; background:#e63946; border-radius:3px; }
+/* ---- Stat tiles ----
+   بطاقات مؤشرات صغيرة: الرقم أولاً وبحجم كبير لأنه ما يُقرأ من مسافة، ثم
+   التسمية. auto-fit حتى تنقص الأعمدة على الشاشة الضيقة بدل أن تُضغط البطاقة.
+   البطاقة كلها رابط لقائمة مفلترة — رقمٌ لا يمكن النقر عليه يترك المستخدم
+   يبحث عن مصدره يدوياً. */
+/* auto-fill لا auto-fit: مع ستّ بطاقات كان auto-fit يمدّدها حتى تتسع خمسٌ في
+   الصف وتبقى السادسة وحدها في صف تالٍ — شكل غير متوازن. auto-fill يحافظ على
+   عرض ثابت للبطاقة فتنتظم ثلاثاً ثلاثاً أو اثنتين اثنتين حسب الشاشة. */
+.hm-stats { display:grid; grid-template-columns:repeat(auto-fill,minmax(178px,1fr));
+  gap:12px; margin-bottom:26px; }
+.hm-stat { background:var(--card-bg,#fff); border:1px solid var(--border-color,#eef0f4);
+  border-radius:14px; padding:14px 16px; text-decoration:none !important;
+  display:flex; flex-direction:column; gap:3px; position:relative; overflow:hidden;
+  transition:transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .18s, border-color .18s; }
+.hm-stat:hover { transform:translateY(-3px); box-shadow:0 8px 20px rgba(16,30,54,.10);
+  border-color:#dfe3ea; }
+/* شريط لوني رفيع يميّز نوع المؤشر دون ألوان صارخة تشوّش الصفحة */
+.hm-stat::before { content:""; position:absolute; inset-inline-start:0; top:0; bottom:0;
+  width:3px; background:var(--hm-accent,#8a94a6); }
+.hm-stat-val { font-size:26px; font-weight:800; line-height:1.15;
+  color:var(--text-color,#1a2b4a); font-variant-numeric:tabular-nums; }
+.hm-stat-lbl { font-size:12px; color:var(--text-muted,#8a94a6); font-weight:600; }
+.hm-stat-sub { font-size:11px; color:var(--text-muted,#aab2c0); }
+/* حالة تستدعي انتباهاً: متأخرات أو مخزون منخفض */
+.hm-stat.is-alert { --hm-accent:#e63946; }
+.hm-stat.is-alert .hm-stat-val { color:#e63946; }
+.hm-stat.is-warn { --hm-accent:#f0b429; }
+.hm-stat.is-ok { --hm-accent:#1f9d55; }
+.hm-stat.is-info { --hm-accent:#2d6cdf; }
+/* هيكل تحميل بدل قفزة مفاجئة حين تصل الأرقام */
+.hm-stat.is-loading .hm-stat-val { color:transparent; background:rgba(127,127,127,.14);
+  border-radius:6px; width:48px; }
 /* ---- Module cards grid ---- */
 @keyframes kajFadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 /* auto-fit بدل repeat(3,1fr): ثلاثة أعمدة ثابتة كانت تُضغط على الشاشات
@@ -358,6 +390,104 @@ root.querySelectorAll('.hm-card').forEach(function(a){
   btn.addEventListener('click', runSearch);
   input.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); runSearch(); } });
 })();
+
+/* ---- بطاقات المؤشرات ----
+   رقم لا يمكن النقر عليه يترك المستخدم يبحث عن مصدره يدوياً، فكل بطاقة رابط
+   لقائمة مفلترة على نفس الشرط الذي أنتج الرقم. */
+(function(){
+  const box = root.querySelector('#hm-stats');
+  if(!box) return;
+
+  const OPEN = ['بانتظار الفحص','قيد الإصلاح','بانتظار قطع الغيار','بانتظار موافقة العميل','جاهزة للتسليم'];
+
+  function money(v, cur){
+    try { return format_currency(v || 0, cur || 'OMR'); }
+    catch(e){ return (v || 0).toFixed(3) + ' ' + (cur || ''); }
+  }
+
+  function card(cfg){
+    const a = document.createElement('a');
+    a.className = 'hm-stat' + (cfg.tone ? ' is-' + cfg.tone : '');
+    a.href = cfg.href || '#';
+    a.title = cfg.hint || cfg.label;
+    a.innerHTML =
+      '<span class="hm-stat-val">' + cfg.value + '</span>' +
+      '<span class="hm-stat-lbl"></span>' +
+      (cfg.sub ? '<span class="hm-stat-sub"></span>' : '');
+    /* textContent لا innerHTML: التسميات مترجمة والقيم من الخادم، فلا نُدخل
+       نصاً غير مُهرَّب في DOM. */
+    a.querySelector('.hm-stat-lbl').textContent = __(cfg.label);
+    if(cfg.sub) a.querySelector('.hm-stat-sub').textContent = cfg.sub;
+    return a;
+  }
+
+  /* هيكل أثناء التحميل: ست بطاقات رمادية بدل فراغ يقفز حين تصل الأرقام */
+  function skeleton(){
+    box.innerHTML = '';
+    for(let i = 0; i < 6; i++){
+      const d = document.createElement('div');
+      d.className = 'hm-stat is-loading';
+      d.innerHTML = '<span class="hm-stat-val">0</span><span class="hm-stat-lbl">—</span>';
+      box.appendChild(d);
+    }
+  }
+
+  function listUrl(doctype, params){
+    const q = Object.keys(params || {})
+      .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k])).join('&');
+    return '/app/' + doctype + (q ? '?' + q : '');
+  }
+
+  function render(s){
+    box.innerHTML = '';
+    const cards = [
+      { label:'بطاقات مفتوحة', value:s.open_cards, tone:'info',
+        href:listUrl('work-card', {status:['in', OPEN].join(',')}),
+        hint:'مركبات ما زالت في الورشة' },
+      { label:'بانتظار قطع', value:s.waiting_parts, tone: s.waiting_parts ? 'warn' : '',
+        href:listUrl('work-card', {status:'بانتظار قطع الغيار'}),
+        hint:'بطاقات متوقفة على وصول قطع' },
+      { label:'جاهزة للتسليم', value:s.ready, tone: s.ready ? 'ok' : '',
+        href:listUrl('work-card', {status:'جاهزة للتسليم'}),
+        hint:'بانتظار استلام العميل' },
+      { label:'دخلت اليوم', value:s.today_cards, tone:'',
+        href:listUrl('work-card', {}),
+        hint:'بطاقات أُنشئت اليوم' },
+      { label:'فواتير غير مسدّدة', value:s.unpaid_count,
+        tone: s.unpaid_count ? 'alert' : '', sub: money(s.unpaid_total, s.currency),
+        href:listUrl('sales-invoice', {status:'Unpaid'}),
+        hint:'إجمالي المستحق على العملاء' },
+      { label:'إيراد اليوم', value:money(s.today_revenue, s.currency), tone:'ok',
+        href:listUrl('sales-invoice', {}),
+        hint:'فواتير اليوم المعتمدة' }
+    ];
+    /* المتأخرات والمخزون المنخفض يظهران فقط حين يوجدان — بطاقة تقول "صفر
+       متأخر" تشغل مساحة بلا معنى، وظهورها نفسه هو التنبيه. */
+    if(s.stale_cards){
+      cards.push({ label:'بطاقات متعثّرة', value:s.stale_cards, tone:'alert',
+        href:listUrl('work-card', {status:['in', OPEN].join(',')}),
+        hint:'مفتوحة ولم تُحدَّث منذ أسبوع' });
+    }
+    if(s.low_stock){
+      cards.push({ label:'مخزون منخفض', value:s.low_stock, tone:'alert',
+        href:'/app/query-report/Item Shortage Report',
+        hint:'أصناف بلغت حد إعادة الطلب' });
+    }
+    cards.forEach(c => box.appendChild(card(c)));
+  }
+
+  function load(){
+    frappe.call({ method:'khat_workshop.kpi.get_home_stats' })
+      .then(r => { if(r && r.message) render(r.message); })
+      .catch(e => { console.error('home stats', e); box.innerHTML = ''; });
+  }
+
+  skeleton();
+  load();
+  /* تحديث كل دقيقتين: الورشة تتغيّر خلال اليوم، ورقم قديم أسوأ من غيابه.
+     يتوقف حين تكون الصفحة مخفية فلا يستهلك شيئاً في الخلفية. */
+  setInterval(function(){ if(!document.hidden) load(); }, 120000);
+})();
 """
 
 
@@ -387,6 +517,11 @@ def _make_home_block():
         '    <div class="hm-search-results"></div>'
         '    <div class="hm-customer-profile" style="display:none"></div>'
         '  </div>'
+        # بطاقات المؤشرات: الصفحة كانت قائمة تنقّل تخبرك أين تذهب، لا كيف تسير
+        # الورشة. مدير يفتح النظام يريد أرقاماً أولاً — كم سيارة عندنا، ما ينتظر
+        # قطعاً، كم مستحق، كم دخل اليوم. كانت تتطلب فتح أربع قوائم وعدّها يدوياً.
+        '  <div class="hm-sectitle" data-i18n="نظرة سريعة">نظرة سريعة</div>'
+        '  <div class="hm-stats" id="hm-stats"></div>'
         '  <div class="hm-sectitle" data-i18n="الوحدات الرئيسية">الوحدات الرئيسية</div>'
         + _home_tiles_html() +
         '</div>'

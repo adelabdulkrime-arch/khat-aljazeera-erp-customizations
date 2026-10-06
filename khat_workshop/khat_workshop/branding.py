@@ -74,11 +74,25 @@ def inject_login_background(context):
     # rather than relying on the browser to encode a bare literal.
     safe = quote(bg, safe="/")
 
+    # `contain` لا `cover`: الخلفية شعار مربّع، و`cover` كان يملأ الشاشة
+    # العريضة فيقصّ أطرافه ويضخّمه حتى يطغى على بطاقة الدخول. و`contain` مع
+    # لون خلفية مطابق يُظهر الشعار كاملاً متمركزاً.
+    #
+    # والتعتيم أقوى (.55→.72) لأن الشعار الحقيقي فاتح الخلفية، فبقيت بطاقة
+    # الدخول وزرّا اللغة بلا تباين كافٍ فوقه.
     style = (
         '<style id="kaj-login-bg">'
         'body[data-path="login"]{'
-        'background-image:linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.55)),url("%s");'
-        'background-size:cover;background-position:center;background-attachment:fixed;}'
+        # الخلفية هي النسخة الداكنة من الهوية (شعار فاتح على كحلي)، فتعتيم
+        # خفيف يكفي لإبراز البطاقة دون طمس الشعار. النسخة البيضاء كانت تبتلع
+        # بطاقة الدخول البيضاء فلا يظهر أيهما.
+        'background-color:#16233d;'
+        'background-image:linear-gradient(rgba(10,18,34,.32),rgba(10,18,34,.46)),url("%s");'
+        'background-size:contain;background-position:center;background-repeat:no-repeat;'
+        'background-attachment:fixed;}'
+        # على الشاشات الصغيرة الشعار المتمركز يزاحم البطاقة، فنخفيه ونكتفي
+        # بلون الهوية — أوضح من صورة مضغوطة خلف نص.
+        '@media (max-width:820px){body[data-path="login"]{background-image:none;}}'
         '</style>'
     ) % frappe.utils.escape_html(safe)
 

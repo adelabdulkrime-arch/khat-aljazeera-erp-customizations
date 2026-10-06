@@ -88,21 +88,22 @@
 
     var css = document.createElement('style');
     css.textContent = [
+      // سطح داكن شبه شفاف خلف الزرّين: صفحة الدخول صارت تحمل صورة خلفية،
+      // فألوان النص وحدها لم تعد تضمن تبايناً — كان زر «English» يختفي تماماً
+      // فوق الجزء الفاتح من الشعار. السطح يجعلهما مقروءين فوق أي خلفية،
+      // داكنة كانت أو فاتحة، فتسقط الحاجة لقواعد وضع داكن منفصلة.
       '#khat-lang-switch{position:fixed;top:14px;inset-inline-end:16px;z-index:2147483000;',
-      'display:flex;align-items:center;gap:6px;font-size:13px;',
+      'display:flex;align-items:center;gap:4px;font-size:13px;',
+      'background:rgba(16,26,46,.72);backdrop-filter:blur(6px);',
+      'padding:4px 8px;border-radius:999px;',
       'font-family:system-ui,"Segoe UI",Tahoma,sans-serif;direction:ltr}',
-      '.khat-lang-btn{background:none;border:0;padding:4px 8px;border-radius:6px;cursor:pointer;',
-      'color:#64748b;font:inherit;line-height:1.4;transition:color .15s,background .15s}',
-      '.khat-lang-btn:hover{color:#1a2b4a;background:rgba(26,43,74,.06)}',
-      '.khat-lang-btn.is-active{color:#1a2b4a;font-weight:600}',
+      '.khat-lang-btn{background:none;border:0;padding:3px 9px;border-radius:999px;cursor:pointer;',
+      'color:rgba(255,255,255,.72);font:inherit;line-height:1.4;',
+      'transition:color .15s,background .15s}',
+      '.khat-lang-btn:hover{color:#fff;background:rgba(255,255,255,.14)}',
+      '.khat-lang-btn.is-active{color:#f0b429;font-weight:700}',
       '.khat-lang-btn:focus-visible{outline:2px solid #f0b429;outline-offset:2px}',
-      '.khat-lang-sep{color:#cbd5e1}',
-      // الوضع الداكن يتبع تفضيل الجهاز، فالزر يبقى مقروءاً في الحالتين.
-      '@media (prefers-color-scheme:dark){',
-      '.khat-lang-btn{color:#94a3b8}',
-      '.khat-lang-btn:hover{color:#e8edf7;background:rgba(255,255,255,.08)}',
-      '.khat-lang-btn.is-active{color:#f0b429}',
-      '.khat-lang-sep{color:#475569}}',
+      '.khat-lang-sep{color:rgba(255,255,255,.3)}',
     ].join('');
 
     document.head.appendChild(css);

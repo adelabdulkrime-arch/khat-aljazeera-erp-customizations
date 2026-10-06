@@ -34,6 +34,8 @@ def _fields():
 LOGO = "/assets/khat_workshop/icons/icon-192.png"
 FAVICON = "/assets/khat_workshop/icons/icon-192.png"
 SPLASH = "/assets/khat_workshop/icons/icon-512.png"
+# النسخة الداكنة من هوية الورشة — تملأ خلفية صفحة الدخول.
+LOGIN_BG = "/assets/khat_workshop/icons/login-bg.png"
 APP_NAME = "خط الجزيرة"
 
 
@@ -47,7 +49,8 @@ def _identity():
 
     ws = frappe.get_single("Website Settings")
     for field, value in (("app_logo", LOGO), ("favicon", FAVICON),
-                         ("splash_image", SPLASH), ("app_name", APP_NAME)):
+                         ("splash_image", SPLASH), ("app_name", APP_NAME),
+                         ("login_background", LOGIN_BG)):
         if not ws.get(field) or (field == "app_name" and ws.get(field) == "Frappe"):
             ws.set(field, value)
             applied.append(field)

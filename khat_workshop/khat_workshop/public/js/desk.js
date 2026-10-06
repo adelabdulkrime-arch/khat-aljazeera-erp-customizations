@@ -113,3 +113,138 @@ frappe.provide("frappe");
 		watch();
 	}
 })();
+
+// ── زر الإجراء السريع ───────────────────────────────────────────────────────
+//
+// أكثر ما يتكرر في الورشة: فتح بطاقة عمل، تسجيل عميل جديد، إصدار فاتورة.
+// كلٌّ منها يحتاج 3-4 نقرات عبر القوائم. زر عائم واحد يختصرها إلى نقرتين من
+// أي شاشة.
+//
+// زر عائم لا بند في قائمة: البند يُرى فقط حين تُفتح قائمته، أما العائم فمرئي
+// دائماً — وهذا الغرض منه.
+(function () {
+	'use strict';
+
+	var ACTIONS = [
+		{ label: 'بطاقة عمل جديدة', route: '/app/work-card/new', icon: 'edit' },
+		{ label: 'عميل جديد', route: '/app/customer/new', icon: 'users' },
+		{ label: 'مركبة جديدة', route: '/app/customer-vehicle/new', icon: 'car' },
+		{ label: 'فاتورة جديدة', route: '/app/sales-invoice/new', icon: 'money-coins-1' },
+		{ label: 'عرض سعر جديد', route: '/app/quotation/new', icon: 'file' },
+	];
+
+	function build() {
+		if (document.getElementById('kaj-fab')) return;
+		if (!document.body) return;
+		// لا نعرضه على صفحات الدخول أو الإعداد — لا معنى لإجراء سريع قبل الدخول.
+		if (!/^\/(app|desk)\b/.test(window.location.pathname)) return;
+
+		var wrap = document.createElement('div');
+		wrap.id = 'kaj-fab-wrap';
+
+		var menu = document.createElement('div');
+		menu.id = 'kaj-fab-menu';
+		menu.setAttribute('role', 'menu');
+		menu.hidden = true;
+
+		ACTIONS.forEach(function (a) {
+			var item = document.createElement('button');
+			item.type = 'button';
+			item.className = 'kaj-fab-item';
+			item.setAttribute('role', 'menuitem');
+			item.textContent = a.label;
+			item.addEventListener('click', function () {
+				close();
+				// router بدل تغيير العنوان: التنقّل داخل التطبيق لا يُعيد تحميل
+				// الصفحة كاملة، فهو أسرع ويحفظ حالة الواجهة.
+				if (window.frappe && frappe.set_route) {
+					frappe.set_route(a.route.replace(/^\/app\//, '').split('/'));
+				} else {
+					window.location.href = a.route;
+				}
+			});
+			menu.appendChild(item);
+		});
+
+		var fab = document.createElement('button');
+		fab.id = 'kaj-fab';
+		fab.type = 'button';
+		fab.title = 'إجراء سريع';
+		fab.setAttribute('aria-label', 'إجراء سريع');
+		fab.setAttribute('aria-expanded', 'false');
+		fab.innerHTML =
+			'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" ' +
+			'stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+
+		function open() {
+			menu.hidden = false;
+			fab.setAttribute('aria-expanded', 'true');
+			fab.classList.add('is-open');
+		}
+		function close() {
+			menu.hidden = true;
+			fab.setAttribute('aria-expanded', 'false');
+			fab.classList.remove('is-open');
+		}
+		fab.addEventListener('click', function (e) {
+			e.stopPropagation();
+			menu.hidden ? open() : close();
+		});
+		// النقر خارج القائمة أو Esc يغلقها — سلوك متوقع من أي قائمة منبثقة.
+		document.addEventListener('click', function (e) {
+			if (!wrap.contains(e.target)) close();
+		});
+		document.addEventListener('keydown', function (e) {
+			if (e.key === 'Escape') close();
+		});
+
+		wrap.appendChild(menu);
+		wrap.appendChild(fab);
+
+		var css = document.createElement('style');
+		css.id = 'kaj-fab-style';
+		css.textContent = [
+			'#kaj-fab-wrap{position:fixed;inset-inline-end:22px;bottom:22px;z-index:1030;',
+			'display:flex;flex-direction:column;align-items:flex-end;gap:10px;}',
+			'#kaj-fab{width:52px;height:52px;border-radius:50%;border:0;cursor:pointer;',
+			'background:#e63946;color:#fff;display:flex;align-items:center;justify-content:center;',
+			'box-shadow:0 6px 18px rgba(230,57,70,.38);transition:transform .2s,box-shadow .2s;}',
+			'#kaj-fab:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(230,57,70,.46);}',
+			'#kaj-fab.is-open{transform:rotate(45deg);}',
+			'#kaj-fab:focus-visible{outline:2px solid #f0b429;outline-offset:3px;}',
+			'#kaj-fab-menu{display:flex;flex-direction:column;gap:6px;background:var(--card-bg,#fff);',
+			'border:1px solid var(--border-color,#e3e6ec);border-radius:12px;padding:6px;',
+			'box-shadow:0 12px 30px rgba(16,30,54,.16);min-width:188px;}',
+			'.kaj-fab-item{background:none;border:0;text-align:start;cursor:pointer;',
+			'padding:9px 12px;border-radius:8px;font-size:13.5px;font-weight:600;',
+			'color:var(--text-color,#1a2b4a);font-family:inherit;transition:background .13s;}',
+			'.kaj-fab-item:hover{background:rgba(230,57,70,.09);color:#e63946;}',
+			'.kaj-fab-item:focus-visible{outline:2px solid #f0b429;outline-offset:-2px;}',
+			// على الجوال يتزاحم مع أزرار النظام السفلية، فنرفعه قليلاً.
+			'@media (max-width:768px){#kaj-fab-wrap{bottom:72px;inset-inline-end:16px;}}',
+		].join('');
+
+		document.head.appendChild(css);
+		document.body.appendChild(wrap);
+	}
+
+	function start() {
+		build();
+		// الواجهة تُعيد بناء أجزاء منها عند التنقّل، فنتأكد أن الزر باقٍ.
+		var pending = false;
+		new MutationObserver(function () {
+			if (pending) return;
+			pending = true;
+			requestAnimationFrame(function () {
+				pending = false;
+				build();
+			});
+		}).observe(document.body, { childList: true, subtree: true });
+	}
+
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', start);
+	} else {
+		start();
+	}
+})();
