@@ -17,6 +17,48 @@ from urllib.parse import quote
 import frappe
 
 
+def force_site_language(context):
+    """Render the login page in the site's language, not the browser's.
+
+    Frappe picks the language for a signed-out visitor in this order:
+    the `preferred_language` cookie, then the browser's Accept-Language, and
+    only then the site default. A workshop PC whose Chrome is US English
+    therefore opened an Arabic system on an English login screen — verified
+    live: with no cookie the page came back lang="en" dir="ltr" although
+    System Settings says "ar".
+
+    So: when the visitor has expressed no preference, fall back to the site
+    language instead of the browser's. Anyone who picks a language with the
+    switcher sets the cookie, and that choice still wins — this only replaces
+    the guess, never an actual choice.
+    """
+    if frappe.request and frappe.request.cookies.get("preferred_language"):
+        return
+
+    site_lang = frappe.db.get_single_value("System Settings", "language")
+    if not site_lang or frappe.local.lang == site_lang:
+        return
+
+    frappe.local.lang = site_lang
+    # Clear the memoised dictionary so the new language is the one actually
+    # used to translate this page, not the one loaded a moment ago.
+    frappe.local.lang_full_dict = None
+    context["lang"] = site_lang
+
+    # base.html renders <html lang="{{boot.lang}}">, and that boot dict is built
+    # before this hook runs — so setting frappe.local.lang alone left the markup
+    # saying lang="en" while the page itself was translated to Arabic. Verified
+    # in apps/frappe/frappe/templates/base.html rather than assumed.
+    boot = context.get("boot")
+    if boot is not None:
+        try:
+            boot["lang"] = site_lang
+        except TypeError:
+            # boot is a JSON string on some render paths; leave it rather than
+            # corrupting it — dir/translation are already correct by here.
+            pass
+
+
 def inject_login_background(context):
     # Gate strictly to the login route. context.path is the www page name.
     path = (context.get("path") or "").strip("/")

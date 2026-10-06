@@ -56,7 +56,12 @@ page_renderer = ["khat_workshop.pwa.ServiceWorkerRenderer"]
 
 # Paint the uploaded background onto the login page. Runs server-side for every
 # web page; khat_workshop.branding gates it to /login and no-ops when unset.
-update_website_context = ["khat_workshop.branding.inject_login_background"]
+update_website_context = [
+    # Must precede the background hook: it fixes the language for the whole
+    # render, so anything rendered after it is translated in the right one.
+    "khat_workshop.branding.force_site_language",
+    "khat_workshop.branding.inject_login_background",
+]
 
 # Register the workshop as an "app" whose route is the dashboard, /desk/home.
 #

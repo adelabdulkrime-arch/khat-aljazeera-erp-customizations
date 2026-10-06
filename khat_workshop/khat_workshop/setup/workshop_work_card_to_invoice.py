@@ -44,6 +44,48 @@ def _series_available(doctype, series):
     return series in options
 
 
+def _apply_default_taxes(doc):
+    """Attach the company's default tax template and expand its rows.
+
+    The browser applies the default template through client-side logic that
+    never runs on a server-side insert, so an invoice raised from a Work Card
+    came out with zero tax — while the same sale entered by hand carried the 5%
+    Oman VAT. That is a real revenue and compliance gap, not a cosmetic one, and
+    it applied to every invoice the workshop produced from a job card.
+
+    Guarded end to end: no default template configured, or a template that no
+    longer resolves, leaves the document untaxed rather than failing the whole
+    conversion — an invoice with no tax is recoverable, no invoice at all is not.
+    """
+    if doc.get("taxes"):
+        return None
+
+    template = frappe.db.get_value(
+        "Sales Taxes and Charges Template",
+        {"is_default": 1, "company": doc.company, "disabled": 0},
+        "name",
+    )
+    if not template:
+        return None
+
+    doc.taxes_and_charges = template
+    try:
+        # The same call the form makes when the template field changes; it
+        # copies the template's charge rows onto the document.
+        doc.set_taxes()
+    except Exception:
+        # Fall back to copying the rows directly if that helper is unavailable.
+        try:
+            for row in frappe.get_doc(
+                "Sales Taxes and Charges Template", template
+            ).taxes:
+                doc.append("taxes", row.as_dict(no_default_fields=True))
+        except Exception:
+            doc.taxes_and_charges = None
+            return None
+    return template
+
+
 def _append_rows(target_doc, work_card):
     added = 0
     for row in (work_card.services or []):
@@ -89,6 +131,10 @@ def create_sales_invoice(work_card):
     if not _append_rows(inv, wc):
         frappe.throw(frappe._("لا توجد خدمات أو قطع مسجّلة على بطاقة العمل لإنشاء فاتورة منها"))
 
+    # Before the discount: the discount applies to the grand total, which only
+    # includes tax once the tax rows are on the document.
+    _apply_default_taxes(inv)
+
     if wc.discount:
         inv.apply_discount_on = "Grand Total"
         inv.discount_amount = wc.discount
@@ -122,6 +168,10 @@ def create_quotation(work_card):
 
     if not _append_rows(qtn, wc):
         frappe.throw(frappe._("لا توجد خدمات أو قطع مسجّلة على بطاقة العمل لإنشاء عرض سعر منها"))
+
+    # Same reason as the invoice: a quotation that omits the 5% quotes the
+    # customer a figure the invoice will not match.
+    _apply_default_taxes(qtn)
 
     if wc.discount:
         qtn.apply_discount_on = "Grand Total"

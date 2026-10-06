@@ -190,12 +190,94 @@ PAIRS = [
     ("بانتظار موافقة العميل", "Awaiting Customer Approval"),
     ("جاهزة للتسليم", "Ready for Delivery"),
     ("تم التسليم", "Delivered"),
+
+    # --- Vehicle intake (body condition) ---
+    # Added 2026-10-06 after an audit found 53 of the 146 Arabic labels on the
+    # custom doctypes (36%) had no English rendering at all. Switching a user to
+    # English left those fields in Arabic, so the form came out half-translated
+    # — which reads as unfinished on a system sold as bilingual.
+    ("حالة المركبة عند الاستلام", "Vehicle Condition on Intake"),
+    ("مستوى الوقود", "Fuel Level"),
+    ("لا توجد أضرار ظاهرة", "No Visible Damage"),
+    ("الأضرار المسجّلة", "Recorded Damage"),
+    ("صور الاستلام", "Intake Photos"),
+    ("ملاحظات الاستلام", "Intake Notes"),
+    ("توقيع العميل بالاستلام", "Customer Signature on Intake"),
+    ("المنطقة", "Zone"),
+    ("الصورة", "Image"),
+    ("صورة", "Photo"),
+
+    # --- Mechanical inspection ---
+    ("الفحص الفني للمركبة", "Vehicle Technical Inspection"),
+    ("بنود الفحص", "Inspection Items"),
+    ("نتيجة الفحص", "Inspection Result"),
+    ("ملاحظات الفحص", "Inspection Notes"),
+    ("عداد الكيلومترات", "Odometer (km)"),
+    ("المجموعة", "Group"),
+    ("البند", "Item"),
+    ("النتيجة", "Result"),
+    ("ملاحظة", "Note"),
+    ("جيد", "Good"),
+    ("يحتاج متابعة", "Needs Monitoring"),
+    ("يحتاج استبدال", "Needs Replacement"),
+    ("يحتاج إصلاح", "Needs Repair"),
+
+    # --- Costing & profitability ---
+    ("التكلفة والربحية", "Cost & Profitability"),
+    ("تكلفة العمالة", "Labour Cost"),
+    ("تكلفة العمل", "Job Cost"),
+    ("تكلفة القطع (فعلية)", "Parts Cost (Actual)"),
+    ("إجمالي التكلفة", "Total Cost"),
+    ("الربح الإجمالي", "Gross Profit"),
+    ("هامش الربح %", "Profit Margin %"),
+    ("ساعات العمل", "Work Hours"),
+    ("إجمالي ساعات العمل", "Total Work Hours"),
+    ("تكلفة الساعة", "Hourly Rate"),
+    ("إجمالي العمولات", "Total Commissions"),
+
+    # --- Packages ---
+    ("اسم الباقة (عربي)", "Package Name (Arabic)"),
+    ("اسم الباقة (إنجليزي)", "Package Name (English)"),
+    ("مفعّلة", "Enabled"),
+    ("المجموع الفرعي", "Subtotal"),
+    ("نسبة الخصم %", "Discount %"),
+    ("قيمة الخصم", "Discount Amount"),
+    ("الصنف / الخدمة", "Item / Service"),
+    ("الاسم", "Name"),
+    ("خط الخدمة", "Service Line"),
+
+    # --- Misc fields ---
+    ("اسم الدور", "Role Name"),
+    ("رمز الدولة (لواتساب)", "Country Code (for WhatsApp)"),
+    ("الرابط العام للنظام", "System Public URL"),
+    ("المستودع (لصرف القطع)", "Warehouse (for Parts Issue)"),
+    ("حركة المخزون المرتبطة", "Linked Stock Entry"),
+    ("جوال العميل", "Customer Mobile"),
+    ("الفني", "Technician"),
+    ("بطاقة العمل", "Work Card"),
+    ("المبلغ", "Amount"),
+    ("تاريخ آخر صيانة", "Last Service Date"),
+    ("تاريخ الصيانة القادمة", "Next Service Date"),
 ]
 
 # Frappe core UI strings that ship WITHOUT a built-in Arabic translation
 # (site language is "ar" by default, but these still render in English).
 # Direction here is reversed: English source -> Arabic target.
 AR_FIXES = [
+    # --- Login page (2026-10-06) ---
+    # The login screen is the first thing anyone sees, and these four strings
+    # stayed English on an Arabic site — caught by screenshotting the rendered
+    # page rather than trusting the language setting.
+    ("Sign In", "تسجيل الدخول"),
+    ("Welcome! Please sign in to continue.", "أهلاً بك! سجّل الدخول للمتابعة."),
+    ("Email or Username", "البريد الإلكتروني أو اسم المستخدم"),
+    ("Forgot password?", "نسيت كلمة السر؟"),
+    ("Login with Email Link", "الدخول عبر رابط البريد"),
+    ("Continue", "متابعة"),
+    ("Password", "كلمة السر"),
+    ("Back to Login", "العودة لتسجيل الدخول"),
+    ("Send Password Reset Email", "إرسال رابط إعادة التعيين"),
+
     ("ID", "المعرّف"),
     ("Status", "الحالة"),
     ("Add User", "إضافة مستخدم"),

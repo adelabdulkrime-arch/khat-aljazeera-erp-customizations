@@ -26,8 +26,48 @@ def _fields():
     }]}
 
 
+# The PWA icons already ship with the app, so the workshop's own mark can be
+# wired up without waiting for an upload. Before this, the login screen showed
+# Frappe's generic box icon and the browser tab read "Frappe" / "ERPNext" —
+# nothing identified the system as the workshop's, which reads as unfinished to
+# a client being shown the product.
+LOGO = "/assets/khat_workshop/icons/icon-192.png"
+FAVICON = "/assets/khat_workshop/icons/icon-192.png"
+SPLASH = "/assets/khat_workshop/icons/icon-512.png"
+APP_NAME = "خط الجزيرة"
+
+
+def _identity():
+    """Point Website/System Settings at the workshop's own name and mark.
+
+    Only fills blanks: anything the owner has already set — their real logo,
+    a chosen app name — is left alone, so re-running never undoes their work.
+    """
+    applied = []
+
+    ws = frappe.get_single("Website Settings")
+    for field, value in (("app_logo", LOGO), ("favicon", FAVICON),
+                         ("splash_image", SPLASH), ("app_name", APP_NAME)):
+        if not ws.get(field) or (field == "app_name" and ws.get(field) == "Frappe"):
+            ws.set(field, value)
+            applied.append(field)
+    if applied:
+        ws.flags.ignore_permissions = True
+        ws.save()
+
+    # System Settings.app_name is what the desk header and browser title show;
+    # it defaults to "ERPNext" and is separate from the Website Settings one.
+    current = frappe.db.get_single_value("System Settings", "app_name")
+    if not current or current in ("ERPNext", "Frappe"):
+        frappe.db.set_single_value("System Settings", "app_name", APP_NAME)
+        applied.append("system_app_name")
+
+    return applied
+
+
 def execute():
     create_custom_fields(_fields(), update=True)
+    applied = _identity()
     frappe.db.commit()
     frappe.clear_cache()
-    print("BRANDING login_background field=ok")
+    print("BRANDING login_background field=ok identity=%s" % (applied or "already set"))

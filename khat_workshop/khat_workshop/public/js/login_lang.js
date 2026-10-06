@@ -33,6 +33,29 @@
     window.location.reload();
   }
 
+  // بعض نصوص صفحة الدخول يبنيها جافاسكربت بعد تحميل قاموس الترجمة، فتبقى
+  // إنجليزية مهما أضفنا للقاموس. هذه هي البقية التي رصدناها على الصفحة
+  // المعروضة فعلاً — تُترجَم هنا بعد أن يبنيها Frappe.
+  var LATE_STRINGS = {
+    'Email or Username': 'البريد الإلكتروني أو اسم المستخدم',
+    'Forgot password?': 'نسيت كلمة السر؟',
+    'Send Link': 'إرسال الرابط',
+    'Back to sign in': 'العودة لتسجيل الدخول',
+    'Resend': 'إعادة الإرسال',
+    'Login with password': 'الدخول بكلمة السر',
+  };
+
+  function translateLate() {
+    // عربية فقط — في الإنجليزية النص الأصلي هو الصحيح.
+    if (currentLang() !== 'ar') return;
+    document.querySelectorAll('label, a, button').forEach(function (el) {
+      if (el.closest('#khat-lang-switch')) return;      // لا نترجم زرَّي اللغة
+      if (el.children.length) return;                    // نص مباشر فقط
+      var t = (el.textContent || '').trim();
+      if (LATE_STRINGS[t]) el.textContent = LATE_STRINGS[t];
+    });
+  }
+
   function build() {
     if (document.getElementById('khat-lang-switch')) return;
 
@@ -86,9 +109,27 @@
     document.body.appendChild(wrap);
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', build);
-  } else {
+  function start() {
     build();
+    translateLate();
+
+    // الصفحة تبدّل نماذجها دون إعادة تحميل (نسيت كلمة السر، الدخول برابط
+    // بريد)، وكل تبديل يبني نصوصاً جديدة — فنترجم عند كل تغيير في DOM بدل
+    // مرة واحدة عند التحميل. مؤجَّل بإطار واحد حتى لا نتسابق مع البناء نفسه.
+    var pending = false;
+    new MutationObserver(function () {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(function () {
+        pending = false;
+        translateLate();
+      });
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
   }
 })();

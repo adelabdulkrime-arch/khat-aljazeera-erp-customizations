@@ -252,6 +252,12 @@ def create_quotation_from_inspection(work_card):
             "description": text,
         })
 
+    # The 5% Oman VAT: applied by browser-side logic that a server-side insert
+    # never runs, so without this the quotation quotes a figure the invoice
+    # will not match. Shared with the Work Card conversion so both paths agree.
+    from khat_workshop.setup.workshop_work_card_to_invoice import _apply_default_taxes
+    _apply_default_taxes(quotation)
+
     quotation.flags.ignore_permissions = True
     quotation.insert()
     frappe.db.commit()
