@@ -2,6 +2,7 @@
 
 const { app, BrowserWindow, shell, Menu, dialog, ipcMain, session } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { readServer, writeServer, normalizeServer } = require('./config');
 
 // مثيل واحد فقط — الضغط على الأيقونة مرة ثانية يُظهر النافذة المفتوحة
@@ -58,6 +59,16 @@ function goForward() {
   wc.navigationHistory ? wc.navigationHistory.goForward() : wc.goForward();
 }
 
+/** يُبلّغ الصفحة بحالة التاريخ لتعطيل الزر الذي لا وجهة له. */
+function syncNavState() {
+  const wc = nav();
+  if (!wc || wc.isDestroyed()) return;
+  wc.executeJavaScript(
+    `window.__khatNavState && window.__khatNavState(${canGoBack()}, ${canGoForward()})`,
+    true
+  ).catch(() => {});
+}
+
 function loadServer() {
   if (!mainWindow) return;
   mainWindow.loadURL(`${serverOrigin}/desk/home`);
@@ -80,6 +91,9 @@ function createWindow() {
     backgroundColor: '#1a2b4a',
     icon: path.join(__dirname, '..', 'build', 'icon.ico'),
     title: 'خط الجزيرة',
+    // الشريط مخفي لا معطّل: Alt يُظهره عند الحاجة، ولا يأكل مساحة رأسية من
+    // شاشة يُفترض أن تعرض جداول. أزرار التنقّل الفعلية تُحقن داخل الصفحة
+    // (nav_overlay.js) فتكون مرئية دائماً دون شريط قوائم دائم.
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -150,6 +164,44 @@ function createWindow() {
     if (isInternal(url)) return;
     event.preventDefault();
     if (/^https?:/i.test(url)) shell.openExternal(url);
+  });
+
+  // حقن أزرار التنقّل في كل صفحة. القائمة والاختصارات موجودة، لكن القائمة
+  // مخفية خلف Alt والاختصارات لا يعرفها من يفتح التطبيق أول مرة — فيبقى بلا
+  // وسيلة ظاهرة للرجوع، وهي أول ما يبحث عنه.
+  const NAV_OVERLAY = fs.readFileSync(path.join(__dirname, 'nav_overlay.js'), 'utf8');
+
+  // يُحقن مبكراً (dom-ready) ومرة أخرى بعد اكتمال التحميل: صفحة النظام تبني
+  // واجهتها بجافاسكربت بعد did-finish-load، وقد تمسح ما أُضيف قبلها. الملف
+  // نفسه يتجاهل الحقن المكرر (علامة __khatNavReady) ويعيد بناء الشريط إن
+  // اختفى، فالتكرار آمن.
+  const injectNav = () => {
+    const wc = nav();
+    if (!wc || wc.isDestroyed()) return;
+    wc.executeJavaScript(NAV_OVERLAY, true).then(syncNavState).catch(() => {});
+  };
+
+  mainWindow.webContents.on('dom-ready', injectNav);
+  mainWindow.webContents.on('did-finish-load', () => {
+    injectNav();
+    // النظام يُكمل بناء واجهته بعد التحميل بقليل؛ حقنة متأخرة واحدة تكفي
+    // لتثبيت الشريط دون استطلاع دوري.
+    setTimeout(injectNav, 1500);
+  });
+
+  // تحديث حالة الزرّين بعد كل تنقّل، ليُعطَّل ما لا تاريخ له.
+  ['did-navigate', 'did-navigate-in-page'].forEach((evt) => {
+    mainWindow.webContents.on(evt, () => syncNavState());
+  });
+
+  // الصفحة معزولة عن Node، فتُبلّغ عن النقر بتغيير عنوان الصفحة إلى وسم
+  // متفق عليه — حدث واحد يصل مباشرة، بدل استطلاع دوري كان يراكم مستمعين على
+  // webContents حتى حذّر Electron من تسرّب (MaxListenersExceededWarning).
+  // يُطلق على webContents لا على النافذة: المستمع على النافذة أعلاه يمنع
+  // تغيير العنوان المعروض (preventDefault) لكن الحدث يصل هنا على أي حال.
+  mainWindow.webContents.on('page-title-updated', (_event, title) => {
+    if (title === '__khat_nav_back__') goBack();
+    else if (title === '__khat_nav_forward__') goForward();
   });
 
   // فشل تحميل الصفحة الرئيسية ⇒ اعرض شاشة «لا يوجد اتصال»
