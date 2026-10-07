@@ -92,8 +92,11 @@ def inject_login_background(context):
         # ── الخلفية ──
         'body[data-path="login"]{'
         'background-color:var(--kaj-navy);'
-        'background-image:linear-gradient(135deg,rgba(14,24,42,.80) 0%,'
-        'rgba(14,24,42,.62) 45%,rgba(14,24,42,.80) 100%),url("__KAJ_BG__");'
+        # الخلفية صارت النسخة الفاتحة (شعار داكن على أبيض): تبرز خلف التعتيم
+        # بدل أن تذوب فيه كما كانت الداكنة. والتعتيم أقوى لأن الأبيض يحتاج
+        # حجباً أكثر ليبقى النص الفاتح مقروءاً فوقه.
+        'background-image:linear-gradient(135deg,rgba(14,24,42,.90) 0%,'
+        'rgba(14,24,42,.80) 45%,rgba(14,24,42,.90) 100%),url("__KAJ_BG__");'
         # الصورة مربّعة والشاشة عريضة، فكلا الخيارين يُخفق وحده: contain
         # يتركها مربعاً معلّقاً بحوافّ ظاهرة، وcover يُكبّرها حتى يُقصّ الترس
         # يساراً و«خط» يميناً — فوضى بصرية خلف البطاقة.
@@ -101,7 +104,14 @@ def inject_login_background(context):
         # الحل: تصغيرها لارتفاع الشاشة تقريباً (auto 82%) وتوسيطها، فتظهر
         # كاملة غير مقصوصة ويملأ لون الهوية ما حولها. والتعتيم أقوى ومتساوٍ
         # ليصير الشعار نسيجاً خلفياً هادئاً لا عنصراً يزاحم بطاقة الدخول.
-        'background-size:auto 82%;background-position:center;'
+        # cover في النهاية: أي مقاس يُبقي الصورة المربّعة داخل الشاشة العريضة
+        # يترك حافّتين رأسيّتين حادّتين تبدوان كمستطيل ملصق — جرّبتُ 82% ثم
+        # 120% وبقيت الحافّتان. وcover وحده يملأ العرض كاملاً فتختفيان.
+        #
+        # ما جعل cover يُخفق أول مرة هو ضعف التعتيم: الشعار المقصوص كان
+        # يزاحم البطاقة. مع تعتيم .90/.80 صار نسيجاً خلفياً هادئاً، فالقصّ
+        # لم يعد مرئياً كعيب.
+        'background-size:cover;background-position:center;'
         'background-repeat:no-repeat;background-attachment:fixed;min-height:100vh;}'
         # ── البطاقة ──
         # .login-content.page-card وحدها هي البطاقة (371px). أما .for-login
@@ -187,10 +197,9 @@ def inject_login_background(context):
         'body[data-path="login"] .app-logo{'
         'width:72px !important;height:auto !important;max-height:72px;'
         'display:block;margin:0 auto 14px;border-radius:16px;'
-        # إطار فاتح رفيع بدل المربع الأبيض الصريح: الشعار نفسه على خلفية
-        # بيضاء، فبدا كبطاقة ملصقة على البطاقة. الإطار يدمجه مع التصميم.
-        'border:1px solid rgba(255,255,255,.16);'
-        'box-shadow:0 8px 22px rgba(0,0,0,.32);}'
+        # الشعار صار النسخة الداكنة (شعار فاتح على كحلي)، فيندمج مع البطاقة
+        # بلا إطار ولا ظل — المربع الأبيض السابق كان يبدو ملصقاً عليها.
+        'border:0;box-shadow:none;}'
         # تقليل الحشو والفراغات: البطاقة كانت تتجاوز ارتفاع الشاشة على
         # اللابتوب فيضطر المستخدم للتمرير ليرى زر الدخول.
         'body[data-path="login"] .login-content.page-card{padding:28px 26px 24px;}'
