@@ -320,6 +320,27 @@ app.whenReady().then(() => {
   // طلبات تنزيل PDF (الفواتير) تُحفظ بمجلد التنزيلات مع إظهار شريط الحفظ
   session.defaultSession.on('will-download', () => { /* سلوك Electron الافتراضي كافٍ */ });
 
+  // أصول النظام (js/css/صور) تُطلب من الشبكة لا من الكاش.
+  //
+  // التطبيق كان يحتفظ بنسخ قديمة من desk.js والأيقونات بعد تحديث السيرفر،
+  // فيظهر الشعار القديم واسم "ERPNext" في الشريط الجانبي بينما المتصفح على
+  // الجهاز نفسه يعرض الصحيح — فرقٌ أربك التشخيص مرتين.
+  //
+  // مقصور على مسار /assets: صفحات النظام وبياناته تمرّ بسلوك الكاش المعتاد،
+  // فلا يتباطأ التصفّح. والكوكيز والجلسة لا تتأثر، فيبقى الدخول محفوظاً.
+  session.defaultSession.webRequest.onBeforeSendHeaders(
+    { urls: ['*://*/assets/*'] },
+    (details, callback) => {
+      callback({
+        requestHeaders: {
+          ...details.requestHeaders,
+          'Cache-Control': 'no-cache',
+          Pragma: 'no-cache',
+        },
+      });
+    }
+  );
+
   ipcMain.handle('config:get-server', () => serverOrigin);
 
   ipcMain.handle('config:set-server', (_event, value) => {

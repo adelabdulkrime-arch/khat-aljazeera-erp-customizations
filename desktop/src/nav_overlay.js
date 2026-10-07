@@ -39,6 +39,15 @@
     if (document.getElementById('khat-nav')) return;
     if (!document.body) return;
 
+    // لا أزرار تنقّل على صفحات الدخول: لا يوجد تاريخ تصفّح بعدُ، فيظهران
+    // معطّلَين ويزاحمان مبدّل اللغة في الزاوية نفسها. تُزال إن كانت موجودة
+    // من صفحة سابقة.
+    if (/^\/(login|update-password)/.test(window.location.pathname)) {
+      var old = document.getElementById('khat-nav');
+      if (old) old.remove();
+      return;
+    }
+
     var bar = document.createElement('div');
     bar.id = 'khat-nav';
 

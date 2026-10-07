@@ -92,12 +92,17 @@ def inject_login_background(context):
         # ── الخلفية ──
         'body[data-path="login"]{'
         'background-color:var(--kaj-navy);'
-        # تدرّج قُطري لا طبقة مسطّحة: أثقل حيث تقع البطاقة وأخفّ عند الأطراف،
-        # فيبقى الشعار مرئياً دون أن يزاحم النص.
-        'background-image:linear-gradient(135deg,rgba(14,24,42,.92) 0%,'
-        'rgba(14,24,42,.72) 42%,rgba(14,24,42,.86) 100%),url("__KAJ_BG__");'
-        'background-size:cover;background-position:center;background-repeat:no-repeat;'
-        'background-attachment:fixed;min-height:100vh;}'
+        'background-image:linear-gradient(135deg,rgba(14,24,42,.80) 0%,'
+        'rgba(14,24,42,.62) 45%,rgba(14,24,42,.80) 100%),url("__KAJ_BG__");'
+        # الصورة مربّعة والشاشة عريضة، فكلا الخيارين يُخفق وحده: contain
+        # يتركها مربعاً معلّقاً بحوافّ ظاهرة، وcover يُكبّرها حتى يُقصّ الترس
+        # يساراً و«خط» يميناً — فوضى بصرية خلف البطاقة.
+        #
+        # الحل: تصغيرها لارتفاع الشاشة تقريباً (auto 82%) وتوسيطها، فتظهر
+        # كاملة غير مقصوصة ويملأ لون الهوية ما حولها. والتعتيم أقوى ومتساوٍ
+        # ليصير الشعار نسيجاً خلفياً هادئاً لا عنصراً يزاحم بطاقة الدخول.
+        'background-size:auto 82%;background-position:center;'
+        'background-repeat:no-repeat;background-attachment:fixed;min-height:100vh;}'
         # ── البطاقة ──
         # .login-content.page-card وحدها هي البطاقة (371px). أما .for-login
         # فغلاف خارجي بعرض 1010px — تنسيقه كبطاقة أنتج بطاقتين متداخلتين،
@@ -163,6 +168,18 @@ def inject_login_background(context):
         'body[data-path="login"] a{color:var(--kaj-gold) !important;'
         'text-decoration:none;}'
         'body[data-path="login"] a:hover{text-decoration:underline;}'
+        # "هل نسيت كلمة السر؟" يرث text-align:left من Frappe، فيلتصق بالحافة
+        # اليسرى في واجهة عربية بينما كل ما حوله محاذٍ لليمين. الحاوية تتبع
+        # اتجاه الصفحة بدل قيمة ثابتة.
+        'body[data-path="login"] .forgot-password-message,'
+        'body[data-path="login"] a[href*="forgot"],'
+        'body[data-path="login"] a[href*="#forgot"]{display:inline-block;}'
+        'body[data-path="login"] .forgot-password-message,'
+        'body[data-path="login"] .page-card-actions{text-align:start !important;}'
+        # مسافة أوضح بين الزرّين: 12px تجعلهما يبدوان كتلة واحدة.
+        'body[data-path="login"] .btn-login{margin-top:6px;}'
+        'body[data-path="login"] .btn-login + .btn,'
+        'body[data-path="login"] .btn-login + a.btn{margin-top:10px;}'
         # ── الشعار داخل البطاقة ──
         # كان 40 بكسل تقريباً فيُقرأ كلطخة؛ تكبيره وتوسيطه يجعله عنوان البطاقة.
         'body[data-path="login"] .for-login img,'
