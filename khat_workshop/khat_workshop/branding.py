@@ -104,13 +104,21 @@ def inject_login_background(context):
         # القيد الحاسم: الحجم مربوط بأصغر البُعدين لا بإطار العرض كاملاً،
         # ومحصور بين 420 و900 بكسل. فعند التصغير لا يتضخّم الشعار، وعند
         # التكبير لا يتضاءل حتى يختفي.
-        'background-size:clamp(420px,min(78vw,88vh),900px) auto;}'
+        'background-size:clamp(420px,min(78vw,88vh),900px) auto;'
+        # الصورة مربّعة على خلفية كحلية سادة، فحوافّها تظهر كمستطيل ملصق
+        # بأربعة أضلاع حادّة — رُصد في لقطة الشاشة. قناع إشعاعي يُذيب
+        # الحوافّ في لون الهوية فتبدو الصورة نسيجاً لا صورة موضوعة.
+        '-webkit-mask-image:radial-gradient(ellipse at center,#000 42%,transparent 72%);'
+        'mask-image:radial-gradient(ellipse at center,#000 42%,transparent 72%);'
+        # شفافية خفيفة إضافية: الشعار حاضر لكنه لا يزاحم البطاقة.
+        'opacity:.55;}'
         'body[data-path="login"]::after{content:"";position:fixed;inset:0;'
         'z-index:1;pointer-events:none;'
-        # تعتيم متدرّج: أقوى في الوسط حيث تقف البطاقة، أخفّ في الأطراف
-        # ليبقى الشعار حاضراً. القيم مضبوطة ليتجاوز تباين النص 4.5:1.
-        'background:radial-gradient(ellipse at center,rgba(12,20,36,.78) 0%,'
-        'rgba(12,20,36,.72) 45%,rgba(12,20,36,.68) 100%);}'
+        # تعتيم متدرّج خفيف: الصورة صارت معتّمة أصلاً بـopacity والقناع،
+        # فتعتيم إضافي ثقيل كان سيمحوها تماماً. الضبابية في البطاقة هي ما
+        # يضمن قراءة النص لا حجب الخلفية.
+        'background:radial-gradient(ellipse at center,rgba(12,20,36,.55) 0%,'
+        'rgba(12,20,36,.45) 50%,rgba(12,20,36,.40) 100%);}'
         # المحتوى فوق الطبقتين.
         'body[data-path="login"] .page-container,'
         'body[data-path="login"] .for-login,'
@@ -147,8 +155,11 @@ def inject_login_background(context):
         'border:1px solid rgba(255,255,255,.14);'
         'border-radius:16px;'
         'box-shadow:0 24px 60px rgba(0,0,0,.50),0 1px 0 rgba(255,255,255,.08) inset;'
-        # حدّ أدنى يمنع انكماش البطاقة عند التصغير.
-        'min-width:340px;width:min(92vw,400px);'
+        # حدّ أدنى يمنع انكماش البطاقة عند التصغير. وmax-width صريح لأن
+        # login.bundle.css يفرض max-width:371px على .for-login .page-card،
+        # فيقصّ عرضنا بلا أن يظهر ذلك في قاعدة العرض نفسها — رُصد بقراءة
+        # القواعد المطبَّقة في المتصفح.
+        'min-width:340px;width:min(92vw,400px);max-width:400px !important;'
         'padding:clamp(22px,2.4vw,32px) clamp(20px,2.2vw,30px);'
         # خط أساسي لا ينزل تحت 15px مهما صغرت الصفحة.
         'font-size:clamp(15px,1.05vw,16px);}'
