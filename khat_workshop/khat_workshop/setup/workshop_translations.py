@@ -191,6 +191,25 @@ PAIRS = [
     ("جاهزة للتسليم", "Ready for Delivery"),
     ("تم التسليم", "Delivered"),
 
+    # --- بطاقات «نظرة سريعة» على الصفحة الرئيسية ---
+    # خمس من ست تسميات لم يكن لها مقابل إنجليزي، بينما «جاهزة للتسليم» لها
+    # ترجمة لأنها حالة بطاقة عمل. والنتيجة أن القسم كان يظهر مختلطاً: بطاقة
+    # واحدة بالإنجليزية وخمس بالعربية في الوضعين معاً — رُصد في الواجهة.
+    # تسمية البطاقة هنا متميّزة عن اسم الحالة عمداً («جاهزة» لا «جاهزة
+    # للتسليم») حتى لا يرث العنصران ترجمة واحدة.
+    ("بطاقات مفتوحة", "Open Cards"),
+    ("بانتظار قطع", "Awaiting Parts"),
+    ("جاهزة", "Ready"),
+    ("دخلت اليوم", "In Today"),
+    ("فواتير غير مسدّدة", "Unpaid Invoices"),
+    ("إيراد اليوم", "Today's Revenue"),
+    ("بطاقات متعثّرة", "Stalled Cards"),
+    ("مخزون منخفض", "Low Stock"),
+    ("نظرة سريعة", "Quick Glance"),
+    ("الوحدات الرئيسية", "Main Modules"),
+    ("مدير النظام", "System Administrator"),
+    ("إظهار المحتويات", "Show contents"),
+
     # --- Vehicle intake (body condition) ---
     # Added 2026-10-06 after an audit found 53 of the 146 Arabic labels on the
     # custom doctypes (36%) had no English rendering at all. Switching a user to

@@ -21,14 +21,23 @@ NAV is reflected exactly and the record cannot accumulate stale rows.
 import frappe
 
 # (workspace name, arabic label, lucide icon)
+#
+# الترتيب مطابق لبطاقات الصفحة الرئيسية عمداً. كان معكوساً تقريباً: الإعدادات
+# العامة ثانية هنا وأخيرة في الصفحة، والورشة أخيرة هنا وأولى في الصفحة —
+# فالمستخدم يبني خريطة ذهنية من إحداهما ولا تطابقه الأخرى. رُصد في الواجهة.
+#
+# والأيقونات صارت نفس أيقونات البطاقات: "selling" لم تكن ضمن مجموعة lucide
+# التي يحمّلها الديسك، فظهرت لوحة المبيعات بلا أيقونة بينما ظهرت البقية —
+# وهو ما رُصد في الصورة. "shopping-cart" موجودة وهي نفسها أيقونة بطاقة
+# المبيعات، فيتطابق الرمزان في المكانين.
 NAV = [
     ("Home", "الرئيسية", "home"),
-    ("General Settings", "الإعدادات العامة", "setting"),
-    ("Accounting Dashboard", "لوحة المحاسبة", "accounting"),
-    ("Inventory Dashboard", "لوحة المخزون", "stock"),
-    ("Purchasing Dashboard", "لوحة المشتريات", "buying"),
-    ("Sales Dashboard", "لوحة المبيعات", "selling"),
     ("Workshop", "الورشة", "tool"),
+    ("Sales Dashboard", "لوحة المبيعات", "shopping-cart"),
+    ("Purchasing Dashboard", "لوحة المشتريات", "package-plus"),
+    ("Inventory Dashboard", "لوحة المخزون", "layout-grid"),
+    ("Accounting Dashboard", "لوحة المحاسبة", "receipt"),
+    ("General Settings", "الإعدادات العامة", "settings"),
 ]
 
 # Labels are authored in Arabic and rendered through __(), so an account in

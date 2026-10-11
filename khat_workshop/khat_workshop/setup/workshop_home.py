@@ -39,7 +39,7 @@ def _home_tiles_html():
                frappe.utils.escape_html(label), label,
                frappe.utils.escape_html(desc), desc)
         )
-    return '<div class="hm-grid">' + "".join(cells) + '</div>'
+    return '<div class="hm-grid" id="hm-modules">' + "".join(cells) + '</div>'
 
 
 HOME_STYLE = """
@@ -59,6 +59,20 @@ HOME_STYLE = """
   letter-spacing:.15px; text-transform:uppercase;
   margin:4px 0 14px; display:flex; align-items:center; gap:8px; }
 .hm-sectitle::before { content:""; width:4px; height:18px; background:#e63946; border-radius:3px; }
+/* ---- عنوان قسم قابل للطي ----
+   القسم يُطوى بالنقر على عنوانه. زرّ لا <div> لتعمل لوحة المفاتيح
+   (Tab ثم Enter) ويقرأه قارئ الشاشة، وaria-expanded يعلن الحالة. */
+button.hm-sectitle { width:100%; background:none; border:0; padding:0;
+  cursor:pointer; text-align:start; font-family:inherit; }
+button.hm-sectitle:hover { color:#e63946; }
+button.hm-sectitle:focus-visible { outline:2px solid #e63946; outline-offset:3px; border-radius:4px; }
+.hm-sectoggle { margin-inline-start:auto; display:flex; align-items:center;
+  color:var(--text-muted,#8a94a6); transition:transform .2s cubic-bezier(.2,.8,.2,1); }
+.hm-sectoggle .icon { width:16px; height:16px; }
+button.hm-sectitle[aria-expanded="false"] .hm-sectoggle { transform:rotate(-90deg); }
+/* الطيّ: display:none لا ارتفاع صفري — المحتوى شبكة متغيّرة الارتفاع،
+   فانتقال الارتفاع عليها يحتاج قياساً بجافاسكربت بلا مقابل بصري يُذكر. */
+.hm-collapsed { display:none !important; }
 /* ---- Stat tiles ----
    بطاقات مؤشرات صغيرة: الرقم أولاً وبحجم كبير لأنه ما يُقرأ من مسافة، ثم
    التسمية. auto-fit حتى تنقص الأعمدة على الشاشة الضيقة بدل أن تُضغط البطاقة.
@@ -67,13 +81,17 @@ HOME_STYLE = """
 /* auto-fill لا auto-fit: مع ستّ بطاقات كان auto-fit يمدّدها حتى تتسع خمسٌ في
    الصف وتبقى السادسة وحدها في صف تالٍ — شكل غير متوازن. auto-fill يحافظ على
    عرض ثابت للبطاقة فتنتظم ثلاثاً ثلاثاً أو اثنتين اثنتين حسب الشاشة. */
+/* التنسيق موحَّد مع .hm-card أدناه: نفس الاستدارة (16px) ونفس الحدّ والظلّ
+   ومنحنى الحركة. كانت البطاقتان تختلفان في الاستدارة والحشو والظلّ فيبدو
+   القسمان من نظامين مختلفين على صفحة واحدة. */
 .hm-stats { display:grid; grid-template-columns:repeat(auto-fill,minmax(178px,1fr));
-  gap:12px; margin-bottom:26px; }
+  gap:16px; margin-bottom:26px; }
 .hm-stat { background:var(--card-bg,#fff); border:1px solid var(--border-color,#eef0f4);
-  border-radius:14px; padding:14px 16px; text-decoration:none !important;
-  display:flex; flex-direction:column; gap:3px; position:relative; overflow:hidden;
+  border-radius:16px; padding:16px 18px; text-decoration:none !important;
+  display:flex; flex-direction:column; gap:4px; position:relative; overflow:hidden;
+  min-height:92px; justify-content:center;
   transition:transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .18s, border-color .18s; }
-.hm-stat:hover { transform:translateY(-3px); box-shadow:0 8px 20px rgba(16,30,54,.10);
+.hm-stat:hover { transform:translateY(-4px); box-shadow:0 10px 24px rgba(16,30,54,.12);
   border-color:#dfe3ea; }
 /* شريط لوني رفيع يميّز نوع المؤشر دون ألوان صارخة تشوّش الصفحة */
 .hm-stat::before { content:""; position:absolute; inset-inline-start:0; top:0; bottom:0;
@@ -81,7 +99,14 @@ HOME_STYLE = """
 .hm-stat-val { font-size:26px; font-weight:800; line-height:1.15;
   color:var(--text-color,#1a2b4a); font-variant-numeric:tabular-nums; }
 .hm-stat-lbl { font-size:12px; color:var(--text-muted,#8a94a6); font-weight:600; }
-.hm-stat-sub { font-size:11px; color:var(--text-muted,#aab2c0); }
+/* النصّ الفرعي (إجمالي المستحق) كان يُقصّ عند حافّة البطاقة السفلى: البطاقة
+   لها ارتفاع ثابت من الشبكة والسطر الثالث يتجاوزه، فيظهر «0.000 ر.ع» مقطوعاً
+   نصفه — رُصد في الواجهة. السطر لا يلتفّ والبطاقة تتمدّد لتسعه. */
+.hm-stat-sub { font-size:11px; color:var(--text-muted,#aab2c0);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  direction:ltr; text-align:start; }
+/* بطاقة ذات نصّ فرعي أطول قليلاً، فلا تُقصّ في شبكة بارتفاع موحَّد */
+.hm-stats { align-items:stretch; }
 /* حالة تستدعي انتباهاً: متأخرات أو مخزون منخفض */
 .hm-stat.is-alert { --hm-accent:#e63946; }
 .hm-stat.is-alert .hm-stat-val { color:#e63946; }
@@ -165,10 +190,16 @@ HOME_STYLE = """
 .hm-profile-phone { font-size:13px; color:var(--text-muted,#8a94a6); direction:ltr; margin-inline-start:8px; }
 .hm-profile-open { font-size:12.5px; color:#e63946; font-weight:700; text-decoration:none; cursor:pointer; }
 .hm-profile-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:16px; }
-.hm-stat { background:var(--bg-light-gray,#f8f9fb); border-radius:10px; padding:10px 8px; text-align:center; }
-.hm-stat-val { display:block; font-size:15px; font-weight:800; color:var(--text-color,#1a2b4a); font-variant-numeric:tabular-nums; }
-.hm-stat-lbl { display:block; font-size:11px; color:var(--text-muted,#8a94a6); margin-top:3px; }
-.hm-stat-danger .hm-stat-val { color:#e63946; }
+/* محصورة داخل بطاقة العميل: هذه القواعد كانت تُكتب بلا نطاق على .hm-stat
+   نفسها، فتُلغي تنسيق بطاقات «نظرة سريعة» أعلاه (آخر تعريف يفوز) — فتظهر
+   مربّعات رمادية مسطّحة لا تشبه بطاقات «الوحدات الرئيسية» إطلاقاً. وهذا
+   بالضبط ما رُصد في الواجهة. */
+.hm-profile-stats .hm-stat { background:var(--bg-light-gray,#f8f9fb); border:0;
+  border-radius:10px; padding:10px 8px; text-align:center; box-shadow:none; }
+.hm-profile-stats .hm-stat::before { display:none; }
+.hm-profile-stats .hm-stat-val { display:block; font-size:15px; font-weight:800; color:var(--text-color,#1a2b4a); font-variant-numeric:tabular-nums; }
+.hm-profile-stats .hm-stat-lbl { display:block; font-size:11px; color:var(--text-muted,#8a94a6); margin-top:3px; }
+.hm-profile-stats .hm-stat-danger .hm-stat-val { color:#e63946; }
 .hm-profile-section-title { font-size:12.5px; font-weight:700; color:var(--text-muted,#8a94a6); margin:12px 0 6px; }
 .hm-profile-chips { display:flex; flex-wrap:wrap; gap:6px; }
 .hm-chip { background:var(--bg-light-gray,#f5f7fa); border:1px solid var(--border-color,#eef0f4);
@@ -214,10 +245,58 @@ function translateAll(){
   });
 }
 translateAll();
+
+/* ── طيّ الأقسام ──
+   كل عنوان قسم يطوي محتواه ويحفظ الحالة في localStorage، فمن يفضّل إخفاء
+   «نظرة سريعة» يجدها مخفيّة في كل زيارة بدل أن يطويها يدوياً كل مرة.
+   localStorage قد يرمي في وضع التصفّح الخاص، فكل وصول إليه محمي. */
+(function(){
+  var KEY = 'kaj_home_collapsed';
+
+  function readState(){
+    try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; }
+    catch(e){ return {}; }
+  }
+  function writeState(st){
+    try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(e){}
+  }
+
+  function apply(btn, open){
+    var target = root.querySelector('#' + btn.dataset.collapse);
+    if(!target) return;
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    target.classList.toggle('hm-collapsed', !open);
+  }
+
+  var state = readState();
+  root.querySelectorAll('button.hm-sectitle[data-collapse]').forEach(function(btn){
+    var id = btn.dataset.collapse;
+    /* الافتراضي مفتوح: القسم المخفي افتراضياً يُخفي ميزة لا يعرف المستخدم
+       بوجودها. الإخفاء اختيار صريح منه. */
+    var open = state[id] !== false;
+    apply(btn, open);
+    btn.addEventListener('click', function(){
+      var nowOpen = btn.getAttribute('aria-expanded') !== 'true';
+      apply(btn, nowOpen);
+      var st = readState();
+      st[id] = nowOpen;
+      writeState(st);
+    });
+  });
+})();
 // greeting + date + logo
 try {
   const nameEl = root.querySelector('.hm-hello-name');
-  if(nameEl){ nameEl.textContent = (frappe.session.user_fullname || frappe.session.user || ''); }
+  if(nameEl){
+    /* "Administrator" اسم حساب تقني لا اسم شخص، وعرضه في تحية على شاشة
+       يفتحها صاحب الورشة كل صباح يقرأ كأن النظام لم يُعدّ بعد. نستبدله
+       بمسمّى الدور بالعربية؛ وأي مستخدم حقيقي يظهر باسمه كما هو. */
+    let who = frappe.session.user_fullname || frappe.session.user || '';
+    if(who === 'Administrator' || frappe.session.user === 'Administrator'){
+      who = __('مدير النظام');
+    }
+    nameEl.textContent = who;
+  }
   const dateEl = root.querySelector('.hm-date');
   if(dateEl){ dateEl.textContent = frappe.datetime.str_to_user(frappe.datetime.now_date()); }
   const logoEl = root.querySelector('.hm-logo');
@@ -447,7 +526,10 @@ root.querySelectorAll('.hm-card').forEach(function(a){
       { label:'بانتظار قطع', value:s.waiting_parts, tone: s.waiting_parts ? 'warn' : '',
         href:listUrl('work-card', {status:'بانتظار قطع الغيار'}),
         hint:'بطاقات متوقفة على وصول قطع' },
-      { label:'جاهزة للتسليم', value:s.ready, tone: s.ready ? 'ok' : '',
+      /* «جاهزة» لا «جاهزة للتسليم»: الثانية اسم حالة بطاقة عمل ولها ترجمة
+         مسجّلة، فكانت البطاقة وحدها تظهر "Ready for Delivery" بالإنجليزية
+         بين خمس بطاقات عربية. الفلتر أدناه يبقى على اسم الحالة الكامل. */
+      { label:'جاهزة', value:s.ready, tone: s.ready ? 'ok' : '',
         href:listUrl('work-card', {status:'جاهزة للتسليم'}),
         hint:'بانتظار استلام العميل' },
       { label:'دخلت اليوم', value:s.today_cards, tone:'',
@@ -520,9 +602,21 @@ def _make_home_block():
         # بطاقات المؤشرات: الصفحة كانت قائمة تنقّل تخبرك أين تذهب، لا كيف تسير
         # الورشة. مدير يفتح النظام يريد أرقاماً أولاً — كم سيارة عندنا، ما ينتظر
         # قطعاً، كم مستحق، كم دخل اليوم. كانت تتطلب فتح أربع قوائم وعدّها يدوياً.
-        '  <div class="hm-sectitle" data-i18n="نظرة سريعة">نظرة سريعة</div>'
+        # العنوان زرّ لا div: القسم يُطوى بالنقر عليه، والزرّ وحده يعمل
+        # بلوحة المفاتيح ويُعلن حالته لقارئ الشاشة عبر aria-expanded.
+        '  <button type="button" class="hm-sectitle" data-collapse="hm-stats"'
+        ' aria-expanded="true" aria-controls="hm-stats">'
+        '    <span data-i18n="نظرة سريعة">نظرة سريعة</span>'
+        '    <span class="hm-sectoggle"><svg class="icon">'
+        '<use href="#icon-chevron-down"></use></svg></span>'
+        '  </button>'
         '  <div class="hm-stats" id="hm-stats"></div>'
-        '  <div class="hm-sectitle" data-i18n="الوحدات الرئيسية">الوحدات الرئيسية</div>'
+        '  <button type="button" class="hm-sectitle" data-collapse="hm-modules"'
+        ' aria-expanded="true" aria-controls="hm-modules">'
+        '    <span data-i18n="الوحدات الرئيسية">الوحدات الرئيسية</span>'
+        '    <span class="hm-sectoggle"><svg class="icon">'
+        '<use href="#icon-chevron-down"></use></svg></span>'
+        '  </button>'
         + _home_tiles_html() +
         '</div>'
     )

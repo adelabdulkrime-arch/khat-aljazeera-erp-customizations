@@ -41,6 +41,26 @@ OWNED = [
     "General Settings",
 ]
 
+# ترتيب الشريط الجانبي وأيقوناته — مطابق لترتيب بطاقات الصفحة الرئيسية.
+#
+# كان الشريط يعرض الوحدات بترتيب معكوس تقريباً عن الصفحة: الإعدادات العامة
+# ثانياً في الشريط وأخيراً في الصفحة، والورشة أخيراً في الشريط وأولاً في
+# الصفحة. فالمستخدم يبني خريطة ذهنية من إحداهما ثم لا تطابقه الأخرى.
+#
+# الأيقونات من مجموعة lucide التي يحمّلها الديسك. "sell" لم تكن موجودة فيها،
+# فظهرت لوحة المبيعات بلا أيقونة — رُصد في الواجهة. "shopping-cart" موجودة
+# وهي نفس أيقونة بطاقة المبيعات في الصفحة الرئيسية، فيتطابق الاثنان.
+ORDER = [
+    # (اسم مساحة العمل، الترتيب، الأيقونة)
+    ("Home", 1, "home"),
+    ("Workshop", 2, "tool"),
+    ("Sales Dashboard", 3, "shopping-cart"),
+    ("Purchasing Dashboard", 4, "package-plus"),
+    ("Inventory Dashboard", 5, "layout-grid"),
+    ("Accounting Dashboard", 6, "receipt"),
+    ("General Settings", 7, "settings"),
+]
+
 # Hidden, not deleted. A workshop that later hires staff can bring HR back.
 HIDE = [
     "Recruitment",
@@ -76,6 +96,24 @@ def execute():
             frappe.db.set_value("Workspace", name, changes, update_modified=False)
             reassigned.append(name)
 
+    # الترتيب والأيقونات: db.set_value لا save، كما أعلاه — حفظ كامل يُعيد
+    # بناء محتوى مساحة العمل وقد يسقط على خطأ تحقّق في لوحة واحدة.
+    ordered = []
+    for name, seq, icon in ORDER:
+        if not frappe.db.exists("Workspace", name):
+            continue
+        current = frappe.db.get_value(
+            "Workspace", name, ["sequence_id", "icon"], as_dict=True
+        )
+        changes = {}
+        if current.sequence_id != seq:
+            changes["sequence_id"] = seq
+        if current.icon != icon:
+            changes["icon"] = icon
+        if changes:
+            frappe.db.set_value("Workspace", name, changes, update_modified=False)
+            ordered.append(name)
+
     hidden = []
     for name in HIDE:
         if not frappe.db.exists("Workspace", name):
@@ -87,6 +125,6 @@ def execute():
     frappe.db.commit()
     frappe.clear_cache()
     print(
-        "WORKSPACE_POLISH reassigned=%d hidden=%d"
-        % (len(reassigned), len(hidden))
+        "WORKSPACE_POLISH reassigned=%d ordered=%d hidden=%d"
+        % (len(reassigned), len(ordered), len(hidden))
     )
