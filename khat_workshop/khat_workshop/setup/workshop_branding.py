@@ -33,7 +33,12 @@ def _fields():
 # a client being shown the product.
 LOGO = "/assets/khat_workshop/icons/icon-192.png"
 FAVICON = "/assets/khat_workshop/icons/icon-192.png"
-SPLASH = "/assets/khat_workshop/icons/icon-512.png"
+# شاشة الانتظار تعرض الصورة بعرض 170px (راجع .splash img في rtl_fixes.css)،
+# فنسخة 512×512 بحجم 305KB تُنزَّل كاملة ثم تُصغَّر — هدرٌ خالص. وقِيس أثره:
+# استغرقت 8 ثوانٍ من أصل 12.8 لتحميل الصفحة، وهي أثقل مورد فيها. والأسوأ أن
+# الشاشة تبقى بيضاء فارغة حتى تصل، فيرى المستخدم فراغاً لا شعاراً.
+# نسخة 192 (18KB) أكبر من 170px المعروضة وأصغر 17 مرة.
+SPLASH = "/assets/khat_workshop/icons/icon-192.png"
 # النسخة الداكنة من هوية الورشة — تملأ خلفية صفحة الدخول.
 LOGIN_BG = "/assets/khat_workshop/icons/login-bg.png"
 APP_NAME = "خط الجزيرة"
@@ -51,7 +56,15 @@ def _identity():
     for field, value in (("app_logo", LOGO), ("favicon", FAVICON),
                          ("splash_image", SPLASH), ("app_name", APP_NAME),
                          ("login_background", LOGIN_BG)):
-        if not ws.get(field) or (field == "app_name" and ws.get(field) == "Frappe"):
+        stale = (
+            # نسخة 512 كانت تُضبَط هنا سابقاً وهي أثقل 17 مرة مما تحتاجه
+            # الشاشة. «يملأ الفراغات فقط» يعني أنها تبقى إلى الأبد ما لم
+            # نستبدلها صراحةً — وهذا استبدال لقيمة وضعناها نحن لا المالك.
+            field == "splash_image"
+            and ws.get(field) == "/assets/khat_workshop/icons/icon-512.png"
+        )
+        if (not ws.get(field) or stale
+                or (field == "app_name" and ws.get(field) == "Frappe")):
             ws.set(field, value)
             applied.append(field)
     if applied:
