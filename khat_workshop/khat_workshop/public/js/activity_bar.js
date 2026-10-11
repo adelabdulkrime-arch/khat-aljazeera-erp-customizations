@@ -44,8 +44,14 @@
 	var MOBILE_Q = '(max-width: 991px)';
 	var TIP_DELAY = 300;
 
+	// بادئات بطاقات اللوحات الثلاث: acd (المبيعات/المشتريات/المخزون/
+	// المحاسبة) وgsd (الإعدادات العامة) وwsd (الورشة). الاقتصار على acd
+	// وحدها كان يترك «الإعدادات العامة» فارغة رغم امتلاء كتلتها بـ.gsd-tile.
+	var TILE_SEL = '.acd-tile[data-action],.gsd-tile[data-action],.wsd-tile[data-action]';
+	var LBL_SEL = '.acd-tile-lbl,.gsd-tile-lbl,.wsd-tile-lbl';
+
 	var linkCache = {};      // روابط Workspace Link لكل لوحة
-	var tileCache = {};      // بطاقات .acd-tile مقروءة من الصفحة
+	var tileCache = {};      // بطاقات اللوحات مقروءة من الصفحة أو من كتلتها
 	var els = {};
 	var current = '';
 
@@ -92,11 +98,11 @@
 	// المستند حين تكون لوحتها مفتوحة. ونخزّنها، فتظل متاحة للّوح بعد أن
 	// ينتقل المستخدم لصفحة أخرى.
 	function harvestTiles(ws) {
-		var tiles = document.querySelectorAll('.acd-tile[data-action]');
+		var tiles = document.querySelectorAll(TILE_SEL);
 		if (!tiles.length) return null;
 		var out = [];
 		tiles.forEach(function (el) {
-			var lbl = el.querySelector('.acd-tile-lbl');
+			var lbl = el.querySelector(LBL_SEL);
 			var label = (lbl ? lbl.textContent : el.textContent || '').trim();
 			if (!label) return;
 			out.push({ label: label, href: tileRoute(el) });
@@ -155,8 +161,8 @@
 			if (!html) return [];
 			var doc = new DOMParser().parseFromString(html, 'text/html');
 			var out = [];
-			doc.querySelectorAll('.acd-tile[data-action]').forEach(function (el) {
-				var lbl = el.querySelector('.acd-tile-lbl');
+			doc.querySelectorAll(TILE_SEL).forEach(function (el) {
+				var lbl = el.querySelector(LBL_SEL);
 				var label = (lbl ? lbl.textContent : '').trim();
 				if (label) out.push({ label: label, href: tileRoute(el) });
 			});
