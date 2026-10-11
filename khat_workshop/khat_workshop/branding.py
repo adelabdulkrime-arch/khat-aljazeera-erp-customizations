@@ -304,11 +304,15 @@ def inject_login_background(context):
         '-webkit-mask-image:none;mask-image:none;}'
         'body[data-path="login"] .login-content.page-card{'
         'min-width:0;width:min(94vw,400px);'
-        # حشو أقلّ على الهاتف: البطاقة كانت تتجاوز أسفل الشاشة بـ24px عند
-        # 390×844 — قِيس فعلياً. وتقليل الحشو وحده لا يكفي حين تقصر الشاشة
-        # أكثر، فـoverflow-y:auto يجعل البطاقة نفسها قابلة للتمرير بدل أن
-        # يُقصّ زر الدخول بلا وسيلة للوصول إليه.
-        'padding:20px 18px;max-height:calc(100vh - 32px);overflow-y:auto;'
+        # min-height الحاسم: login.bundle.css يفرض min-height:100vh على
+        # .page-card في مقاس الهاتف، وmin-height يتغلّب على max-height في
+        # CSS دائماً — فبطاقة بارتفاع الشاشة كاملاً داخل حاوية ذات حشو
+        # تتجاوزها حتماً. قِيس عند 390×844: ارتفاع البطاقة 844 وأسفلها 860.
+        # إلغاؤه هو الإصلاح؛ تقليل الحشو وحده لم يكن ليجدي.
+        'min-height:0 !important;'
+        # وoverflow-y:auto يجعل البطاقة نفسها قابلة للتمرير على شاشة قصيرة
+        # جداً بدل أن يُقصّ زر الدخول بلا وسيلة للوصول إليه.
+        'padding:20px 18px;max-height:calc(100dvh - 32px);overflow-y:auto;'
         '-webkit-backdrop-filter:none;backdrop-filter:none;'
         'background:rgba(16,27,48,.90);}'
         # الحاوية تلتزم ارتفاع الشاشة فلا تدفع البطاقة خارجها.
