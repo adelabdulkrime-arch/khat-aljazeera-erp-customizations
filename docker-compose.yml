@@ -19,6 +19,11 @@ services:
   # ── Database ──────────────────────────────────────────────────────────────
   db:
     image: mariadb:10.6
+    # بدون هذا السطر يأخذ Docker الافتراضي `no`: تُقلع خدمات التطبيق بعد إعادة
+    # تشغيل الخادم بينما تبقى قاعدة البيانات متوقفة، فيصير النظام معطّلاً كلياً
+    # حتى يتدخّل أحد يدوياً. على Coolify لم يظهر الأثر لأنه يتولّى الإقلاع،
+    # أما على خادم عادي فإعادة التشغيل (تحديث أمني، انقطاع كهرباء) تُسقط النظام.
+    restart: unless-stopped
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
@@ -37,11 +42,15 @@ services:
   # ── Redis ─────────────────────────────────────────────────────────────────
   redis-cache:
     image: redis:7-alpine
+    restart: unless-stopped
     volumes:
       - redis-cache-data:/data
 
   redis-queue:
     image: redis:7-alpine
+    # طابور المهام: بدون إقلاعه تتوقف المهام المجدولة (التذكيرات، النسخ
+    # الاحتياطي) صامتةً حتى لو بدا النظام يعمل.
+    restart: unless-stopped
     volumes:
       - redis-queue-data:/data
 
