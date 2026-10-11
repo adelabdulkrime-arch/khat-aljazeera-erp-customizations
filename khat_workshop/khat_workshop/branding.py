@@ -116,11 +116,30 @@ def inject_login_background(context):
         'body[data-path="login"] .for-login,'
         'body[data-path="login"] section{position:relative;z-index:2;}'
         # ── التوسيط الرأسي ──
-        # البطاقة كانت تبدأ من أعلى الصفحة فتطفو لأعلى عند التصغير؛ التوسيط
-        # يضعها في منتصف الشاشة عند أي مستوى تكبير.
+        # البطاقة كانت تبدأ من أعلى الصفحة فتطفو لأعلى عند التصغير.
+        #
+        # ‏min-height:100vh على .for-login وحدها خطأ: الغلاف الذي يحويها
+        # (.page-content-wrapper) يحمل padding-top:60px، فيصير مجموع
+        # الارتفاعين إطار عرض كامل + 60px ويخرج أسفل البطاقة عن الشاشة —
+        # قِيس فعلياً: أسفل البطاقة 629px وإطار العرض 587px، فزرّ «الدخول
+        # برابط البريد» مقصوص. السلسلة فُحصت في المتصفح لا بالتخمين:
+        # body ← div ← .page-content-wrapper ← main.container ← .page_content
+        # ← div ← section.for-login ← .login-content.page-card
+        #
+        # الحل: نُلغي الحشو العلوي من الغلاف ونجعله هو صاحب ارتفاع الشاشة،
+        # فتتوسّط البطاقة داخله بلا فائض. وsafe center يحاذي للبداية حين
+        # يطول المحتوى عن الشاشة بدل قصّ طرفيه معاً بلا إمكان تمرير.
+        'body[data-path="login"] .page-content-wrapper{padding-top:0 !important;'
+        'min-height:100vh;display:flex;flex-direction:column;}'
+        'body[data-path="login"] main.container,'
+        'body[data-path="login"] .page_content{flex:1 1 auto;display:flex;'
+        'flex-direction:column;min-height:0 !important;}'
+        'body[data-path="login"] .page_content > div{flex:1 1 auto;display:flex;'
+        'flex-direction:column;}'
         'body[data-path="login"] .for-login{background:none;border:0;'
-        'box-shadow:none;padding:0;min-height:100vh;display:flex;'
-        'flex-direction:column;align-items:center;justify-content:center;}'
+        'box-shadow:none;min-height:0;flex:1 1 auto;display:flex;'
+        'flex-direction:column;align-items:center;justify-content:safe center;'
+        'padding:24px 0;}'
         # ── البطاقة الزجاجية ──
         'body[data-path="login"] .login-content.page-card{'
         # اللون الصلب أولاً: قيمة احتياطية لمن لا يدعم backdrop-filter.
