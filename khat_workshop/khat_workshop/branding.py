@@ -299,11 +299,20 @@ def inject_login_background(context):
         # البطاقة تملأ الشاشة فلا يُرى الشعار خلفها؛ نكتفي بتدرّج الهوية
         # ونوقف الضبابية — مكلفة على معالجات الهواتف بلا فائدة هنا.
         '@media (max-width:820px){'
-        'body[data-path="login"]::before{background-size:cover;opacity:.35;}'
+        # القناع لا معنى له مع cover: الصورة تملأ الشاشة فلا حوافّ تُذاب.
+        'body[data-path="login"]::before{background-size:cover;opacity:.35;'
+        '-webkit-mask-image:none;mask-image:none;}'
         'body[data-path="login"] .login-content.page-card{'
         'min-width:0;width:min(94vw,400px);'
+        # حشو أقلّ على الهاتف: البطاقة كانت تتجاوز أسفل الشاشة بـ24px عند
+        # 390×844 — قِيس فعلياً. وتقليل الحشو وحده لا يكفي حين تقصر الشاشة
+        # أكثر، فـoverflow-y:auto يجعل البطاقة نفسها قابلة للتمرير بدل أن
+        # يُقصّ زر الدخول بلا وسيلة للوصول إليه.
+        'padding:20px 18px;max-height:calc(100vh - 32px);overflow-y:auto;'
         '-webkit-backdrop-filter:none;backdrop-filter:none;'
-        'background:rgba(16,27,48,.90);}}'
+        'background:rgba(16,27,48,.90);}'
+        # الحاوية تلتزم ارتفاع الشاشة فلا تدفع البطاقة خارجها.
+        'body[data-path="login"] .for-login{padding:16px 0;}}'
         # تقليل الحركة لمن يطلبها في إعدادات نظامه.
         '@media (prefers-reduced-motion:reduce){'
         'body[data-path="login"] *{transition:none !important;}}'
