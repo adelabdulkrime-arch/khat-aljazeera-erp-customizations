@@ -63,6 +63,24 @@
     'Verify': 'تحقّق',
   };
 
+  // تصحيحات على النص العربي الذي يُصدره Frappe نفسه — لا ترجمة ناقصة بل
+  // صياغة تحتاج ضبطاً:
+  //
+  // • «متابعة» على زر الدخول مبهم: الزر يسجّل الدخول، وهذا ما ينبغي أن يقوله.
+  // • «اسم االمستخدم» بألف مكررة — خطأ مطبعي في ترجمة Frappe العربية نفسها.
+  // • الـplaceholder الإنجليزي jane@example.com في واجهة عربية.
+  //
+  // تُطبَّق على نصّ العنصر مباشرة لأنها تأتي من الخادم مرسومة في HTML، فلا
+  // سبيل لتغييرها من CSS.
+  var AR_FIXES = {
+    'متابعة': 'تسجيل الدخول',
+    'البريد الإلكتروني أو اسم االمستخدم': 'البريد الإلكتروني أو اسم المستخدم',
+  };
+
+  var AR_PLACEHOLDERS = {
+    'jane@example.com': 'name@khataljazeera.om',
+  };
+
   function translateLate() {
     // عربية فقط — في الإنجليزية النص الأصلي هو الصحيح.
     if (currentLang() !== 'ar') return;
@@ -77,6 +95,7 @@
       var t = (el.textContent || '').trim();
       if (!t || t.length > 90) return;
       if (LATE_STRINGS[t]) { el.textContent = LATE_STRINGS[t]; return; }
+      if (AR_FIXES[t]) { el.textContent = AR_FIXES[t]; return; }
       // بعض الرسائل تأتي بنقطة أو بدونها حسب السياق، فنجرّب الشكلين بدل
       // إضافة كل تنويعة يدوياً.
       var bare = t.replace(/[.!]$/, '');
@@ -86,8 +105,69 @@
     // النصوص الإرشادية داخل الحقول.
     document.querySelectorAll('input[placeholder]').forEach(function (el) {
       var p = (el.placeholder || '').trim();
-      if (LATE_STRINGS[p]) el.placeholder = LATE_STRINGS[p];
+      if (LATE_STRINGS[p]) { el.placeholder = LATE_STRINGS[p]; return; }
+      if (AR_PLACEHOLDERS[p]) el.placeholder = AR_PLACEHOLDERS[p];
     });
+  }
+
+  // خانة «تذكّرني».
+  //
+  // Frappe لا يصدرها في صفحة الدخول، لكن جلسته تدوم افتراضياً بحسب إعداد
+  // الخادم لا باختيار المستخدم — فمن يدخل من جهاز مشترك في الورشة لا يملك
+  // وسيلة ليقول «لا تُبقني مسجّلاً». الخانة تضبط كوكي يقرأه الخادم، وحين
+  // تكون غير مُفعّلة نضيف وسماً يُنهي الجلسة بإغلاق المتصفح.
+  //
+  // تُحقن داخل صفّ واحد مع «نسيت كلمة المرور؟» ليقرأ المستخدم الخيارين معاً
+  // بدل أن يتوزّعا على سطرين متباعدين.
+  var REMEMBER_KEY = 'kaj_remember_me';
+
+  function buildRemember() {
+    if (document.querySelector('.kaj-remember')) return;
+    var forgot = document.querySelector('.form-login .forgot-password-message');
+    if (!forgot || !forgot.parentNode) return;
+
+    var row = document.createElement('div');
+    row.className = 'kaj-authrow';
+
+    var label = document.createElement('label');
+    label.className = 'kaj-remember';
+
+    var box = document.createElement('input');
+    box.type = 'checkbox';
+    box.id = 'kaj_remember_me';
+    // الافتراضي مُفعّل: الحالة الغالبة جهاز الورشة الخاص، ومن يستخدم جهازاً
+    // مشتركاً هو من يحتاج لإلغائها عن قصد.
+    var saved = null;
+    try { saved = localStorage.getItem(REMEMBER_KEY); } catch (e) { /* وضع خاص */ }
+    box.checked = saved === null ? true : saved === '1';
+
+    var txt = document.createElement('span');
+    txt.textContent = 'تذكّرني';
+
+    label.appendChild(box);
+    label.appendChild(txt);
+
+    // الصفّ يحلّ محلّ فقرة «نسيت كلمة المرور» ثم يحتويها، فيبقى الرابط
+    // حيث كان في DOM ويحتفظ بمعالج Frappe الأصلي.
+    forgot.parentNode.insertBefore(row, forgot);
+    row.appendChild(label);
+    row.appendChild(forgot);
+
+    box.addEventListener('change', function () {
+      try { localStorage.setItem(REMEMBER_KEY, box.checked ? '1' : '0'); } catch (e) {}
+      applyRemember(box.checked);
+    });
+    applyRemember(box.checked);
+  }
+
+  function applyRemember(on) {
+    // كوكي جلسة (بلا max-age) حين تُلغى الخانة: يختفي بإغلاق المتصفح،
+    // ويقرأه الخادم ليقصّر عمر الجلسة. وحين تكون مُفعّلة نحذفه.
+    if (on) {
+      document.cookie = 'kaj_remember=;path=/;max-age=0';
+    } else {
+      document.cookie = 'kaj_remember=0;path=/';
+    }
   }
 
   function build() {
@@ -147,6 +227,7 @@
   function start() {
     build();
     translateLate();
+    buildRemember();
 
     // الصفحة تبدّل نماذجها دون إعادة تحميل (نسيت كلمة السر، الدخول برابط
     // بريد)، وكل تبديل يبني نصوصاً جديدة — فنترجم عند كل تغيير في DOM بدل
@@ -158,6 +239,9 @@
       requestAnimationFrame(function () {
         pending = false;
         translateLate();
+        // الخانة تُعاد إن مسحها تبديل النموذج — buildRemember تتحقق من
+        // وجودها أولاً فلا تُكرّرها.
+        buildRemember();
       });
     }).observe(document.body, { childList: true, subtree: true });
   }

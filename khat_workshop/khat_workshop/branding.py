@@ -74,141 +74,198 @@ def inject_login_background(context):
     # rather than relying on the browser to encode a bare literal.
     safe = quote(bg, safe="/")
 
-    # صفحة الدخول كصفحة واحدة متناسقة، لا بطاقة بيضاء عائمة فوق صورة.
+    # صفحة الدخول كصفحة واحدة متناسقة، لا بطاقة عائمة فوق صورة.
     #
-    # المحاولات السابقة عالجت الخلفية وحدها: `contain` أظهر الصورة مربعاً
-    # بحوافّ ظاهرة وسط شاشة عريضة، و`cover` ملأها لكن بقيت البطاقة صندوقاً
-    # أبيض لا صلة له بما خلفه. المشكلة لم تكن في الصورة بل في أن البطاقة
-    # تنتمي لنظام ألوان آخر.
+    # ما كان مكسوراً: الخلفية كانت `background-size:cover` على <body>. وcover
+    # يقيس بوحدات CSS لا بالبكسل الفيزيائي، فكلما صغّر المستخدم الصفحة
+    # (Ctrl -) اتّسع إطار العرض منطقياً وتضخّم الشعار معه حتى ابتلع الشاشة
+    # وصارت البطاقة غير مقروءة فوقه. رُصد في لقطة عند التصغير.
     #
-    # الحل: البطاقة تأخذ لون الهوية الكحلي ونصاً فاتحاً، فتبدو جزءاً من
-    # الصفحة. والخلفية تُغطّى بتدرّج قُطري من نفس اللون يترك الشعار ظاهراً
-    # في الحافة البعيدة ويُعتّم خلف البطاقة — فيُقرأ النص بوضوح ويبقى الشعار
-    # حاضراً. هذا ما يجعل صفحات الدخول الاحترافية تبدو مصمَّمة لا مركَّبة.
+    # الحل: الخلفية طبقة مستقلة `position:fixed` لا تتبع تدفّق الصفحة، وحجمها
+    # مُقيَّد بـclamp على min(vw,vh) فيبقى الشعار في نطاق معقول عند أي تكبير.
+    # فوقها طبقة تعتيم منفصلة — فصل الصورة عن التعتيم يجعل ضبط كلٍّ منهما
+    # مستقلاً بدل تدرّج واحد يخدم الاثنين بإخفاق.
+    #
+    # والبطاقة زجاجية: backdrop-filter فوق لون كحلي شبه شفاف، فيظهر الشعار
+    # من خلالها بوضوح مضبوط مع بقاء النص مقروءاً. اللون الصلب هو القيمة
+    # الاحتياطية لمتصفح لا يدعم backdrop-filter.
     style = (
         '<style id="kaj-login-bg">'
         ':root{--kaj-navy:#16233d;--kaj-navy-2:#1e3050;--kaj-red:#a52834;'
         '--kaj-gold:#f0b429;}'
-        # ── الخلفية ──
-        'body[data-path="login"]{'
-        'background-color:var(--kaj-navy);'
-        # الخلفية صارت النسخة الفاتحة (شعار داكن على أبيض): تبرز خلف التعتيم
-        # بدل أن تذوب فيه كما كانت الداكنة. والتعتيم أقوى لأن الأبيض يحتاج
-        # حجباً أكثر ليبقى النص الفاتح مقروءاً فوقه.
-        'background-image:linear-gradient(135deg,rgba(14,24,42,.90) 0%,'
-        'rgba(14,24,42,.80) 45%,rgba(14,24,42,.90) 100%),url("__KAJ_BG__");'
-        # الصورة مربّعة والشاشة عريضة، فكلا الخيارين يُخفق وحده: contain
-        # يتركها مربعاً معلّقاً بحوافّ ظاهرة، وcover يُكبّرها حتى يُقصّ الترس
-        # يساراً و«خط» يميناً — فوضى بصرية خلف البطاقة.
-        #
-        # الحل: تصغيرها لارتفاع الشاشة تقريباً (auto 82%) وتوسيطها، فتظهر
-        # كاملة غير مقصوصة ويملأ لون الهوية ما حولها. والتعتيم أقوى ومتساوٍ
-        # ليصير الشعار نسيجاً خلفياً هادئاً لا عنصراً يزاحم بطاقة الدخول.
-        # cover في النهاية: أي مقاس يُبقي الصورة المربّعة داخل الشاشة العريضة
-        # يترك حافّتين رأسيّتين حادّتين تبدوان كمستطيل ملصق — جرّبتُ 82% ثم
-        # 120% وبقيت الحافّتان. وcover وحده يملأ العرض كاملاً فتختفيان.
-        #
-        # ما جعل cover يُخفق أول مرة هو ضعف التعتيم: الشعار المقصوص كان
-        # يزاحم البطاقة. مع تعتيم .90/.80 صار نسيجاً خلفياً هادئاً، فالقصّ
-        # لم يعد مرئياً كعيب.
-        'background-size:cover;background-position:center;'
-        'background-repeat:no-repeat;background-attachment:fixed;min-height:100vh;}'
-        # ── البطاقة ──
-        # .login-content.page-card وحدها هي البطاقة (371px). أما .for-login
-        # فغلاف خارجي بعرض 1010px — تنسيقه كبطاقة أنتج بطاقتين متداخلتين،
-        # فصار شفافاً بلا إطار. تحققت من الأبعاد في المتصفح لا بالتخمين.
-        'body[data-path="login"] .for-login{background:none;border:0;box-shadow:none;'
-        'padding:0;}'
+        # ── الخلفية: طبقتان مستقلتان ──
+        # ::before الصورة، ::after التعتيم. كلاهما fixed فلا يتأثر بتمرير
+        # الصفحة ولا بارتفاع محتواها.
+        'body[data-path="login"]{background:var(--kaj-navy);min-height:100vh;}'
+        'body[data-path="login"]::before{content:"";position:fixed;inset:0;'
+        'z-index:0;pointer-events:none;'
+        'background-image:url("__KAJ_BG__");'
+        'background-repeat:no-repeat;background-position:center;'
+        # القيد الحاسم: الحجم مربوط بأصغر البُعدين لا بإطار العرض كاملاً،
+        # ومحصور بين 420 و900 بكسل. فعند التصغير لا يتضخّم الشعار، وعند
+        # التكبير لا يتضاءل حتى يختفي.
+        'background-size:clamp(420px,min(78vw,88vh),900px) auto;}'
+        'body[data-path="login"]::after{content:"";position:fixed;inset:0;'
+        'z-index:1;pointer-events:none;'
+        # تعتيم متدرّج: أقوى في الوسط حيث تقف البطاقة، أخفّ في الأطراف
+        # ليبقى الشعار حاضراً. القيم مضبوطة ليتجاوز تباين النص 4.5:1.
+        'background:radial-gradient(ellipse at center,rgba(12,20,36,.78) 0%,'
+        'rgba(12,20,36,.72) 45%,rgba(12,20,36,.68) 100%);}'
+        # المحتوى فوق الطبقتين.
+        'body[data-path="login"] .page-container,'
+        'body[data-path="login"] .for-login,'
+        'body[data-path="login"] section{position:relative;z-index:2;}'
+        # ── التوسيط الرأسي ──
+        # البطاقة كانت تبدأ من أعلى الصفحة فتطفو لأعلى عند التصغير؛ التوسيط
+        # يضعها في منتصف الشاشة عند أي مستوى تكبير.
+        'body[data-path="login"] .for-login{background:none;border:0;'
+        'box-shadow:none;padding:0;min-height:100vh;display:flex;'
+        'flex-direction:column;align-items:center;justify-content:center;}'
+        # ── البطاقة الزجاجية ──
         'body[data-path="login"] .login-content.page-card{'
-        'background:linear-gradient(160deg,rgba(30,48,80,.96),rgba(18,30,52,.97));'
-        'border:1px solid rgba(255,255,255,.10);'
-        'border-radius:18px;'
-        'box-shadow:0 24px 60px rgba(0,0,0,.45),0 2px 0 rgba(255,255,255,.06) inset;'
-        'backdrop-filter:blur(10px);'
-        'padding:34px 30px 30px;}'
-        # ── النصوص داخل البطاقة ──
+        # اللون الصلب أولاً: قيمة احتياطية لمن لا يدعم backdrop-filter.
+        'background:rgba(16,27,48,.80);'
+        'border:1px solid rgba(255,255,255,.14);'
+        'border-radius:16px;'
+        'box-shadow:0 24px 60px rgba(0,0,0,.50),0 1px 0 rgba(255,255,255,.08) inset;'
+        # حدّ أدنى يمنع انكماش البطاقة عند التصغير.
+        'min-width:340px;width:min(92vw,400px);'
+        'padding:clamp(22px,2.4vw,32px) clamp(20px,2.2vw,30px);'
+        # خط أساسي لا ينزل تحت 15px مهما صغرت الصفحة.
+        'font-size:clamp(15px,1.05vw,16px);}'
+        # @supports يطبّق الزجاج على الداعمين فقط، فلا يفقد غيرهم التعتيم.
+        '@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){'
+        'body[data-path="login"] .login-content.page-card{'
+        'background:rgba(15,23,42,.58);'
+        '-webkit-backdrop-filter:blur(14px) saturate(130%);'
+        'backdrop-filter:blur(14px) saturate(130%);}}'
+        # ── النصوص ──
         'body[data-path="login"] .for-login h4,'
         'body[data-path="login"] .page-card h4,'
-        'body[data-path="login"] .for-login .page-card-head,'
         'body[data-path="login"] h1,body[data-path="login"] h3{'
-        'color:#fff !important;font-weight:700;letter-spacing:.2px;}'
-        'body[data-path="login"] .text-muted,'
-        'body[data-path="login"] .page-card-head + div,'
+        'color:#fff !important;font-weight:700;letter-spacing:.2px;'
+        'font-size:clamp(19px,1.5vw,23px);}'
+        # التباين: كان rgba(.62) ≈ 3.4:1 على الزجاج — دون عتبة WCAG AA.
+        # رُفع إلى .88 للعنوان الفرعي و.80 للتسميات، وكلاهما يتجاوز 4.5:1.
+        'body[data-path="login"] .page-card-subtitle,'
+        'body[data-path="login"] .text-muted{'
+        'color:rgba(255,255,255,.88) !important;'
+        'font-size:clamp(13.5px,.95vw,14.5px);}'
         'body[data-path="login"] label,'
-        'body[data-path="login"] .form-label{color:rgba(255,255,255,.62) !important;}'
+        'body[data-path="login"] .form-label{color:rgba(255,255,255,.80) !important;'
+        'font-size:clamp(13.5px,.95vw,14.5px);font-weight:500;}'
         # ── الحقول ──
         'body[data-path="login"] .form-control,'
         'body[data-path="login"] input[type="text"],'
         'body[data-path="login"] input[type="email"],'
         'body[data-path="login"] input[type="password"]{'
-        'background:rgba(255,255,255,.07) !important;'
-        'border:1px solid rgba(255,255,255,.16) !important;'
-        'color:#fff !important;border-radius:10px;height:44px;'
+        'background:rgba(255,255,255,.09) !important;'
+        'border:1px solid rgba(255,255,255,.20) !important;'
+        'color:#fff !important;border-radius:10px;'
+        'height:clamp(42px,3.2vw,46px);font-size:clamp(14px,1vw,15px);'
         'transition:border-color .16s,background .16s;}'
         'body[data-path="login"] .form-control:focus,'
         'body[data-path="login"] input:focus{'
-        'background:rgba(255,255,255,.11) !important;'
-        'border-color:var(--kaj-gold) !important;box-shadow:none !important;}'
-        'body[data-path="login"] input::placeholder{color:rgba(255,255,255,.34) !important;}'
-        # أيقونات الحقول (المظروف والقفل والعين) كانت داكنة على حقل داكن.
-        'body[data-path="login"] .input-group-text,'
-        'body[data-path="login"] .form-control + svg,'
-        'body[data-path="login"] .input-with-feedback svg{color:rgba(255,255,255,.45) !important;}'
+        'background:rgba(255,255,255,.14) !important;'
+        'border-color:var(--kaj-gold) !important;'
+        'box-shadow:0 0 0 3px rgba(240,180,41,.18) !important;}'
+        # النص الإرشادي كان rgba(.34) — غير مقروء عملياً.
+        'body[data-path="login"] input::placeholder{'
+        'color:rgba(255,255,255,.52) !important;}'
+        'body[data-path="login"] .field-icon,'
+        'body[data-path="login"] .toggle-password,'
+        'body[data-path="login"] .input-group-text{'
+        'color:rgba(255,255,255,.55) !important;}'
         # ── الأزرار ──
-        # الأساسي بأحمر الهوية بدل أسود Frappe الافتراضي.
-        # .btn-login يحمل صنف btn-default في هذا الإصدار، فالقاعدة الثانوية
-        # أدناه كانت تُلغي لونه الأحمر وتعيده رمادياً. ترتيبه هنا يضمن الأسبقية.
+        # .btn-login يحمل صنف btn-default في هذا الإصدار، فلا بدّ من ترتيبه
+        # قبل قاعدة btn-default الثانوية وإلا أعادته رمادياً.
         'body[data-path="login"] .btn-primary,'
         'body[data-path="login"] .btn-login.btn-default,'
         'body[data-path="login"] .btn-login{'
         'background:var(--kaj-red) !important;border:0 !important;'
-        'border-radius:10px;height:44px;font-weight:700;'
+        'color:#fff !important;border-radius:10px;'
+        'height:clamp(44px,3.4vw,48px);font-weight:700;'
+        'font-size:clamp(14.5px,1.05vw,15.5px);'
         'box-shadow:0 6px 18px rgba(165,40,52,.38);'
         'transition:filter .16s,transform .16s;}'
-        'body[data-path="login"] .btn-primary:hover{filter:brightness(1.12);'
+        'body[data-path="login"] .btn-login:hover{filter:brightness(1.12);'
         'transform:translateY(-1px);}'
-        # :not(.btn-login) حتى لا تُلغي هذه القاعدة أحمرَ زر الدخول أعلاه.
-        'body[data-path="login"] .btn-default:not(.btn-login),'
+        # «الدخول برابط البريد» مسار ثانوي: بلا خلفية ولا إطار فلا يزاحم
+        # الزر الأساسي بصرياً. كان يبدو زرّاً مكافئاً له تماماً.
+        'body[data-path="login"] .btn-login-option,'
+        'body[data-path="login"] .btn-login-with-email-link{'
+        'background:transparent !important;border:0 !important;'
+        'color:rgba(255,255,255,.72) !important;'
+        'height:auto !important;min-height:34px;font-weight:500;'
+        'font-size:clamp(13px,.92vw,13.8px);'
+        'text-decoration:underline;text-underline-offset:3px;'
+        'box-shadow:none !important;}'
+        'body[data-path="login"] .btn-login-option:hover,'
+        'body[data-path="login"] .btn-login-with-email-link:hover{'
+        'background:transparent !important;color:#fff !important;}'
+        # أزرار أخرى (العودة، إعادة الإرسال) تبقى ثانوية عادية.
+        'body[data-path="login"] .btn-default:not(.btn-login):not(.btn-login-option),'
         'body[data-path="login"] .btn-secondary{'
-        'background:rgba(255,255,255,.08) !important;'
-        'border:1px solid rgba(255,255,255,.14) !important;'
-        'color:rgba(255,255,255,.82) !important;border-radius:10px;height:44px;}'
-        'body[data-path="login"] .btn-default:hover{background:rgba(255,255,255,.14) !important;}'
+        'background:rgba(255,255,255,.10) !important;'
+        'border:1px solid rgba(255,255,255,.18) !important;'
+        'color:rgba(255,255,255,.88) !important;border-radius:10px;'
+        'height:clamp(42px,3.2vw,46px);}'
         # ── الروابط ──
         'body[data-path="login"] a{color:var(--kaj-gold) !important;'
         'text-decoration:none;}'
         'body[data-path="login"] a:hover{text-decoration:underline;}'
-        # "هل نسيت كلمة السر؟" يرث text-align:left من Frappe، فيلتصق بالحافة
-        # اليسرى في واجهة عربية بينما كل ما حوله محاذٍ لليمين. الحاوية تتبع
-        # اتجاه الصفحة بدل قيمة ثابتة.
-        'body[data-path="login"] .forgot-password-message,'
-        'body[data-path="login"] a[href*="forgot"],'
-        'body[data-path="login"] a[href*="#forgot"]{display:inline-block;}'
-        'body[data-path="login"] .forgot-password-message,'
+        # «هل نسيت كلمة المرور؟» هو المسار الأساسي للاستعادة، فيبقى ذهبياً
+        # بارزاً. كان يرث text-align:left من Frappe فيلتصق بالحافة اليسرى في
+        # واجهة عربية — start يتبع اتجاه الصفحة فيعمل في الاتجاهين.
+        'body[data-path="login"] .forgot-password-message{'
+        'text-align:start !important;margin:8px 0 0;}'
+        'body[data-path="login"] .forgot-password-message a{'
+        'font-size:clamp(13px,.95vw,14px);font-weight:600;}'
         'body[data-path="login"] .page-card-actions{text-align:start !important;}'
-        # مسافة أوضح بين الزرّين: 12px تجعلهما يبدوان كتلة واحدة.
-        'body[data-path="login"] .btn-login{margin-top:6px;}'
+        'body[data-path="login"] .btn-login{margin-top:14px;}'
         'body[data-path="login"] .btn-login + .btn,'
-        'body[data-path="login"] .btn-login + a.btn{margin-top:10px;}'
+        'body[data-path="login"] .btn-login + a.btn{margin-top:8px;}'
+        # ── خانة «تذكّرني» ──
+        # تُحقن بجافاسكربت (login_lang.js) لأن Frappe لا يصدرها في الصفحة.
+        'body[data-path="login"] .kaj-remember{'
+        'display:flex;align-items:center;gap:8px;'
+        'font-size:clamp(13px,.95vw,14px);color:rgba(255,255,255,.80);'
+        'cursor:pointer;user-select:none;}'
+        'body[data-path="login"] .kaj-remember input{'
+        'width:16px;height:16px;margin:0;accent-color:var(--kaj-red);'
+        'cursor:pointer;flex:0 0 auto;}'
+        'body[data-path="login"] .kaj-remember:hover{color:#fff;}'
+        # صفّ واحد يجمع «تذكّرني» و«نسيت كلمة المرور» على طرفي البطاقة.
+        'body[data-path="login"] .kaj-authrow{'
+        'display:flex;align-items:center;justify-content:space-between;'
+        'gap:12px;flex-wrap:wrap;margin-top:12px;}'
+        'body[data-path="login"] .kaj-authrow .kaj-remember,'
+        'body[data-path="login"] .kaj-authrow .forgot-password-message{margin:0;}'
         # ── الشعار داخل البطاقة ──
-        # كان 40 بكسل تقريباً فيُقرأ كلطخة؛ تكبيره وتوسيطه يجعله عنوان البطاقة.
+        # كان 72px فيُقرأ كزخرفة صغيرة؛ تكبيره يجعله عنوان البطاقة.
         'body[data-path="login"] .for-login img,'
         'body[data-path="login"] .page-card img,'
         'body[data-path="login"] .app-logo{'
-        'width:72px !important;height:auto !important;max-height:72px;'
-        'display:block;margin:0 auto 14px;border-radius:16px;'
-        # الشعار صار النسخة الداكنة (شعار فاتح على كحلي)، فيندمج مع البطاقة
-        # بلا إطار ولا ظل — المربع الأبيض السابق كان يبدو ملصقاً عليها.
-        'border:0;box-shadow:none;}'
-        # تقليل الحشو والفراغات: البطاقة كانت تتجاوز ارتفاع الشاشة على
-        # اللابتوب فيضطر المستخدم للتمرير ليرى زر الدخول.
-        'body[data-path="login"] .login-content.page-card{padding:28px 26px 24px;}'
-        'body[data-path="login"] .form-group,'
-        'body[data-path="login"] .frappe-control{margin-bottom:12px !important;}'
+        'width:clamp(84px,7vw,104px) !important;height:auto !important;'
+        'max-height:none;display:block;margin:0 auto 16px;'
+        'border-radius:18px;border:0;'
+        # ظل خفيف يفصل الشعار عن الزجاج خلفه بدل أن يسبح فيه.
+        'box-shadow:0 8px 24px rgba(0,0,0,.35);}'
+        'body[data-path="login"] .page-card-head,'
+        'body[data-path="login"] .page-card-head-text{text-align:center;}'
+        'body[data-path="login"] .form-group{margin-bottom:14px !important;}'
         # ── الهاتف ──
-        # الشعار خلف بطاقة تملأ الشاشة لا يُرى، فنكتفي بتدرّج الهوية.
-        '@media (max-width:820px){body[data-path="login"]{'
-        'background-image:linear-gradient(160deg,#1e3050,#0e182a);}}'
+        # البطاقة تملأ الشاشة فلا يُرى الشعار خلفها؛ نكتفي بتدرّج الهوية
+        # ونوقف الضبابية — مكلفة على معالجات الهواتف بلا فائدة هنا.
+        '@media (max-width:820px){'
+        'body[data-path="login"]::before{background-size:cover;opacity:.35;}'
+        'body[data-path="login"] .login-content.page-card{'
+        'min-width:0;width:min(94vw,400px);'
+        '-webkit-backdrop-filter:none;backdrop-filter:none;'
+        'background:rgba(16,27,48,.90);}}'
+        # تقليل الحركة لمن يطلبها في إعدادات نظامه.
+        '@media (prefers-reduced-motion:reduce){'
+        'body[data-path="login"] *{transition:none !important;}}'
         '</style>'
     )
     # استبدال بعلامة نصّية لا %-formatting: نسب CSS (0%، 42%، 100%) كانت
