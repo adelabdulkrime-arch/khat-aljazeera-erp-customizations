@@ -76,10 +76,21 @@ if command -v ufw >/dev/null 2>&1 && sudo ufw status 2>/dev/null | grep -q "Stat
   sudo ufw allow 443/tcp >/dev/null 2>&1 || true
   ok "فُتح المنفذان عبر ufw"
 else
+  # الموضع حاسم لا الوجود: صور أوبنتو في Oracle تنتهي بقاعدة REJECT تبتلع كل
+  # ما بعدها، فإدراج القاعدة برقم ثابت (6) يضعها بعد الرفض متى كان REJECT في
+  # الموضع الخامس — فلا تعمل أبداً، والموقع يبقى محجوباً بينما `iptables -L`
+  # يُظهر المنفذ «مفتوحاً». نقرأ رقم سطر REJECT ونُدرج قبله.
+  REJECT_LINE="$(sudo iptables -L INPUT -n --line-numbers 2>/dev/null \
+    | awk '/REJECT|DROP/ {print $1; exit}')"
   for p in 80 443; do
-    sudo iptables -C INPUT -p tcp --dport "$p" -j ACCEPT 2>/dev/null \
-      || sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport "$p" -j ACCEPT 2>/dev/null \
-      || true
+    if sudo iptables -C INPUT -m state --state NEW -p tcp --dport "$p" -j ACCEPT 2>/dev/null; then
+      continue
+    fi
+    if [ -n "$REJECT_LINE" ]; then
+      sudo iptables -I INPUT "$REJECT_LINE" -m state --state NEW -p tcp --dport "$p" -j ACCEPT 2>/dev/null || true
+    else
+      sudo iptables -A INPUT -m state --state NEW -p tcp --dport "$p" -j ACCEPT 2>/dev/null || true
+    fi
   done
   if command -v netfilter-persistent >/dev/null 2>&1; then
     sudo netfilter-persistent save >/dev/null 2>&1 || true
