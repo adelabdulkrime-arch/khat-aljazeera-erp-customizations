@@ -108,8 +108,19 @@ def inject_login_background(context):
         # الصورة مربّعة على خلفية كحلية سادة، فحوافّها تظهر كمستطيل ملصق
         # بأربعة أضلاع حادّة — رُصد في لقطة الشاشة. قناع إشعاعي يُذيب
         # الحوافّ في لون الهوية فتبدو الصورة نسيجاً لا صورة موضوعة.
-        '-webkit-mask-image:radial-gradient(ellipse at center,#000 42%,transparent 72%);'
-        'mask-image:radial-gradient(ellipse at center,#000 42%,transparent 72%);'
+        #
+        # نسب القناع تُقاس من صندوق العنصر (إطار العرض كاملاً) لا من الصورة،
+        # والصورة أصغر منه بكثير ومتوسّطة — فقناع بنسب مئوية يرسم بيضاوية
+        # أوسع من الصورة ولا يلمس حوافّها أبداً، وتبقى حادّة. لذا يُقاس
+        # القناع بنفس وحدة حجم الصورة ويُوضع في مركزها.
+        '-webkit-mask-image:radial-gradient(closest-side,#000 55%,transparent 100%);'
+        'mask-image:radial-gradient(closest-side,#000 55%,transparent 100%);'
+        '-webkit-mask-size:clamp(420px,min(78vw,88vh),900px) '
+        'clamp(420px,min(78vw,88vh),900px);'
+        'mask-size:clamp(420px,min(78vw,88vh),900px) '
+        'clamp(420px,min(78vw,88vh),900px);'
+        '-webkit-mask-position:center;mask-position:center;'
+        '-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;'
         # شفافية خفيفة إضافية: الشعار حاضر لكنه لا يزاحم البطاقة.
         'opacity:.55;}'
         'body[data-path="login"]::after{content:"";position:fixed;inset:0;'
