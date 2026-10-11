@@ -33,7 +33,9 @@ def _home_tiles_html():
             '<span class="hm-title" data-i18n="%s">%s</span>'
             '<span class="hm-desc" data-i18n="%s">%s</span>'
             '</span>'
-            '<svg class="icon hm-arrow"><use href="#icon-chevron-left"></use></svg>'
+            # chevron-right دائماً، ويُقلب بـCSS في RTL. كان chevron-left
+            # ثابتاً فيشير للخارج خطأً في الإنجليزية.
+            '<svg class="icon hm-arrow"><use href="#icon-chevron-right"></use></svg>'
             '</a>'
             % (route_csv, grad, icon,
                frappe.utils.escape_html(label), label,
@@ -43,7 +45,9 @@ def _home_tiles_html():
 
 
 HOME_STYLE = """
-.hm-wrap { direction:rtl; }
+/* بلا direction ثابت: الكتلة ترث اتجاه <html> الذي يضبطه الإطار من لغة
+   المستخدم. كانت direction:rtl هنا تُبقي البطاقات معكوسة في الإنجليزية. */
+.hm-wrap { }
 /* ---- Welcome header ---- */
 .hm-header { background:linear-gradient(120deg,#16304d 0%,#1e3a5f 55%,#7a1a1f 100%);
   border-radius:18px; padding:26px 30px; color:#fff; margin-bottom:24px;
@@ -81,41 +85,8 @@ button.hm-sectitle[aria-expanded="false"] .hm-sectoggle { transform:rotate(-90de
 /* auto-fill لا auto-fit: مع ستّ بطاقات كان auto-fit يمدّدها حتى تتسع خمسٌ في
    الصف وتبقى السادسة وحدها في صف تالٍ — شكل غير متوازن. auto-fill يحافظ على
    عرض ثابت للبطاقة فتنتظم ثلاثاً ثلاثاً أو اثنتين اثنتين حسب الشاشة. */
-/* التنسيق موحَّد مع .hm-card أدناه: نفس الاستدارة (16px) ونفس الحدّ والظلّ
-   ومنحنى الحركة. كانت البطاقتان تختلفان في الاستدارة والحشو والظلّ فيبدو
-   القسمان من نظامين مختلفين على صفحة واحدة. */
-.hm-stats { display:grid; grid-template-columns:repeat(auto-fill,minmax(178px,1fr));
-  gap:16px; margin-bottom:26px; }
-.hm-stat { background:var(--card-bg,#fff); border:1px solid var(--border-color,#eef0f4);
-  border-radius:16px; padding:16px 18px; text-decoration:none !important;
-  display:flex; flex-direction:column; gap:4px; position:relative; overflow:hidden;
-  min-height:92px; justify-content:center;
-  transition:transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .18s, border-color .18s; }
-.hm-stat:hover { transform:translateY(-4px); box-shadow:0 10px 24px rgba(16,30,54,.12);
-  border-color:#dfe3ea; }
-/* شريط لوني رفيع يميّز نوع المؤشر دون ألوان صارخة تشوّش الصفحة */
-.hm-stat::before { content:""; position:absolute; inset-inline-start:0; top:0; bottom:0;
-  width:3px; background:var(--hm-accent,#8a94a6); }
-.hm-stat-val { font-size:26px; font-weight:800; line-height:1.15;
-  color:var(--text-color,#1a2b4a); font-variant-numeric:tabular-nums; }
-.hm-stat-lbl { font-size:12px; color:var(--text-muted,#8a94a6); font-weight:600; }
-/* النصّ الفرعي (إجمالي المستحق) كان يُقصّ عند حافّة البطاقة السفلى: البطاقة
-   لها ارتفاع ثابت من الشبكة والسطر الثالث يتجاوزه، فيظهر «0.000 ر.ع» مقطوعاً
-   نصفه — رُصد في الواجهة. السطر لا يلتفّ والبطاقة تتمدّد لتسعه. */
-.hm-stat-sub { font-size:11px; color:var(--text-muted,#aab2c0);
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  direction:ltr; text-align:start; }
-/* بطاقة ذات نصّ فرعي أطول قليلاً، فلا تُقصّ في شبكة بارتفاع موحَّد */
-.hm-stats { align-items:stretch; }
-/* حالة تستدعي انتباهاً: متأخرات أو مخزون منخفض */
-.hm-stat.is-alert { --hm-accent:#e63946; }
-.hm-stat.is-alert .hm-stat-val { color:#e63946; }
-.hm-stat.is-warn { --hm-accent:#f0b429; }
-.hm-stat.is-ok { --hm-accent:#1f9d55; }
-.hm-stat.is-info { --hm-accent:#2d6cdf; }
-/* هيكل تحميل بدل قفزة مفاجئة حين تصل الأرقام */
-.hm-stat.is-loading .hm-stat-val { color:transparent; background:rgba(127,127,127,.14);
-  border-radius:6px; width:48px; }
+/* قواعد بطاقات «نظرة سريعة» حُذفت مع القسم نفسه. تنسيق .hm-stat الباقي
+   يخصّ بطاقة العميل وحدها ومكتوب تحت .hm-profile-stats أدناه. */
 /* ---- Module cards grid ---- */
 @keyframes kajFadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 /* auto-fit بدل repeat(3,1fr): ثلاثة أعمدة ثابتة كانت تُضغط على الشاشات
@@ -149,8 +120,14 @@ button.hm-sectitle[aria-expanded="false"] .hm-sectoggle { transform:rotate(-90de
 .hm-desc { font-size:12.5px; color:var(--text-muted,#8a94a6); margin-top:3px;
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
   overflow:hidden; }
-.hm-arrow { width:18px; height:18px; color:var(--text-muted,#c4ccd8); flex-shrink:0; transition:transform .2s; }
-.hm-card:hover .hm-arrow { transform:translateX(-4px); color:#e63946; }
+/* السهم يشير دائماً «للأمام» في اتجاه القراءة: يميناً في LTR ويساراً في
+   RTL. الرمز chevron-right ويُقلب أفقياً في RTL، والحركة عند المرور تتبع
+   نفس الاتجاه — كانت translateX(-4px) ثابتة فتتحرّك للخلف في الإنجليزية. */
+.hm-arrow { width:18px; height:18px; color:var(--text-muted,#c4ccd8);
+  flex-shrink:0; transition:transform .2s; }
+[dir="rtl"] .hm-arrow { transform:scaleX(-1); }
+.hm-card:hover .hm-arrow { transform:translateX(4px); color:#e63946; }
+[dir="rtl"] .hm-card:hover .hm-arrow { transform:scaleX(-1) translateX(4px); }
 /* ---- Tablet & phone (touch-friendly) ---- */
 @media (max-width:1024px){
   .hm-grid{ grid-template-columns:repeat(2,1fr); gap:14px; }
@@ -170,7 +147,12 @@ button.hm-sectitle[aria-expanded="false"] .hm-sectoggle { transform:rotate(-90de
 .hm-search-title .icon { width:16px; height:16px; color:#e63946; }
 .hm-search-row { display:flex; gap:10px; }
 .hm-search-input { flex:1; border:1px solid var(--border-color,#e5e7eb); border-radius:10px;
-  padding:11px 14px; font-size:14px; outline:none; background:var(--control-bg,#fff); color:var(--text-color); direction:ltr; text-align:right; }
+  padding:11px 14px; font-size:14px; outline:none; background:var(--control-bg,#fff);
+  color:var(--text-color);
+  /* أرقام الجوال واللوحة تُكتب يساراً-ليميناً في اللغتين، لكن محاذاة النص
+     تتبع اتجاه الصفحة: text-align:right كانت تدفعه للحافة الخطأ في
+     الإنجليزية. start يحاذيه لبداية السطر في الاتجاهين. */
+  direction:ltr; text-align:start; }
 .hm-search-input:focus { border-color:#e63946; box-shadow:0 0 0 3px rgba(230,57,70,.10); }
 .hm-search-btn { border:none; background:linear-gradient(135deg,#c0392b,#e63946); color:#fff;
   padding:0 22px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer;
@@ -190,10 +172,8 @@ button.hm-sectitle[aria-expanded="false"] .hm-sectoggle { transform:rotate(-90de
 .hm-profile-phone { font-size:13px; color:var(--text-muted,#8a94a6); direction:ltr; margin-inline-start:8px; }
 .hm-profile-open { font-size:12.5px; color:#e63946; font-weight:700; text-decoration:none; cursor:pointer; }
 .hm-profile-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:16px; }
-/* محصورة داخل بطاقة العميل: هذه القواعد كانت تُكتب بلا نطاق على .hm-stat
-   نفسها، فتُلغي تنسيق بطاقات «نظرة سريعة» أعلاه (آخر تعريف يفوز) — فتظهر
-   مربّعات رمادية مسطّحة لا تشبه بطاقات «الوحدات الرئيسية» إطلاقاً. وهذا
-   بالضبط ما رُصد في الواجهة. */
+/* محصورة داخل بطاقة العميل: .hm-stat يستخدمه هذا القسم وحده الآن، لكن
+   النطاق يبقى صريحاً حتى لا يتسرّب التنسيق إن أُضيفت بطاقات أخرى لاحقاً. */
 .hm-profile-stats .hm-stat { background:var(--bg-light-gray,#f8f9fb); border:0;
   border-radius:10px; padding:10px 8px; text-align:center; box-shadow:none; }
 .hm-profile-stats .hm-stat::before { display:none; }
@@ -247,8 +227,8 @@ function translateAll(){
 translateAll();
 
 /* ── طيّ الأقسام ──
-   كل عنوان قسم يطوي محتواه ويحفظ الحالة في localStorage، فمن يفضّل إخفاء
-   «نظرة سريعة» يجدها مخفيّة في كل زيارة بدل أن يطويها يدوياً كل مرة.
+   عنوان القسم يطوي محتواه ويحفظ الحالة في localStorage، فمن يطوي «الوحدات
+   الرئيسية» يجدها مطويّة في الزيارة القادمة بدل أن يطويها كل مرة.
    localStorage قد يرمي في وضع التصفّح الخاص، فكل وصول إليه محمي. */
 (function(){
   var KEY = 'kaj_home_collapsed';
@@ -470,112 +450,16 @@ root.querySelectorAll('.hm-card').forEach(function(a){
   input.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); runSearch(); } });
 })();
 
-/* ---- بطاقات المؤشرات ----
-   رقم لا يمكن النقر عليه يترك المستخدم يبحث عن مصدره يدوياً، فكل بطاقة رابط
-   لقائمة مفلترة على نفس الشرط الذي أنتج الرقم. */
-(function(){
-  const box = root.querySelector('#hm-stats');
-  if(!box) return;
-
-  const OPEN = ['بانتظار الفحص','قيد الإصلاح','بانتظار قطع الغيار','بانتظار موافقة العميل','جاهزة للتسليم'];
-
-  function money(v, cur){
-    try { return format_currency(v || 0, cur || 'OMR'); }
-    catch(e){ return (v || 0).toFixed(3) + ' ' + (cur || ''); }
-  }
-
-  function card(cfg){
-    const a = document.createElement('a');
-    a.className = 'hm-stat' + (cfg.tone ? ' is-' + cfg.tone : '');
-    a.href = cfg.href || '#';
-    a.title = cfg.hint || cfg.label;
-    a.innerHTML =
-      '<span class="hm-stat-val">' + cfg.value + '</span>' +
-      '<span class="hm-stat-lbl"></span>' +
-      (cfg.sub ? '<span class="hm-stat-sub"></span>' : '');
-    /* textContent لا innerHTML: التسميات مترجمة والقيم من الخادم، فلا نُدخل
-       نصاً غير مُهرَّب في DOM. */
-    a.querySelector('.hm-stat-lbl').textContent = __(cfg.label);
-    if(cfg.sub) a.querySelector('.hm-stat-sub').textContent = cfg.sub;
-    return a;
-  }
-
-  /* هيكل أثناء التحميل: ست بطاقات رمادية بدل فراغ يقفز حين تصل الأرقام */
-  function skeleton(){
-    box.innerHTML = '';
-    for(let i = 0; i < 6; i++){
-      const d = document.createElement('div');
-      d.className = 'hm-stat is-loading';
-      d.innerHTML = '<span class="hm-stat-val">0</span><span class="hm-stat-lbl">—</span>';
-      box.appendChild(d);
-    }
-  }
-
-  function listUrl(doctype, params){
-    const q = Object.keys(params || {})
-      .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k])).join('&');
-    return '/app/' + doctype + (q ? '?' + q : '');
-  }
-
-  function render(s){
-    box.innerHTML = '';
-    const cards = [
-      { label:'بطاقات مفتوحة', value:s.open_cards, tone:'info',
-        href:listUrl('work-card', {status:['in', OPEN].join(',')}),
-        hint:'مركبات ما زالت في الورشة' },
-      { label:'بانتظار قطع', value:s.waiting_parts, tone: s.waiting_parts ? 'warn' : '',
-        href:listUrl('work-card', {status:'بانتظار قطع الغيار'}),
-        hint:'بطاقات متوقفة على وصول قطع' },
-      /* «جاهزة» لا «جاهزة للتسليم»: الثانية اسم حالة بطاقة عمل ولها ترجمة
-         مسجّلة، فكانت البطاقة وحدها تظهر "Ready for Delivery" بالإنجليزية
-         بين خمس بطاقات عربية. الفلتر أدناه يبقى على اسم الحالة الكامل. */
-      { label:'جاهزة', value:s.ready, tone: s.ready ? 'ok' : '',
-        href:listUrl('work-card', {status:'جاهزة للتسليم'}),
-        hint:'بانتظار استلام العميل' },
-      { label:'دخلت اليوم', value:s.today_cards, tone:'',
-        href:listUrl('work-card', {}),
-        hint:'بطاقات أُنشئت اليوم' },
-      { label:'فواتير غير مسدّدة', value:s.unpaid_count,
-        tone: s.unpaid_count ? 'alert' : '', sub: money(s.unpaid_total, s.currency),
-        href:listUrl('sales-invoice', {status:'Unpaid'}),
-        hint:'إجمالي المستحق على العملاء' },
-      { label:'إيراد اليوم', value:money(s.today_revenue, s.currency), tone:'ok',
-        href:listUrl('sales-invoice', {}),
-        hint:'فواتير اليوم المعتمدة' }
-    ];
-    /* المتأخرات والمخزون المنخفض يظهران فقط حين يوجدان — بطاقة تقول "صفر
-       متأخر" تشغل مساحة بلا معنى، وظهورها نفسه هو التنبيه. */
-    if(s.stale_cards){
-      cards.push({ label:'بطاقات متعثّرة', value:s.stale_cards, tone:'alert',
-        href:listUrl('work-card', {status:['in', OPEN].join(',')}),
-        hint:'مفتوحة ولم تُحدَّث منذ أسبوع' });
-    }
-    if(s.low_stock){
-      cards.push({ label:'مخزون منخفض', value:s.low_stock, tone:'alert',
-        href:'/app/query-report/Item Shortage Report',
-        hint:'أصناف بلغت حد إعادة الطلب' });
-    }
-    cards.forEach(c => box.appendChild(card(c)));
-  }
-
-  function load(){
-    frappe.call({ method:'khat_workshop.kpi.get_home_stats' })
-      .then(r => { if(r && r.message) render(r.message); })
-      .catch(e => { console.error('home stats', e); box.innerHTML = ''; });
-  }
-
-  skeleton();
-  load();
-  /* تحديث كل دقيقتين: الورشة تتغيّر خلال اليوم، ورقم قديم أسوأ من غيابه.
-     يتوقف حين تكون الصفحة مخفية فلا يستهلك شيئاً في الخلفية. */
-  setInterval(function(){ if(!document.hidden) load(); }, 120000);
-})();
 """
 
 
 def _make_home_block():
     html = (
-        '<div class="hm-wrap" dir="rtl">'
+        # لا dir ثابت: الكتلة كانت تحمل dir="rtl" حرفياً، فتبقى البطاقات
+        # معكوسة (الأيقونة يميناً والسهم يساراً) حتى بعد التبديل للإنجليزية —
+        # رُصد في الواجهة. بحذفه ترث الكتلة اتجاه <html> الذي يضبطه الإطار من
+        # لغة المستخدم، فتصير عربية RTL وإنجليزية LTR تلقائياً.
+        '<div class="hm-wrap">'
         '  <div class="hm-header">'
         '    <div>'
         '      <div class="hm-hello"><span data-i18n="أهلاً">أهلاً</span> '
@@ -599,18 +483,6 @@ def _make_home_block():
         '    <div class="hm-search-results"></div>'
         '    <div class="hm-customer-profile" style="display:none"></div>'
         '  </div>'
-        # بطاقات المؤشرات: الصفحة كانت قائمة تنقّل تخبرك أين تذهب، لا كيف تسير
-        # الورشة. مدير يفتح النظام يريد أرقاماً أولاً — كم سيارة عندنا، ما ينتظر
-        # قطعاً، كم مستحق، كم دخل اليوم. كانت تتطلب فتح أربع قوائم وعدّها يدوياً.
-        # العنوان زرّ لا div: القسم يُطوى بالنقر عليه، والزرّ وحده يعمل
-        # بلوحة المفاتيح ويُعلن حالته لقارئ الشاشة عبر aria-expanded.
-        '  <button type="button" class="hm-sectitle" data-collapse="hm-stats"'
-        ' aria-expanded="true" aria-controls="hm-stats">'
-        '    <span data-i18n="نظرة سريعة">نظرة سريعة</span>'
-        '    <span class="hm-sectoggle"><svg class="icon">'
-        '<use href="#icon-chevron-down"></use></svg></span>'
-        '  </button>'
-        '  <div class="hm-stats" id="hm-stats"></div>'
         '  <button type="button" class="hm-sectitle" data-collapse="hm-modules"'
         ' aria-expanded="true" aria-controls="hm-modules">'
         '    <span data-i18n="الوحدات الرئيسية">الوحدات الرئيسية</span>'
