@@ -26,8 +26,13 @@
 	@fingerprinted path_regexp \.[A-Z0-9]{8}\.(js|css)$
 	header @fingerprinted Cache-Control "public, max-age=31536000, immutable"
 
+	# ملفاتنا بلا بصمة في أسمائها (rtl_fixes.css يبقى rtl_fixes.css مهما
+	# تغيّر محتواه)، فالتخزين الطويل يؤجّل وصول أي إصلاح بقدر مدّته —
+	# حدث فعلاً: تعديل على الشاشة بقي غير مرئي لأن المتصفح يحمل نسخة
+	# الأمس. must-revalidate يجعل المتصفح يسأل الخادم في كل مرة، والخادم
+	# يردّ 304 بلا جسم إن لم يتغيّر الملف — فالتوفير يبقى والتحديث فوري.
 	@ourassets path /assets/khat_workshop/*
-	header @ourassets Cache-Control "public, max-age=86400"
+	header @ourassets Cache-Control "public, max-age=0, must-revalidate"
 
 	@media path *.png *.jpg *.jpeg *.svg *.woff *.woff2 *.ico
 	header @media Cache-Control "public, max-age=604800"
