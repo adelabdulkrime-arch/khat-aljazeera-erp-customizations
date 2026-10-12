@@ -203,9 +203,12 @@ def inject_login_background(context):
         'body[data-path="login"] input[type="text"],'
         'body[data-path="login"] input[type="email"],'
         'body[data-path="login"] input[type="password"],'
-        'body[data-path="login"] .for-login .page-card .page-card-body input,'
-        'body[data-path="login"] .for-forgot .page-card .page-card-body input,'
-        'body[data-path="login"] .for-login-with-email-link .page-card .page-card-body input{'
+        # :not(checkbox) عند المصدر: استثناء مربّع الاختيار بقاعدة لاحقة
+        # لا يكفي — القاعدة العامة هنا بأربعة أصناف تفوق أي محدِّد أقصر،
+        # و!important على الطرفين لا يحسم. استبعاده من البداية أنظف.
+        'body[data-path="login"] .for-login .page-card .page-card-body input:not([type="checkbox"]),'
+        'body[data-path="login"] .for-forgot .page-card .page-card-body input:not([type="checkbox"]),'
+        'body[data-path="login"] .for-login-with-email-link .page-card .page-card-body input:not([type="checkbox"]){'
         'background:#f7f8fa !important;color:var(--kaj-ink) !important;'
         'border:1.5px solid #e3e7ee !important;border-radius:var(--kaj-r) !important;'
         'height:48px !important;min-height:48px !important;'
@@ -253,7 +256,13 @@ def inject_login_background(context):
         # قاعدة الحقول أعلاه تطال كل input داخل .page-card-body بـ!important،
         # فنفخت مربّع الاختيار إلى 64×48 — قِيس في المتصفح. الاستثناء هنا
         # يعيده لحجمه، وبنفس قوة !important وإلا خسر.
+        # الأخصّية لا الترتيب: قاعدة الحقول تستخدم أربعة أصناف
+        # (.for-login .page-card .page-card-body input) فتفوق أي محدِّد
+        # أقصر مهما جاء بعدها، و!important على الطرفين لا يحسم. فنطابق
+        # السلسلة نفسها ونزيد عليها نوع الحقل.
         'body[data-path="login"] .kaj-remember input[type="checkbox"],'
+        'body[data-path="login"] .for-login .page-card .page-card-body input[type="checkbox"],'
+        'body[data-path="login"] .for-login .page-card .kaj-authrow input[type="checkbox"],'
         'body[data-path="login"] .page-card-body input[type="checkbox"]{'
         'width:16px !important;min-width:16px !important;'
         'height:16px !important;min-height:16px !important;'
