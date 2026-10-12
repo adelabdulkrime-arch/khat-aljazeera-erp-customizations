@@ -12,6 +12,26 @@
 		reverse_proxy websocket:9000
 	}
 
+	# تخزين الأصول في المتصفح.
+	#
+	# الأصول تُقدَّم بلا ترويسة Cache-Control، فالمتصفح يُعيد التحقق من كل
+	# ملف في كل زيارة. على اتصال بطيء هذا مكلف: قِيس التحميل من اتصال
+	# ~0.9Mbps فبلغ 20 ثانية لـ2.3MB عبر 61 طلباً.
+	#
+	# أسماء الحزم تحمل بصمة محتواها (desk.bundle.BVJUULUA.js)، فأي تعديل
+	# يغيّر الاسم ويُبطل التخزين تلقائياً — ولهذا immutable آمنة هنا ولا
+	# تُجمّد نسخة قديمة عند التحديث. ملفاتنا (/assets/khat_workshop) بلا
+	# بصمة، فتأخذ يوماً واحداً: طويل بما يكفي ليفيد، وقصير بما يكفي ليصل
+	# أي تعديل خلال يوم.
+	@fingerprinted path_regexp \.[A-Z0-9]{8}\.(js|css)$
+	header @fingerprinted Cache-Control "public, max-age=31536000, immutable"
+
+	@ourassets path /assets/khat_workshop/*
+	header @ourassets Cache-Control "public, max-age=86400"
+
+	@media path *.png *.jpg *.jpeg *.svg *.woff *.woff2 *.ico
+	header @media Cache-Control "public, max-age=604800"
+
 	handle {
 		reverse_proxy frontend:8080 {
 			# nginx داخل frontend مضبوط على قراءة X-Forwarded-For (راجع
