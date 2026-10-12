@@ -91,9 +91,6 @@ PAIRS = [
     ("أهلاً", "Hi"),
     ("مرحباً بعودتك إلى نظام خط الجزيرة", "Welcome back to the Khat Al Jazeera system"),
     ("الوحدات الرئيسية", "Main Modules"),
-    # شعار لوح الهوية في صفحة الدخول (branding.inject_login_background)
-    ("إدارة الورشة بدقّة، من الاستلام إلى التسليم.",
-     "Run your workshop with precision, from intake to delivery."),
     ("بطاقات العمل والفنيون والصيانة", "Work cards, technicians, and maintenance"),
     ("الفواتير والعملاء ونقاط البيع", "Invoices, customers, and point of sale"),
     ("الموردون وأوامر الشراء", "Suppliers and purchase orders"),

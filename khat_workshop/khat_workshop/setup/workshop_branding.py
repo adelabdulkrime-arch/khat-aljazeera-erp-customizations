@@ -39,9 +39,18 @@ FAVICON = "/assets/khat_workshop/icons/icon-192.png"
 # الشاشة تبقى بيضاء فارغة حتى تصل، فيرى المستخدم فراغاً لا شعاراً.
 # نسخة 192 (18KB) أكبر من 170px المعروضة وأصغر 17 مرة.
 SPLASH = "/assets/khat_workshop/icons/icon-192.png"
-# النسخة الداكنة من هوية الورشة — تملأ خلفية صفحة الدخول.
-LOGIN_BG = "/assets/khat_workshop/icons/login-bg.png"
+# شعار الهوية الداكن (أبيض وأحمر على كحلي) كما يظهر على لوحة صفحة الدخول.
+# WebP بضلع 960px وحجم 49KB. النسخة السابقة login-bg.png كانت 1.48MB
+# تُحمَّل في كل فتح لصفحة الدخول — أثقل ما في الصفحة بفارق كبير على اتصال
+# بطيء — وكانت النسخة الفاتحة من الشعار مدفونةً تحت تعتيم 95% فلا تُرى.
+LOGIN_BG = "/assets/khat_workshop/icons/login-art.webp"
 APP_NAME = "خط الجزيرة"
+
+# قيم ضبطها هذا الملف في نسخ سابقة ويجب أن تُستبدل بالافتراضي الحالي.
+STALE_DEFAULTS = {
+    "splash_image": ("/assets/khat_workshop/icons/icon-512.png",),
+    "login_background": ("/assets/khat_workshop/icons/login-bg.png",),
+}
 
 
 def _identity():
@@ -56,13 +65,11 @@ def _identity():
     for field, value in (("app_logo", LOGO), ("favicon", FAVICON),
                          ("splash_image", SPLASH), ("app_name", APP_NAME),
                          ("login_background", LOGIN_BG)):
-        stale = (
-            # نسخة 512 كانت تُضبَط هنا سابقاً وهي أثقل 17 مرة مما تحتاجه
-            # الشاشة. «يملأ الفراغات فقط» يعني أنها تبقى إلى الأبد ما لم
-            # نستبدلها صراحةً — وهذا استبدال لقيمة وضعناها نحن لا المالك.
-            field == "splash_image"
-            and ws.get(field) == "/assets/khat_workshop/icons/icon-512.png"
-        )
+        # «يملأ الفراغات فقط» يعني أن قيمة ضبطناها في نسخة سابقة تبقى إلى
+        # الأبد ما لم نستبدلها صراحةً. هذا استبدال لقيمة وضعها هذا الملف لا
+        # لقيمة اختارها المالك: ما يرفعه المالك لا يطابق هذه القائمة فلا
+        # يُمسّ.
+        stale = ws.get(field) in STALE_DEFAULTS.get(field, ())
         if (not ws.get(field) or stale
                 or (field == "app_name" and ws.get(field) == "Frappe")):
             ws.set(field, value)

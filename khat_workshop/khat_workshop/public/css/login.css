@@ -3,21 +3,27 @@
  * يُحقن هذا الملف مضمَّناً في <head> صفحة /login وحدها (انظر branding.py)،
  * فلا طلب إضافي ولا ومضة بلا تنسيق، ولا يتأثر بتخزين المتصفح.
  *
+ * ── التكوين ──
+ * لوحة واحدة متصلة بلون الهوية تملأ الصفحة، يذوب فيها شعار الورشة بلا
+ * حافة، وبطاقة دخول صلبة تطفو فوقها. لا خط فاصل ولا نصفان: نسخة سابقة
+ * قسمت الشاشة إلى لوح داكن ونصف أبيض فبدت الصفحة مقصوصة، واللوح شبه
+ * فارغ لأن الشعار كان مدفوناً تحت تعتيم 95%.
+ *
+ * لون اللوحة (#182c43) مقروء من صورة الشعار نفسها لا مُقدَّر، فيلتحم قرص
+ * الشعار باللوحة دون أن يظهر كصورة موضوعة عليها.
+ *
  * ── المنهج ──
- * ١) رموز التصميم أولاً. الإطار نفسه يبني صفحة الدخول من متغيّرات
- *    (--ink-gray-*, --outline-gray-2, --bg-color…)، فنعيد تعريفها بدل أن
- *    نحارب كل خاصية. ما يبقى بعدها هو الهيكل فقط.
- * ٢) خصائص منطقية فقط (inline-start/end). الإطار يخدم حزمتين، واحدة
- *    للعربية وواحدة للإنجليزية، بقيم فيزيائية معكوسة (left/right)؛
- *    وأي قيمة فيزيائية عندنا تنكسر في إحداهما.
- * ٣) المسافات بـgap على الحاويات كما يفعل الإطار، لا هوامش. الهوامش كانت
- *    تتراكم فوق gap الإطار فتصنع فراغات لا يقصدها أحد.
- * ٤) !important حيث يفرض الإطار قيماً صلبة بمحدِّد أخصّ (height:28px،
- *    padding:6px 8px…) فقط، وكل قاعدة تخصّ عنصراً بعينه فلا تتنازع
- *    قواعدنا فيما بينها.
- * ٥) لا اعتماد على صنف القسم (.for-login). الأقسام الأربعة — الدخول
- *    ونسيت كلمة المرور والدخول برابط والتسجيل — أقسام منفصلة يبدّل بينها
- *    جافاسكربت، والتنسيق المرتبط بـ.for-login كان يسقط في ثلاثة منها.
+ * ١) رموز التصميم أولاً. الإطار يبني صفحة الدخول من متغيّرات
+ *    (--ink-gray-*, --outline-gray-2…)، فنعيد تعريفها بدل محاربة كل خاصية.
+ * ٢) خصائص منطقية فقط (inline-start/end). الإطار يخدم حزمتين، عربية
+ *    وإنجليزية، بقيم left/right معكوسة؛ والقيم الفيزيائية تنكسر في إحداهما.
+ * ٣) المسافات بـgap على الحاويات كما يفعل الإطار، لا هوامش تتراكم فوقها.
+ * ٤) !important حيث يفرض الإطار قيمة صلبة بمحدِّد أخصّ فقط، وكل قاعدة تخصّ
+ *    عنصراً بعينه فلا تتنازع قواعدنا فيما بينها.
+ * ٥) لا اعتماد على صنف القسم (.for-login): الدخول ونسيت كلمة المرور
+ *    والدخول برابط أقسام منفصلة يبدّل بينها جافاسكربت.
+ *
+ * أي تعديل هنا يُمرَّر على tools/login-check قبل النشر.
  */
 
 /* ════════════ الرموز ════════════ */
@@ -28,9 +34,14 @@ body[data-path="login"] {
   --kaj-red-hover: #a81f2f;
   --kaj-red-ring: rgba(198, 40, 57, .16);
   --kaj-gold: #f0b429;
-  --kaj-navy: #0f1a2e;
 
+  /* اللوحة: ثابتة في الوضعين، هي الهوية */
+  --kaj-canvas: #182c43;
+  --kaj-canvas-deep: #0f1d2f;
+
+  /* البطاقة ومحتواها: تتبع وضع الجهاز */
   --kaj-surface: #ffffff;
+  --kaj-surface-border: transparent;
   --kaj-field: #f5f7fa;
   --kaj-field-hover: #edf0f5;
   --kaj-border: #cfd7e3;
@@ -45,12 +56,26 @@ body[data-path="login"] {
   --kaj-err-border: #f3c1c7;
 
   --kaj-r: 12px;
+  --kaj-card-r: 20px;
   --kaj-field-h: 48px;
-  --kaj-panel-w: 50vw;
-  --kaj-pad: 56px;
+  --kaj-card-pad-y: 40px;
+  --kaj-card-pad-x: 36px;
+  --kaj-page-pad-y: 32px;
+  --kaj-page-pad-x: 24px;
+  /* ارتفاع محجوز لمبدّل اللغة حين يشارك البطاقة عمودها (تحت 1024px) */
+  --kaj-switch-space: 64px;
+  /* ضلع مربّع الشعار: محكوم بالأصغر من العرض والارتفاع فلا يتجاوز نصفه،
+   * وبحدّ أقصى 520px — بلا حدّ بلغ 646px على شاشة 1920 فطغى على بطاقة
+   * عرضها 440px. */
+  --kaj-art: min(40vw, 68vh, 520px);
+  --kaj-card-w: 440px;
+  /* بُعد مركزَي الشعار والبطاقة عن منتصف الشاشة. الربع (25vw) يضع كلاً في
+   * منتصف نصفه؛ والحدّ 300px يُبقيهما متجاورين على الشاشات الواسعة بدل أن
+   * يتباعدا إلى الأطراف ويتركا فراغاً في الوسط. */
+  --kaj-offset: min(25vw, 300px);
 
   /* رموز الإطار: يستهلكها هو لا نحن */
-  --bg-color: var(--kaj-surface);
+  --bg-color: var(--kaj-canvas);
   --text-color: var(--kaj-ink);
   --heading-color: var(--kaj-ink);
   --surface-white: var(--kaj-field);
@@ -67,11 +92,12 @@ body[data-path="login"] {
 @media (prefers-color-scheme: dark) {
   body[data-path="login"] {
     color-scheme: dark;
-    --kaj-surface: #0e1626;
-    --kaj-field: #16213a;
-    --kaj-field-hover: #1a2744;
-    --kaj-border: #2c3a5a;
-    --kaj-border-hover: #435275;
+    --kaj-surface: #111c2e;
+    --kaj-surface-border: #2a3a57;
+    --kaj-field: #18263d;
+    --kaj-field-hover: #1d2d48;
+    --kaj-border: #33456a;
+    --kaj-border-hover: #4b5f88;
     --kaj-ink: #f1f4fa;
     --kaj-ink-2: #cbd3e3;
     --kaj-ink-3: #a9b4c9;
@@ -84,16 +110,22 @@ body[data-path="login"] {
   }
 }
 
-/* ════════════ الصفحة ════════════ */
+/* ════════════ اللوحة ════════════ */
 body[data-path="login"] {
-  background: var(--kaj-surface);
-  color: var(--kaj-ink);
   min-height: 100vh;
   min-height: 100dvh;
+  color: var(--kaj-ink);
+  background-color: var(--kaj-canvas);
+  /* توهّجان خافتان بلونَي الهوية يكسران صمت اللون الواحد دون أن يُريا كشكل */
+  background-image:
+    radial-gradient(60% 55% at 12% 0%, rgba(198, 40, 57, .16), transparent 70%),
+    radial-gradient(55% 50% at 100% 100%, rgba(240, 180, 41, .07), transparent 70%),
+    linear-gradient(180deg, var(--kaj-canvas), var(--kaj-canvas-deep));
+  background-attachment: fixed;
 }
 
-/* الغلاف يصير عموداً يملأ الشاشة، والنموذج يتوسّطه رأسياً بهامش auto:
- * عند قصر الشاشة يبدأ المحتوى من الأعلى ويُمرَّر، فلا يُقصّ زر الدخول
+/* الغلاف عمود يملأ الشاشة، والبطاقة تتوسّطه رأسياً بهامش auto: عند قصر
+ * الشاشة يبدأ المحتوى من الأعلى ويُمرَّر فلا يُقصّ زر الدخول
  * (justify-content:center وحده يقصّ الطرفين معاً بلا إمكان وصول). */
 body[data-path="login"] .page-content-wrapper {
   padding: 0 !important;
@@ -101,6 +133,7 @@ body[data-path="login"] .page-content-wrapper {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  background: transparent;
 }
 body[data-path="login"] .page-breadcrumbs,
 body[data-path="login"] .page-header-wrapper {
@@ -124,26 +157,27 @@ body[data-path="login"] .page_content {
 body[data-path="login"] .page_content > div {
   margin-block: auto;
   width: 100%;
-  padding: 32px 24px;
   box-sizing: border-box;
+  padding: var(--kaj-page-pad-y) var(--kaj-page-pad-x);
 }
 
 /* ════════════ البطاقة ════════════ */
 body[data-path="login"] .login-content.page-card {
+  box-sizing: border-box;
   width: 100%;
-  max-width: 400px;
+  max-width: var(--kaj-card-w);
   min-height: 0 !important;
   margin-inline: auto;
-  padding: 0 !important;
-  background: transparent !important;
-  border: 0 !important;
-  border-radius: 0;
-  box-shadow: none !important;
-  gap: 32px;
+  padding: var(--kaj-card-pad-y) var(--kaj-card-pad-x) !important;
+  background: var(--kaj-surface) !important;
+  border: 1px solid var(--kaj-surface-border) !important;
+  border-radius: var(--kaj-card-r) !important;
+  box-shadow: 0 1px 2px rgba(3, 8, 20, .2), 0 24px 60px rgba(3, 8, 20, .42) !important;
+  gap: 28px;
 }
 
 body[data-path="login"] .page-card-head {
-  gap: 20px;
+  gap: 18px;
   text-align: start;
   align-items: flex-start;
 }
@@ -425,113 +459,98 @@ body[data-path="login"] .page-card .field-error {
   letter-spacing: 0;
 }
 
-/* ════════════ مبدّل اللغة ════════════ */
-/* دائماً في زاوية جهة النموذج، أي الطرف المقابل للوح الهوية. الملف الذي
- * ينشئه (login_lang.js) يضبط direction:ltr على العنصر نفسه، فيُحلّ
- * inset-inline-end إلى اليمين دائماً، وهو في العربية فوق اللوح لا النموذج.
- * فنثبّته فيزيائياً بحسب اتجاه الصفحة لا اتجاه العنصر. */
+/* ════════════ العناصر العائمة: مبدّل اللغة و«ثبّت التطبيق» ════════════
+ * كلاهما ثابت الموضع ويُبنى خارج هذا الملف (login_lang.js / pwa.js)
+ * بإحداثيات لا تعرف شيئاً عن تخطيط الصفحة. نثبّتهما هنا فيزيائياً بحسب
+ * اتجاه الصفحة: login_lang.js يضبط direction:ltr على المبدّل نفسه فتُحلّ
+ * خصائصه المنطقية خطأً، وpwa.js يكتب left:18px صراحةً.
+ *
+ * الموضع الافتراضي (تحت 1024px): المبدّل في الزاوية العليا، والبطاقة تترك
+ * له مساحة فوقها. و«ثبّت التطبيق» يُخفى في صفحة الدخول وحدها: لا موضع له
+ * على شاشة يملؤها النموذج إلا فوق زرّ، ويبقى ظاهراً داخل النظام بعد
+ * الدخول (pwa.js محمّل هناك). */
 html[dir="rtl"] body[data-path="login"] #khat-lang-switch {
-  left: 16px;
-  right: auto;
-}
-html[dir="ltr"] body[data-path="login"] #khat-lang-switch {
   right: 16px;
   left: auto;
 }
-body[data-path="login"] #khat-lang-switch {
-  background: var(--kaj-surface);
-  border: 1px solid var(--kaj-border);
-  box-shadow: 0 1px 2px rgba(11, 18, 32, .06);
-  backdrop-filter: none;
+html[dir="ltr"] body[data-path="login"] #khat-lang-switch {
+  left: 16px;
+  right: auto;
 }
-body[data-path="login"] #khat-lang-switch .khat-lang-btn {
-  color: var(--kaj-ink-3);
-}
-body[data-path="login"] #khat-lang-switch .khat-lang-btn:hover {
-  color: var(--kaj-ink);
-  background: var(--kaj-field);
-}
-body[data-path="login"] #khat-lang-switch .khat-lang-btn.is-active {
-  color: var(--kaj-link);
-  font-weight: 700;
-}
-body[data-path="login"] #khat-lang-switch .khat-lang-sep {
-  color: var(--kaj-border);
-}
-
-/* ════════════ مربّع «ثبّت التطبيق» ════════════
- * pwa.js يثبّته فيزيائياً أسفل اليسار (left:18px) في كل الصفحات. في العربية
- * هذه جهة النموذج فيغطّي زرّ «الدخول برابط البريد» — رُصد في الواجهة عند
- * ظهور رسالة خطأ. على سطح المكتب ننقله إلى جهة لوح الهوية حيث لا عناصر
- * تفاعلية. وتحت 1024px لا لوح ولا موضع خالٍ من الأزرار، فيُخفى في صفحة
- * الدخول وحدها؛ ويبقى ظاهراً داخل النظام بعد الدخول (pwa.js محمّل هناك). */
 html[dir="rtl"] body[data-path="login"] #kaj-install-fab {
   left: auto;
   right: 18px;
 }
 @media (max-width: 1023.98px) {
+  body[data-path="login"] .page_content > div {
+    padding-top: var(--kaj-switch-space);
+  }
   body[data-path="login"] #kaj-install-fab {
     display: none !important;
   }
 }
 
-/* ════════════ لوح الهوية ════════════
- * يظهر من 1024px فما فوق. تحت ذلك تأخذ الصورة نصف شاشة صغيرة من حقول
- * يحتاجها المستخدم، والهوية تبقى في الشعار. ثابت بـposition:fixed فلا
- * يتحرّك مع تمرير النموذج، ولا يرتبط بأي صنف قسم. */
+/* ════════════ الشعار على اللوحة ════════════
+ * من 1024px: الشعار في نصف البداية والبطاقة في نصف النهاية، على لوحة
+ * واحدة بلا فاصل.
+ *
+ * القناع دائري يُقصّ بعد الحلقة الحمراء مباشرة. حدّ الحلقة الخارجي مقيس
+ * من الصورة في 72 اتجاهاً: بين 89.45% و89.65% من نصف القطر، فهي دائرة
+ * تامّة متمركزة. القصّ عند 89.9%←90.7% يُبقي الحلقة كاملة ولا يترك شيئاً
+ * من نقش قطع الغيار خارجها — نطاق تلاشٍ أوسع (91%←99%) كان يُظهر بقايا
+ * النقش هالةً مشوّشة حول الحلقة. فإن رُفعت صورة أخرى من «إعدادات الموقع»
+ * ظهرت قرصاً نظيفاً بالقصّ نفسه.
+ *
+ * والمبدّل و«ثبّت التطبيق» في زاويتَي جهة الشعار، بعيداً عن البطاقة مهما
+ * قصرت الشاشة. */
 @media (min-width: 1024px) {
   body[data-path="login"] .page-content-wrapper {
-    margin-inline-start: var(--kaj-panel-w);
+    margin-inline-start: 50vw;
+  }
+  /* البطاقة: مركزها على بُعد --kaj-offset بعد منتصف الشاشة، مقابل الشعار
+   * الذي مركزه على البُعد نفسه قبله. الهامش يُحسب من حافة نصف النهاية بعد
+   * حشو الصفحة؛ وmax(0px, …) يمنع قيمة سالبة تدفع البطاقة فوق الشعار. */
+  body[data-path="login"] .login-content.page-card {
+    margin-inline-start: max(0px, calc(var(--kaj-offset) - (var(--kaj-card-w) / 2) - var(--kaj-page-pad-x)));
+    margin-inline-end: auto;
+  }
+  /* الشعار الصغير داخل البطاقة تكرار غير مقروء للكبير بجانبه؛ يظهر فقط
+   * حين يغيب الكبير (تحت 1024px). */
+  body[data-path="login"] .page-card-head img.app-logo {
+    display: none !important;
   }
   body[data-path="login"]::before {
     content: "";
     position: fixed;
-    inset-block: 0;
-    inset-inline-start: 0;
-    width: var(--kaj-panel-w);
+    top: calc(50% - (var(--kaj-art) / 2));
+    inset-inline-start: calc(50vw - var(--kaj-offset) - (var(--kaj-art) / 2));
+    width: var(--kaj-art);
+    height: var(--kaj-art);
     z-index: 0;
-    background:
-      radial-gradient(70% 55% at 18% 10%, rgba(198, 40, 57, .32), transparent 62%),
-      radial-gradient(60% 50% at 90% 94%, rgba(240, 180, 41, .14), transparent 62%),
-      linear-gradient(160deg, rgba(15, 26, 46, .93), rgba(7, 13, 25, .97)),
-      var(--kaj-bg, none) center / cover no-repeat,
-      var(--kaj-navy);
-  }
-  body[data-path="login"]::after {
-    content: var(--kaj-tagline, "");
-    position: fixed;
-    inset-inline-start: 0;
-    /* 96px لا 56: مربّع «ثبّت التطبيق» (pwa.js) يثبت أسفل الزاوية اليسرى
-     * بارتفاع ~52px، وهي في الإنجليزية زاوية اللوح — فكان يصطدم بالسطر. */
-    bottom: 96px;
-    z-index: 1;
-    box-sizing: border-box;
-    width: calc(var(--kaj-panel-w) - (var(--kaj-pad) * 2));
-    margin-inline: var(--kaj-pad);
-    padding-inline-start: 18px;
-    border-inline-start: 3px solid var(--kaj-gold);
-    color: #fff;
-    font-size: clamp(18px, 1.5vw, 24px);
-    font-weight: 600;
-    line-height: 1.5;
-    text-wrap: balance;
     pointer-events: none;
+    background: var(--kaj-bg, none) center / contain no-repeat;
+    -webkit-mask-image: radial-gradient(circle closest-side, #000 89.9%, transparent 90.7%);
+    mask-image: radial-gradient(circle closest-side, #000 89.9%, transparent 90.7%);
   }
 }
 
-/* ════════════ الشاشات الصغيرة ════════════ */
+/* ════════════ الشاشات الصغيرة والقصيرة ════════════ */
 @media (max-width: 575.98px) {
-  body[data-path="login"] .page_content > div {
-    padding: 24px 20px 32px;
+  body[data-path="login"] {
+    --kaj-page-pad-x: 16px;
+    --kaj-card-pad-x: 24px;
+    --kaj-card-pad-y: 28px;
   }
 }
-/* شاشة قصيرة: أي حاسوب محمول بتكبير 150% */
+/* شاشة قصيرة: أي حاسوب محمول بتكبير 150% (نافذته نحو 1260×590) */
 @media (max-height: 700px) {
-  body[data-path="login"] .page_content > div {
-    padding-block: 20px;
+  body[data-path="login"] {
+    --kaj-page-pad-y: 12px;
+    --kaj-card-pad-y: 28px;
+    --kaj-switch-space: 60px;
   }
   body[data-path="login"] .login-content.page-card {
-    gap: 24px;
+    gap: 22px;
   }
   body[data-path="login"] .page-card-head {
     gap: 14px;
@@ -545,19 +564,18 @@ html[dir="rtl"] body[data-path="login"] #kaj-install-fab {
     height: 40px !important;
   }
 }
-
-/* شاشة قصيرة جداً: لابتوب 1366×768 بتكبير 125% نافذته نحو 1093×510.
- * الحقول تنزل إلى 44px — حدّ Apple HIG الأدنى — فلا تُضحّى بقابلية اللمس
- * أكثر من اللازم، والبقية تُضغط حتى يتّسع الدخول بلا تمرير. */
-@media (max-height: 560px) {
+/* شاشة قصيرة جداً: لابتوب 1366×768 بتكبير 125% نافذته نحو 1093×510، وهاتف
+ * صغير يشارك فيه المبدّل البطاقة عمودها. الحقول تنزل إلى 44px — حدّ
+ * Apple HIG الأدنى — فلا تُضحّى بقابلية اللمس أكثر من اللازم. */
+@media (max-height: 560px), (max-width: 1023.98px) and (max-height: 600px) {
   body[data-path="login"] {
     --kaj-field-h: 44px;
-  }
-  body[data-path="login"] .page_content > div {
-    padding-block: 12px;
+    --kaj-page-pad-y: 8px;
+    --kaj-card-pad-y: 18px;
+    --kaj-switch-space: 56px;
   }
   body[data-path="login"] .login-content.page-card {
-    gap: 16px;
+    gap: 14px;
   }
   body[data-path="login"] .page-card-head {
     gap: 10px;
@@ -576,9 +594,7 @@ html[dir="rtl"] body[data-path="login"] #kaj-install-fab {
   body[data-path="login"] .page-card-head .page-card-head-text {
     gap: 4px;
   }
-  body[data-path="login"] .page-card form {
-    gap: 12px;
-  }
+  body[data-path="login"] .page-card form,
   body[data-path="login"] .page-card .page-card-body {
     gap: 12px;
   }

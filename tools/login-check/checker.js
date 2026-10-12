@@ -168,65 +168,69 @@
       if (Math.abs(startEdge - fe) > 1.5) F('ALIGN-H4', 'العنوان لا يبدأ من حافة الحقل');
     }
 
-    // ٨) اللوح لا يتقاطع مع البطاقة، ويظهر/يختفي بحسب العرض
+    // ٨) مربّع الشعار (::before ثابت): يظهر من 1024px فقط، داخل النافذة،
+    //    ولا يتقاطع مع البطاقة.
     const pb = getComputedStyle(document.body, '::before');
     const panelOn = pb.content !== 'none' && pb.position === 'fixed';
     info.panel = panelOn;
-    if (vw >= 1024 && !panelOn) F('PANEL', 'اللوح غائب عند ' + vw);
-    if (vw < 1024 && panelOn) F('PANEL', 'اللوح ظاهر عند ' + vw);
-    if (panelOn) {
-      const pw = px(pb.width);
-      const cr = rect(card);
-      const inPanel = rtl ? cr.right > vw - pw + .5 : cr.left < pw - .5;
-      if (inPanel) F('PANEL-OVERLAP', 'البطاقة تتقاطع مع اللوح');
-    }
-    // تصادم سطر الشعار (::after ثابت) مع أي عنصر ثابت آخر — مربّع «ثبّت التطبيق»
-    if (panelOn) {
-      const pa = getComputedStyle(document.body, '::after');
-      if (pa.position === 'fixed' && pa.content && pa.content !== 'none' && pa.content !== 'normal') {
-        const h = px(pa.height), w = px(pa.width), b = px(pa.bottom), m = px(pa.marginInlineStart);
-        const t = vh - b - h, bt = vh - b;
-        const l = rtl ? vw - m - w : m, rr = l + w;
-        info.tagline = Math.round(l) + ',' + Math.round(t) + ' ' + Math.round(w) + 'x' + Math.round(h);
-        [...document.body.querySelectorAll('*')].forEach(e => {
-          const cs = getComputedStyle(e);
-          if (cs.position !== 'fixed' || !shown(e) || e.id === 'khat-lang-switch') return;
-          const o = rect(e);
-          if (!(rr < o.left || l > o.right || bt < o.top || t > o.bottom))
-            F('TAGLINE-COLLISION', 'يصطدم بـ' + (e.id || e.className.toString().slice(0, 30) || e.tagName));
-        });
-      }
-    }
-    // البطاقة داخل النافذة أفقياً
+    if (vw >= 1024 && !panelOn) F('PANEL', 'الشعار غائب عند ' + vw);
+    if (vw < 1024 && panelOn) F('PANEL', 'الشعار ظاهر عند ' + vw);
     const cr = rect(card);
-    if (cr.left < -.5 || cr.right > vw + .5) F('CARD-OUT', Math.round(cr.left) + '..' + Math.round(cr.right));
-
-    // ٩) مبدّل اللغة لا يغطّي عنصراً تفاعلياً ويقع على جهة النموذج
-    const sw2 = document.getElementById('khat-lang-switch');
-    if (sw2) {
-      const r = rect(sw2);
-      if (panelOn) {
-        const onPanel = rtl ? r.left > vw - px(pb.width) : r.right < px(pb.width);
-        if (onPanel) F('SWITCH-ON-PANEL', 'مبدّل اللغة فوق لوح الهوية');
-      }
+    let art = null;
+    if (panelOn) {
+      const w = px(pb.width), h = px(pb.height), t = px(pb.top), l = px(pb.left);
+      art = {left: l, right: l + w, top: t, bottom: t + h};
+      info.art = Math.round(l) + ',' + Math.round(t) + ' ' + Math.round(w) + 'x' + Math.round(h);
+      if (art.left < -.5 || art.right > vw + .5 || art.top < -.5 || art.bottom > vh + .5)
+        F('ART-OUT', 'الشعار خارج النافذة: ' + info.art);
+      if (w < 240) F('ART-SMALL', 'ضلع الشعار ' + Math.round(w) + 'px');
+      if (!(cr.right < art.left || cr.left > art.right || cr.bottom < art.top || cr.top > art.bottom))
+        F('PANEL-OVERLAP', 'البطاقة تتقاطع مع الشعار');
+      // الشعار في نصف البداية والبطاقة في نصف النهاية
+      const artMid = (art.left + art.right) / 2, cardMid = (cr.left + cr.right) / 2;
+      if (rtl ? !(artMid > vw / 2 && cardMid < vw / 2) : !(artMid < vw / 2 && cardMid > vw / 2))
+        F('SIDES', 'الشعار والبطاقة ليسا في جهتيهما');
+      // التكوين متماثل: مركزا الشعار والبطاقة على بُعد واحد من منتصف الشاشة
+      const dArt = Math.abs(artMid - vw / 2), dCard = Math.abs(cardMid - vw / 2);
+      if (Math.abs(dArt - dCard) > 2) F('SYMMETRY', 'الشعار على ' + Math.round(dArt) + 'px والبطاقة على ' + Math.round(dCard) + 'px من المنتصف');
+      // متجاوران لا متلاصقان ولا متباعدان إلى الأطراف
+      const gap = rtl ? art.left - cr.right : cr.left - art.right;
+      info.gap = Math.round(gap);
+      if (gap < 40) F('GAP-TIGHT', 'المسافة بين الشعار والبطاقة ' + Math.round(gap) + 'px');
+      if (gap > 260) F('GAP-WIDE', 'المسافة بين الشعار والبطاقة ' + Math.round(gap) + 'px');
+      // الشعار لا يطغى على البطاقة
+      const ratio2 = (art.right - art.left) / cr.width;
+      if (ratio2 > 1.25) F('ART-DOMINANT', 'الشعار ' + ratio2.toFixed(2) + '× عرض البطاقة');
     }
+    // البطاقة داخل النافذة، وغير مقصوصة من الأعلى
+    if (cr.left < -.5 || cr.right > vw + .5) F('CARD-OUT', Math.round(cr.left) + '..' + Math.round(cr.right));
+    if (cr.top + scrollY < -.5) F('CARD-CLIPPED', 'أعلى البطاقة عند ' + Math.round(cr.top + scrollY));
+    info.cardTop = Math.round(cr.top); info.cardBottom = Math.round(cr.bottom);
 
-    // تغطية أي عنصر ثابت (مبدّل اللغة، مربّع «ثبّت التطبيق»…) لعنصر تفاعلي
+    // ٩) العناصر الثابتة (مبدّل اللغة، «ثبّت التطبيق»…): لا تركب البطاقة،
+    //    ولا الشعار، ولا تغطّي عنصراً تفاعلياً، ولا تخرج عن النافذة.
     const fixedEls = [...document.body.querySelectorAll('*')].filter(e => {
       if (e === document.body || e.closest('section')) return false;
       const cs = getComputedStyle(e);
       return cs.position === 'fixed' && shown(e);
     });
-    info.fixed = fixedEls.map(e => e.id || e.className.toString().slice(0, 20) || e.tagName);
+    const hit = (a, b) => !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
+    const nameOf = e => e.id || e.className.toString().slice(0, 20) || e.tagName;
+    info.fixed = fixedEls.map(nameOf);
     fixedEls.forEach(fx => {
       const r = rect(fx);
+      if (r.left < -.5 || r.right > vw + .5 || r.top < -.5 || r.bottom > vh + .5) F('FIXED-OUT', nameOf(fx) + ' خارج النافذة');
+      if (hit(r, cr)) F('FIXED-ON-CARD', nameOf(fx) + ' يركب البطاقة');
+      if (art && hit(r, art)) F('FIXED-ON-ART', nameOf(fx) + ' يركب الشعار');
       section.querySelectorAll('input, button, a.btn, a[href]').forEach(e => {
         if (!shown(e)) return;
-        const o = rect(e);
-        if (!(r.right < o.left || r.left > o.right || r.bottom < o.top || r.top > o.bottom))
-          F('FIXED-OVERLAP', (fx.id || fx.className.toString().slice(0, 20)) + ' يغطّي ' + (e.id || e.className.toString().slice(0, 30) || e.tagName));
+        if (hit(r, rect(e))) F('FIXED-OVERLAP', nameOf(fx) + ' يغطّي ' + (e.id || e.className.toString().slice(0, 30) || e.tagName));
       });
     });
+    // العناصر الثابتة لا تركب بعضها
+    for (let i = 0; i < fixedEls.length; i++)
+      for (let j = i + 1; j < fixedEls.length; j++)
+        if (hit(rect(fixedEls[i]), rect(fixedEls[j]))) F('FIXED-ON-FIXED', nameOf(fixedEls[i]) + ' × ' + nameOf(fixedEls[j]));
 
     // ١٠) الخط الأساسي
     info.h4Font = h4 ? px(getComputedStyle(h4).fontSize) : null;

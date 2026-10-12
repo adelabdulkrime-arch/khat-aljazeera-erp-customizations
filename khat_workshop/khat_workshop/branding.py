@@ -9,10 +9,9 @@ setup/workshop_branding) and this hook paints it on.
 update_website_context runs server-side for every web page, so the style is
 injected only when the page being rendered is /login — nothing is added to any
 other page. The design itself is public/css/login.css; this module only
-inlines it and hands it the per-site values (background image, tagline).
+inlines it and hands it the one per-site value, the brand artwork.
 """
 
-import json
 import os
 import re
 from urllib.parse import quote
@@ -92,34 +91,33 @@ def _login_css():
     return css
 
 
-def _css_string(text):
-    """Quote text as a CSS string. JSON string syntax is a subset of CSS's;
-    "</" is broken up so the value can never close the <style> element."""
-    return json.dumps(text, ensure_ascii=False).replace("</", "<\\/")
-
-
 def inject_login_background(context):
     # Gate strictly to the login route. context.path is the www page name.
     path = (context.get("path") or "").strip("/")
     if path != "login":
         return
 
-    # Per-site values the stylesheet reads as custom properties: the uploaded
-    # background and the panel's tagline. The tagline goes through _() so it
-    # follows the language force_site_language() has just fixed for this
-    # render — it is the one piece of copy in the page that is ours, not the
-    # framework's.
+    # The one per-site value the stylesheet needs: the brand artwork, read as
+    # a custom property. Uploaded filenames routinely carry spaces and Arabic
+    # characters, so percent-encode (keeping the slashes) to make the url()
+    # unambiguous.
     bg = frappe.db.get_single_value("Website Settings", "login_background")
-    # Uploaded filenames routinely carry spaces and Arabic characters.
-    # Percent-encode (keeping the slashes) so the url() is unambiguous.
-    bg_value = 'url("%s")' % quote(bg, safe="/") if bg else "none"
-    tagline = frappe._("إدارة الورشة بدقّة، من الاستلام إلى التسليم.")
+    url = quote(bg, safe="/") if bg else ""
+    bg_value = 'url("%s")' % url if url else "none"
+
+    # The artwork is a CSS background on a pseudo-element, which the browser
+    # only discovers after parsing the stylesheet. Preloading starts the
+    # request with the document instead. The media query matches the one that
+    # shows the artwork, so phones — where it is hidden — never download it.
+    preload = (
+        '<link rel="preload" as="image" href="%s" media="(min-width: 1024px)">' % url
+        if url else ""
+    )
 
     style = (
-        '<style id="kaj-login-vars">body[data-path="login"]{'
-        "--kaj-bg:%s;--kaj-tagline:%s;}</style>"
+        '%s<style id="kaj-login-vars">body[data-path="login"]{--kaj-bg:%s;}</style>'
         '<style id="kaj-login-css">%s</style>'
-    ) % (bg_value, _css_string(tagline), _login_css())
+    ) % (preload, bg_value, _login_css())
 
     # head_html is what base.html renders inside <head>; append so we never
     # clobber anything another hook may have set.
