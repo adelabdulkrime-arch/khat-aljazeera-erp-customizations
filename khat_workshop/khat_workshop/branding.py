@@ -180,31 +180,55 @@ def inject_login_background(context):
         'background:rgba(15,23,42,.58);'
         '-webkit-backdrop-filter:blur(14px) saturate(130%);'
         'backdrop-filter:blur(14px) saturate(130%);}}'
-        # ── النصوص ──
+        # ── النصوص: سُلّم طباعي واضح ──
+        # قِيست النسخة السابقة فكانت 23/14.5/14/14/14 — أربعة عناصر بحجم
+        # واحد تقريباً، فلا تدرّج يقود العين ولا تعرف أين تبدأ. السُّلّم هنا
+        # بنِسَب واضحة (26 / 15 / 13 / 15.5) فيُقرأ ترتيب الأهمية فوراً.
         'body[data-path="login"] .for-login h4,'
         'body[data-path="login"] .page-card h4,'
         'body[data-path="login"] h1,body[data-path="login"] h3{'
-        'color:#fff !important;font-weight:700;letter-spacing:.2px;'
-        'font-size:clamp(19px,1.5vw,23px);}'
+        'color:#fff !important;font-weight:700;letter-spacing:-.2px;'
+        'font-size:clamp(22px,1.8vw,26px);line-height:1.25;margin-bottom:6px;}'
         # التباين: كان rgba(.62) ≈ 3.4:1 على الزجاج — دون عتبة WCAG AA.
-        # رُفع إلى .88 للعنوان الفرعي و.80 للتسميات، وكلاهما يتجاوز 4.5:1.
         'body[data-path="login"] .page-card-subtitle,'
         'body[data-path="login"] .text-muted{'
-        'color:rgba(255,255,255,.88) !important;'
-        'font-size:clamp(13.5px,.95vw,14.5px);}'
+        'color:rgba(255,255,255,.72) !important;'
+        'font-size:clamp(14px,1vw,15px);line-height:1.5;font-weight:400;}'
+        # التسميات أصغر وأخفّ من النص داخل الحقل: التسمية دليل، والقيمة
+        # المكتوبة هي المحتوى — فلا يتساويان كما كانا (14 و14).
         'body[data-path="login"] label,'
-        'body[data-path="login"] .form-label{color:rgba(255,255,255,.80) !important;'
-        'font-size:clamp(13.5px,.95vw,14.5px);font-weight:500;}'
+        'body[data-path="login"] .form-label{color:rgba(255,255,255,.72) !important;'
+        'font-size:13px !important;font-weight:600;letter-spacing:.1px;'
+        'margin-bottom:7px !important;text-transform:none;}'
         # ── الحقول ──
+        # الارتفاع كان 28px فعلياً رغم أن قاعدتنا تطلب 42: login.bundle.css
+        # يفرض height:28px بمحدِّد أخصّ منها
+        # (.for-login .page-card .page-card-body input[type="text"])
+        # فيفوز بالأخصّية لا بالترتيب. قِيس في المتصفح لا بالتخمين.
+        #
+        # و28px دون أي معيار لمس: Apple HIG تشترط 44px وMaterial 48px.
+        # فنّي يعمل على جهاز لوحي بإصبعه كان سيُخطئ الحقل. 48px يلبّي
+        # المعيارين، ويُطابَق بمحدِّد يحاكي أخصّية الإطار ويزيد عليها.
         'body[data-path="login"] .form-control,'
         'body[data-path="login"] input[type="text"],'
         'body[data-path="login"] input[type="email"],'
-        'body[data-path="login"] input[type="password"]{'
-        'background:rgba(255,255,255,.09) !important;'
-        'border:1px solid rgba(255,255,255,.20) !important;'
-        'color:#fff !important;border-radius:10px;'
-        'height:clamp(42px,3.2vw,46px);font-size:clamp(14px,1vw,15px);'
-        'transition:border-color .16s,background .16s;}'
+        'body[data-path="login"] input[type="password"],'
+        'body[data-path="login"] .for-login .page-card .page-card-body input[type="text"],'
+        'body[data-path="login"] .for-login .page-card .page-card-body input[type="email"],'
+        'body[data-path="login"] .for-login .page-card .page-card-body input[type="password"],'
+        'body[data-path="login"] .for-forgot .page-card .page-card-body input[type="email"],'
+        'body[data-path="login"] .for-login-with-email-link .page-card .page-card-body input[type="email"]{'
+        'background:rgba(255,255,255,.07) !important;'
+        'border:1px solid rgba(255,255,255,.16) !important;'
+        'color:#fff !important;border-radius:12px !important;'
+        'height:48px !important;min-height:48px !important;'
+        'padding:0 44px 0 16px !important;'
+        'font-size:15px !important;line-height:48px !important;'
+        'box-sizing:border-box !important;'
+        'transition:border-color .18s,background .18s,box-shadow .18s;}'
+        # الحشو يتبع الاتجاه: الأيقونة على جانب البداية في الاتجاهين.
+        '[dir="ltr"] body[data-path="login"] .page-card-body input{'
+        'padding:0 16px 0 44px !important;}'
         'body[data-path="login"] .form-control:focus,'
         'body[data-path="login"] input:focus{'
         'background:rgba(255,255,255,.14) !important;'
@@ -220,15 +244,21 @@ def inject_login_background(context):
         # ── الأزرار ──
         # .btn-login يحمل صنف btn-default في هذا الإصدار، فلا بدّ من ترتيبه
         # قبل قاعدة btn-default الثانوية وإلا أعادته رمادياً.
+        # الوزن كان يُقاس 420 رغم طلبنا 700: قاعدة الإطار تفرض وزناً
+        # متغيّراً (--text-bold ≈ 420) بمحدِّد أخصّ، فالزر الأساسي يبدو
+        # باهتاً بلا سلطة بصرية. !important يحسمها، و650 وزن أمر واضح
+        # دون أن يثقل كما 700 على خط عربي.
         'body[data-path="login"] .btn-primary,'
         'body[data-path="login"] .btn-login.btn-default,'
+        'body[data-path="login"] .for-login .page-card .page-card-actions .btn-login,'
         'body[data-path="login"] .btn-login{'
         'background:var(--kaj-red) !important;border:0 !important;'
-        'color:#fff !important;border-radius:10px;'
-        'height:clamp(44px,3.4vw,48px);font-weight:700;'
-        'font-size:clamp(14.5px,1.05vw,15.5px);'
-        'box-shadow:0 6px 18px rgba(165,40,52,.38);'
-        'transition:filter .16s,transform .16s;}'
+        'color:#fff !important;border-radius:12px !important;'
+        'height:50px !important;min-height:50px !important;'
+        'font-weight:650 !important;letter-spacing:.2px;'
+        'font-size:15.5px !important;'
+        'box-shadow:0 8px 22px rgba(165,40,52,.32);'
+        'transition:filter .18s,transform .18s,box-shadow .18s;}'
         'body[data-path="login"] .btn-login:hover{filter:brightness(1.12);'
         'transform:translateY(-1px);}'
         # «الدخول برابط البريد» مسار ثانوي: بلا خلفية ولا إطار فلا يزاحم
@@ -261,21 +291,39 @@ def inject_login_background(context):
         'body[data-path="login"] .forgot-password-message{'
         'text-align:start !important;margin:8px 0 0;}'
         'body[data-path="login"] .forgot-password-message a{'
-        'font-size:clamp(13px,.95vw,14px);font-weight:600;}'
+        'font-size:13px;font-weight:600;transition:color .15s;}'
+        'body[data-path="login"] .forgot-password-message a:hover{'
+        'color:#ffc94d !important;}'
+        # أيقونات الحقل تتوسّط رأسياً مع ارتفاع 48px بدل أن تعلق أعلاه.
+        'body[data-path="login"] .email-field,'
+        'body[data-path="login"] .password-field{position:relative;}'
+        'body[data-path="login"] .field-icon,'
+        'body[data-path="login"] .toggle-password{'
+        'position:absolute;top:50% !important;transform:translateY(-50%);'
+        'margin:0 !important;}'
+        'body[data-path="login"] .field-icon{inset-inline-start:15px;}'
+        'body[data-path="login"] .toggle-password{'
+        'inset-inline-end:15px;cursor:pointer;}'
         'body[data-path="login"] .page-card-actions{text-align:start !important;}'
         'body[data-path="login"] .btn-login{margin-top:14px;}'
         'body[data-path="login"] .btn-login + .btn,'
         'body[data-path="login"] .btn-login + a.btn{margin-top:8px;}'
         # ── خانة «تذكّرني» ──
         # تُحقن بجافاسكربت (login_lang.js) لأن Frappe لا يصدرها في الصفحة.
+        # «تذكّرني» خيار ثانوي، و«نسيت كلمة المرور» مخرج من مأزق. كان
+        # المربّع الملوّن يسحب العين أكثر من الرابط — وهذا عكس أهميتهما.
+        # فخُفّف لونه ووزنه، ورُفع الرابط وزناً أدناه.
         'body[data-path="login"] .kaj-remember{'
         'display:flex;align-items:center;gap:8px;'
-        'font-size:clamp(13px,.95vw,14px);color:rgba(255,255,255,.80);'
-        'cursor:pointer;user-select:none;}'
+        'font-size:13px;color:rgba(255,255,255,.60);'
+        'font-weight:400;cursor:pointer;user-select:none;'
+        'transition:color .15s;}'
         'body[data-path="login"] .kaj-remember input{'
-        'width:16px;height:16px;margin:0;accent-color:var(--kaj-red);'
+        'width:15px;height:15px;margin:0;accent-color:rgba(255,255,255,.45);'
         'cursor:pointer;flex:0 0 auto;}'
-        'body[data-path="login"] .kaj-remember:hover{color:#fff;}'
+        'body[data-path="login"] .kaj-remember:hover{color:rgba(255,255,255,.85);}'
+        'body[data-path="login"] .kaj-remember input:checked{'
+        'accent-color:var(--kaj-red);}'
         # صفّ واحد يجمع «تذكّرني» و«نسيت كلمة المرور» على طرفي البطاقة.
         'body[data-path="login"] .kaj-authrow{'
         'display:flex;align-items:center;justify-content:space-between;'
@@ -283,18 +331,24 @@ def inject_login_background(context):
         'body[data-path="login"] .kaj-authrow .kaj-remember,'
         'body[data-path="login"] .kaj-authrow .forgot-password-message{margin:0;}'
         # ── الشعار داخل البطاقة ──
-        # كان 72px فيُقرأ كزخرفة صغيرة؛ تكبيره يجعله عنوان البطاقة.
+        # كان 104px على بطاقة 400px — أي 26% من عرضها، بينما المعتاد في
+        # واجهات الدخول 10-15%. بهذا الحجم يسرق الشعار الانتباه من الفعل
+        # المطلوب (تسجيل الدخول) ويصير الزر ثاني ما تراه العين لا أوّله.
+        # 56px ≈ 14% يُبقيه حاضراً دون أن يزاحم.
         'body[data-path="login"] .for-login img,'
         'body[data-path="login"] .page-card img,'
         'body[data-path="login"] .app-logo{'
-        'width:clamp(84px,7vw,104px) !important;height:auto !important;'
-        'max-height:none;display:block;margin:0 auto 16px;'
-        'border-radius:18px;border:0;'
-        # ظل خفيف يفصل الشعار عن الزجاج خلفه بدل أن يسبح فيه.
-        'box-shadow:0 8px 24px rgba(0,0,0,.35);}'
+        'width:56px !important;height:56px !important;'
+        'max-height:none;display:block;margin:0 auto 18px;'
+        'border-radius:14px;border:0;object-fit:contain;'
+        'box-shadow:0 4px 14px rgba(0,0,0,.28);}'
         'body[data-path="login"] .page-card-head,'
         'body[data-path="login"] .page-card-head-text{text-align:center;}'
-        'body[data-path="login"] .form-group{margin-bottom:14px !important;}'
+        # إيقاع رأسي منتظم: المسافة بين المجموعات أكبر من المسافة داخلها،
+        # فتُقرأ كل تسمية مع حقلها كوحدة واحدة.
+        'body[data-path="login"] .form-group{margin-bottom:18px !important;}'
+        'body[data-path="login"] .page-card-head{margin-bottom:26px !important;}'
+        'body[data-path="login"] .page-card-actions{margin-top:22px !important;}'
         # ── الهاتف ──
         # البطاقة تملأ الشاشة فلا يُرى الشعار خلفها؛ نكتفي بتدرّج الهوية
         # ونوقف الضبابية — مكلفة على معالجات الهواتف بلا فائدة هنا.
