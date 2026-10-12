@@ -57,6 +57,32 @@
     "Please enter your email, we'll send you password reset link":
       'أدخل بريدك الإلكتروني وسنرسل لك رابط إعادة تعيين كلمة السر',
     'Invalid login credentials': 'بيانات دخول غير صحيحة',
+    // رسائل login.js في الإطار كاملةً، مستخرَجة من مصدره
+    // (templates/includes/login/login.js) لا مرصودة واحدة واحدة: دخول فاشل
+    // حقيقي أظهر «Invalid credentials, try again.» بالإنجليزية في واجهة
+    // عربية، وهي غير النص أعلاه — فالترجمة بالرصد تترك دائماً رسالة لم
+    // يصادفها أحد بعد.
+    'Invalid credentials, try again.': 'بيانات الدخول غير صحيحة، حاول مرة أخرى.',
+    'Both login and password required': 'اسم المستخدم وكلمة السر مطلوبان',
+    'Invalid Email.': 'بريد إلكتروني غير صالح.',
+    'Please enter a valid email.': 'أدخل بريداً إلكترونياً صالحاً.',
+    'Full name is required.': 'الاسم الكامل مطلوب.',
+    'Oops! Something went wrong.': 'عذراً، حدث خطأ ما.',
+    'Something went wrong.': 'حدث خطأ ما.',
+    'Too many requests. Please try again later.': 'محاولات كثيرة. حاول لاحقاً.',
+    'Verifying...': 'جارٍ التحقق…',
+    'Success': 'تم بنجاح',
+    'Send login link': 'إرسال رابط الدخول',
+    'Create Account': 'إنشاء حساب',
+    'Verification': 'التحقق',
+    'Verification Code': 'رمز التحقق',
+    'Enter Code displayed in OTP App.': 'أدخل الرمز الظاهر في تطبيق المصادقة.',
+    'OTP setup using OTP App was not completed. Please contact Administrator.':
+      'لم يكتمل إعداد تطبيق المصادقة. تواصل مع مدير النظام.',
+    'SMS was not sent. Please contact Administrator.':
+      'لم تُرسل الرسالة النصية. تواصل مع مدير النظام.',
+    'Verification code email not sent. Please contact Administrator.':
+      'لم يُرسل بريد رمز التحقق. تواصل مع مدير النظام.',
     'Email': 'البريد الإلكتروني',
     'Sent': 'أُرسل',
     'Submit': 'إرسال',
