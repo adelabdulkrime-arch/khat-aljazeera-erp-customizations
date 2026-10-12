@@ -130,12 +130,22 @@ def inject_login_background(context):
         'background-color:var(--kaj-navy);'
         'background-image:'
         # توهّج لوني خفيف يكسر صمت اللون الواحد — أسلوب 2026 السائد.
-        'radial-gradient(900px 600px at 20% 15%,rgba(198,40,57,.22),transparent 60%),'
-        'radial-gradient(700px 500px at 85% 85%,rgba(240,180,41,.10),transparent 60%),'
-        'linear-gradient(145deg,rgba(16,26,46,.86),rgba(11,18,32,.94)),'
+        'radial-gradient(900px 600px at 20% 15%,rgba(198,40,57,.26),transparent 62%),'
+        'radial-gradient(700px 500px at 85% 85%,rgba(240,180,41,.12),transparent 62%),'
+        # التعتيم كان .86/.94 فبدا اللوح شاحباً والشعار يغلب عليه — قِيس
+        # على الشاشة. القيم هنا تجعل الصورة نسيجاً خلفياً تحت لون الهوية
+        # لا صورةً معروضة، فيبقى اللوح كتلة داكنة متماسكة تقابل البياض.
+        'linear-gradient(145deg,rgba(16,26,46,.93),rgba(8,14,26,.97)),'
         'url("__KAJ_BG__");'
         'background-size:auto,auto,auto,cover;'
         'background-position:center;background-repeat:no-repeat;}'
+        # حدّ ضوئي رفيع عند التقاء اللوحين: يفصل الداكن عن الأبيض بخطّ
+        # مقصود بدل تماسٍّ حادّ، وهو تفصيل يميّز الواجهات المصقولة.
+        'body[data-path="login"] .for-login::after{'
+        'content:"";position:absolute;inset-block:0;'
+        'inset-inline-start:50%;width:1px;z-index:2;pointer-events:none;'
+        'background:linear-gradient(180deg,transparent,rgba(240,180,41,.30),transparent);}'
+        'body[data-path="login"] .for-login{position:relative;}'
 
         # ════ جانب النموذج ════
         'body[data-path="login"] .login-content.page-card{'
@@ -232,16 +242,24 @@ def inject_login_background(context):
         # المربّع الملوّن يسحب العين أكثر من الرابط، عكس أهميتهما.
         'body[data-path="login"] .kaj-authrow{'
         'display:flex;align-items:center;justify-content:space-between;'
-        'gap:var(--s3);flex-wrap:wrap;margin:0 0 var(--s6) !important;}'
+        'gap:var(--s3);flex-wrap:nowrap;width:100%;'
+        'margin:0 0 var(--s6) !important;}'
         'body[data-path="login"] .kaj-remember{'
         'display:flex;align-items:center;gap:var(--s2);'
         'font-size:13.5px;cursor:pointer;user-select:none;'
         'transition:color .15s;}'
         'body[data-path="login"] .kaj-remember{color:#6b7689;}'
         'body[data-path="login"] .kaj-remember:hover{color:var(--kaj-ink);}'
-        'body[data-path="login"] .kaj-remember input{'
-        'width:16px;height:16px;margin:0;flex:0 0 auto;cursor:pointer;'
-        'accent-color:var(--kaj-red);}'
+        # قاعدة الحقول أعلاه تطال كل input داخل .page-card-body بـ!important،
+        # فنفخت مربّع الاختيار إلى 64×48 — قِيس في المتصفح. الاستثناء هنا
+        # يعيده لحجمه، وبنفس قوة !important وإلا خسر.
+        'body[data-path="login"] .kaj-remember input[type="checkbox"],'
+        'body[data-path="login"] .page-card-body input[type="checkbox"]{'
+        'width:16px !important;min-width:16px !important;'
+        'height:16px !important;min-height:16px !important;'
+        'padding:0 !important;margin:0 !important;flex:0 0 auto;'
+        'cursor:pointer;accent-color:var(--kaj-red);'
+        'border-radius:4px !important;}'
         'body[data-path="login"] .forgot-password-message{'
         'margin:0 !important;text-align:start !important;}'
         'body[data-path="login"] .forgot-password-message a{'
