@@ -1,0 +1,616 @@
+/* صفحة الدخول — خط الجزيرة.
+ *
+ * يُحقن هذا الملف مضمَّناً في <head> صفحة /login وحدها (انظر branding.py)،
+ * فلا طلب إضافي ولا ومضة بلا تنسيق، ولا يتأثر بتخزين المتصفح.
+ *
+ * ── المنهج ──
+ * ١) رموز التصميم أولاً. الإطار نفسه يبني صفحة الدخول من متغيّرات
+ *    (--ink-gray-*, --outline-gray-2, --bg-color…)، فنعيد تعريفها بدل أن
+ *    نحارب كل خاصية. ما يبقى بعدها هو الهيكل فقط.
+ * ٢) خصائص منطقية فقط (inline-start/end). الإطار يخدم حزمتين، واحدة
+ *    للعربية وواحدة للإنجليزية، بقيم فيزيائية معكوسة (left/right)؛
+ *    وأي قيمة فيزيائية عندنا تنكسر في إحداهما.
+ * ٣) المسافات بـgap على الحاويات كما يفعل الإطار، لا هوامش. الهوامش كانت
+ *    تتراكم فوق gap الإطار فتصنع فراغات لا يقصدها أحد.
+ * ٤) !important حيث يفرض الإطار قيماً صلبة بمحدِّد أخصّ (height:28px،
+ *    padding:6px 8px…) فقط، وكل قاعدة تخصّ عنصراً بعينه فلا تتنازع
+ *    قواعدنا فيما بينها.
+ * ٥) لا اعتماد على صنف القسم (.for-login). الأقسام الأربعة — الدخول
+ *    ونسيت كلمة المرور والدخول برابط والتسجيل — أقسام منفصلة يبدّل بينها
+ *    جافاسكربت، والتنسيق المرتبط بـ.for-login كان يسقط في ثلاثة منها.
+ */
+
+/* ════════════ الرموز ════════════ */
+body[data-path="login"] {
+  color-scheme: light;
+
+  --kaj-red: #c62839;
+  --kaj-red-hover: #a81f2f;
+  --kaj-red-ring: rgba(198, 40, 57, .16);
+  --kaj-gold: #f0b429;
+  --kaj-navy: #0f1a2e;
+
+  --kaj-surface: #ffffff;
+  --kaj-field: #f5f7fa;
+  --kaj-field-hover: #edf0f5;
+  --kaj-border: #cfd7e3;
+  --kaj-border-hover: #aab5c7;
+  --kaj-ink: #0b1220;
+  --kaj-ink-2: #36435a;
+  --kaj-ink-3: #54617a;
+  --kaj-ink-4: #5f6b82;
+  --kaj-link: #c62839;
+  --kaj-err-bg: #fdf1f2;
+  --kaj-err-ink: #a3202f;
+  --kaj-err-border: #f3c1c7;
+
+  --kaj-r: 12px;
+  --kaj-field-h: 48px;
+  --kaj-panel-w: 50vw;
+  --kaj-pad: 56px;
+
+  /* رموز الإطار: يستهلكها هو لا نحن */
+  --bg-color: var(--kaj-surface);
+  --text-color: var(--kaj-ink);
+  --heading-color: var(--kaj-ink);
+  --surface-white: var(--kaj-field);
+  --outline-gray-2: var(--kaj-border);
+  --outline-red-2: var(--kaj-red);
+  --ink-gray-4: var(--kaj-ink-4);
+  --ink-gray-5: var(--kaj-ink-2);
+  --ink-gray-6: var(--kaj-ink-3);
+  --red-50: var(--kaj-err-bg);
+  --ink-red-4: var(--kaj-err-ink);
+  --checkbox-gradient: linear-gradient(var(--kaj-red), var(--kaj-red));
+}
+
+@media (prefers-color-scheme: dark) {
+  body[data-path="login"] {
+    color-scheme: dark;
+    --kaj-surface: #0e1626;
+    --kaj-field: #16213a;
+    --kaj-field-hover: #1a2744;
+    --kaj-border: #2c3a5a;
+    --kaj-border-hover: #435275;
+    --kaj-ink: #f1f4fa;
+    --kaj-ink-2: #cbd3e3;
+    --kaj-ink-3: #a9b4c9;
+    --kaj-ink-4: #97a3bb;
+    --kaj-link: #ff8794;
+    --kaj-red-ring: rgba(255, 135, 148, .22);
+    --kaj-err-bg: rgba(198, 40, 57, .16);
+    --kaj-err-ink: #ffb0b8;
+    --kaj-err-border: rgba(255, 135, 148, .35);
+  }
+}
+
+/* ════════════ الصفحة ════════════ */
+body[data-path="login"] {
+  background: var(--kaj-surface);
+  color: var(--kaj-ink);
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* الغلاف يصير عموداً يملأ الشاشة، والنموذج يتوسّطه رأسياً بهامش auto:
+ * عند قصر الشاشة يبدأ المحتوى من الأعلى ويُمرَّر، فلا يُقصّ زر الدخول
+ * (justify-content:center وحده يقصّ الطرفين معاً بلا إمكان وصول). */
+body[data-path="login"] .page-content-wrapper {
+  padding: 0 !important;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+body[data-path="login"] .page-breadcrumbs,
+body[data-path="login"] .page-header-wrapper {
+  display: none;
+}
+body[data-path="login"] main.container {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+body[data-path="login"] .page_content {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+body[data-path="login"] .page_content > div {
+  margin-block: auto;
+  width: 100%;
+  padding: 32px 24px;
+  box-sizing: border-box;
+}
+
+/* ════════════ البطاقة ════════════ */
+body[data-path="login"] .login-content.page-card {
+  width: 100%;
+  max-width: 400px;
+  min-height: 0 !important;
+  margin-inline: auto;
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0;
+  box-shadow: none !important;
+  gap: 32px;
+}
+
+body[data-path="login"] .page-card-head {
+  gap: 20px;
+  text-align: start;
+  align-items: flex-start;
+}
+body[data-path="login"] .page-card-head img.app-logo {
+  width: 44px !important;
+  height: 44px !important;
+  max-height: none !important;
+  border-radius: 11px;
+  object-fit: contain;
+  box-shadow: 0 1px 3px rgba(11, 18, 32, .18);
+}
+body[data-path="login"] .page-card-head .page-card-head-text {
+  gap: 8px;
+}
+body[data-path="login"] .page-card-head h4 {
+  font-size: clamp(1.5rem, 1.3rem + .5vw, 1.75rem);
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  color: var(--kaj-ink);
+  text-wrap: balance;
+}
+body[data-path="login"] .page-card-head .page-card-subtitle {
+  font-size: 15px;
+  line-height: 1.55;
+  letter-spacing: 0;
+  color: var(--kaj-ink-3);
+}
+
+/* المسافات: gap فقط */
+body[data-path="login"] .page-card form {
+  gap: 20px;
+}
+body[data-path="login"] .page-card .page-card-body {
+  gap: 20px;
+}
+body[data-path="login"] .page-card .form-group {
+  gap: 8px;
+}
+body[data-path="login"] .page-card .page-card-actions {
+  gap: 12px;
+}
+
+/* ════════════ الحقول ════════════ */
+body[data-path="login"] .page-card .form-label {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0;
+  color: var(--kaj-ink-2);
+}
+
+body[data-path="login"] .page-card-body input:not([type="checkbox"]) {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  height: var(--kaj-field-h) !important;
+  min-height: var(--kaj-field-h) !important;
+  padding-block: 0 !important;
+  padding-inline: 14px !important;
+  /* 16px: أقلّ منها يُكبّر iOS الصفحة عند التركيز على الحقل */
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  line-height: normal !important;
+  letter-spacing: 0 !important;
+  color: var(--kaj-ink) !important;
+  background: var(--kaj-field) !important;
+  border: 1.5px solid var(--kaj-border) !important;
+  border-radius: var(--kaj-r) !important;
+  box-shadow: none !important;
+  outline: 0;
+  transition: border-color .15s, background-color .15s, box-shadow .15s;
+}
+body[data-path="login"] .page-card-body .email-field input:not([type="checkbox"]),
+body[data-path="login"] .page-card-body .password-field input:not([type="checkbox"]) {
+  padding-inline-start: 46px !important;
+}
+body[data-path="login"] .page-card-body .password-field input:not([type="checkbox"]) {
+  padding-inline-end: 46px !important;
+}
+body[data-path="login"] .page-card-body input:not([type="checkbox"])::placeholder {
+  color: var(--kaj-ink-4) !important;
+  opacity: 1;
+}
+body[data-path="login"] .page-card-body input:not([type="checkbox"]):hover {
+  border-color: var(--kaj-border-hover) !important;
+}
+body[data-path="login"] .page-card-body input:not([type="checkbox"]):focus {
+  background: var(--kaj-surface) !important;
+  border-color: var(--kaj-red) !important;
+  box-shadow: 0 0 0 4px var(--kaj-red-ring) !important;
+}
+/* حالة الخطأ تتفوّق على المرور والتركيز، وإلا اختفت إشارة الخطأ */
+body[data-path="login"] .page-card-body .form-group.invalid input:not([type="checkbox"]),
+body[data-path="login"] .page-card-body.invalid input:not([type="checkbox"]) {
+  border-color: var(--kaj-red) !important;
+}
+/* الملء التلقائي في كروم يرسم خلفية صفراء/زرقاء فوق تصميمنا */
+body[data-path="login"] .page-card-body input:-webkit-autofill {
+  -webkit-text-fill-color: var(--kaj-ink);
+  -webkit-box-shadow: 0 0 0 100px var(--kaj-field) inset !important;
+  caret-color: var(--kaj-ink);
+}
+
+/* الأيقونات: الأولى عند بداية الحقل والعين عند نهايته، في الاتجاهين.
+ * الإطار يثبّتها بـright/left فيزيائياً؛ نُلغي الجهتين بالمنطقي. */
+body[data-path="login"] .page-card-body .field-icon,
+body[data-path="login"] .page-card-body .toggle-password {
+  position: absolute !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 18px;
+  height: 18px;
+  z-index: 2;
+}
+body[data-path="login"] .page-card-body .field-icon {
+  inset-inline-start: 14px !important;
+  inset-inline-end: auto !important;
+  pointer-events: none;
+}
+body[data-path="login"] .page-card-body .toggle-password {
+  inset-inline-end: 14px !important;
+  inset-inline-start: auto !important;
+  cursor: pointer;
+  fill: var(--kaj-ink-4);
+  transition: fill .15s;
+}
+body[data-path="login"] .page-card-body .toggle-password:hover {
+  fill: var(--kaj-ink);
+}
+
+/* ════════════ صفّ «تذكّرني» و«نسيت كلمة المرور» ════════════ */
+body[data-path="login"] .kaj-authrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+body[data-path="login"] .kaj-remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.3;
+  color: var(--kaj-ink-3);
+  cursor: pointer;
+  user-select: none;
+}
+body[data-path="login"] .kaj-remember input[type="checkbox"] {
+  flex: 0 0 auto;
+  margin: 0;
+  cursor: pointer;
+}
+body[data-path="login"] .page-card .forgot-password-message {
+  margin: 0;
+  text-align: start;
+  align-self: auto;
+}
+body[data-path="login"] .page-card .forgot-password-message > *,
+body[data-path="login"] .page-card .forgot-password-message a {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--kaj-link);
+  text-decoration: none;
+}
+body[data-path="login"] .page-card .forgot-password-message a:hover {
+  text-decoration: underline;
+}
+
+/* ════════════ الأزرار ════════════ */
+/* الأساسي: زر الدخول، وإرسال نموذج «نسيت كلمة المرور»، وإرسال الدخول برابط.
+ * ثلاثة أزرار بأصناف مختلفة (.btn-login / .btn-forgot) لكن دوراً واحداً. */
+body[data-path="login"] .page-card .btn-login:not(.btn-login-option),
+body[data-path="login"] .page-card .btn-forgot {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100% !important;
+  height: var(--kaj-field-h) !important;
+  min-height: var(--kaj-field-h);
+  padding: 0 20px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  letter-spacing: 0 !important;
+  color: #fff !important;
+  background: var(--kaj-red) !important;
+  border: 0 !important;
+  border-radius: var(--kaj-r) !important;
+  box-shadow: 0 1px 2px rgba(11, 18, 32, .16), inset 0 1px 0 rgba(255, 255, 255, .14) !important;
+  transition: background-color .15s, box-shadow .15s, transform .1s;
+}
+body[data-path="login"] .page-card .btn-login:not(.btn-login-option):hover,
+body[data-path="login"] .page-card .btn-forgot:hover {
+  background: var(--kaj-red-hover) !important;
+  box-shadow: 0 6px 16px rgba(198, 40, 57, .28), inset 0 1px 0 rgba(255, 255, 255, .14) !important;
+}
+body[data-path="login"] .page-card .btn-login:not(.btn-login-option):active,
+body[data-path="login"] .page-card .btn-forgot:active {
+  transform: translateY(1px);
+}
+/* معطَّل: الإطار يعطّل زر «إرسال الرابط» حتى يُكتب البريد، ويعطّل زر الدخول
+ * لحظة الإرسال. سطح محايد بنصّ خافت هو الاصطلاح المفهوم لـ«ليس الآن».
+ * أحمر بشفافية كان يُقرأ كزرّ باهت مكسور لا كزرّ ينتظر إدخالاً. */
+body[data-path="login"] .page-card .btn-login:not(.btn-login-option):disabled,
+body[data-path="login"] .page-card .btn-forgot:disabled {
+  background: var(--kaj-field-hover) !important;
+  color: var(--kaj-ink-4) !important;
+  border: 1.5px solid var(--kaj-border) !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* الثانوي: مسار بديل لا يزاحم الأساسي — إطار بلا تعبئة */
+body[data-path="login"] .page-card .btn-login-option {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100% !important;
+  height: var(--kaj-field-h);
+  padding: 0 20px !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  letter-spacing: 0 !important;
+  color: var(--kaj-ink-2) !important;
+  background: transparent !important;
+  border: 1.5px solid var(--kaj-border) !important;
+  border-radius: var(--kaj-r) !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+  transition: background-color .15s, border-color .15s;
+}
+body[data-path="login"] .page-card .btn-login-option:hover {
+  background: var(--kaj-field) !important;
+  border-color: var(--kaj-border-hover) !important;
+}
+
+body[data-path="login"] .page-card .btn:focus-visible,
+body[data-path="login"] .page-card a:focus-visible {
+  outline: 3px solid var(--kaj-red-ring);
+  outline-offset: 2px;
+}
+
+/* روابط نصّية عادية (العودة لتسجيل الدخول، إعادة الإرسال) */
+body[data-path="login"] .page-card a:not(.btn):not([class]) {
+  color: var(--kaj-link);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+body[data-path="login"] .page-card a:not(.btn):not([class]):hover {
+  text-decoration: underline;
+}
+
+/* ════════════ الرسائل ════════════ */
+body[data-path="login"] .page-card .login-error-banner,
+body[data-path="login"] .page-card .login-success-banner {
+  padding: 12px 14px;
+  border-radius: var(--kaj-r);
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+body[data-path="login"] .page-card .login-error-banner {
+  color: var(--kaj-err-ink);
+  background: var(--kaj-err-bg);
+  border: 1px solid var(--kaj-err-border);
+}
+body[data-path="login"] .page-card .field-error {
+  font-size: 13px;
+  letter-spacing: 0;
+}
+
+/* ════════════ مبدّل اللغة ════════════ */
+/* دائماً في زاوية جهة النموذج، أي الطرف المقابل للوح الهوية. الملف الذي
+ * ينشئه (login_lang.js) يضبط direction:ltr على العنصر نفسه، فيُحلّ
+ * inset-inline-end إلى اليمين دائماً، وهو في العربية فوق اللوح لا النموذج.
+ * فنثبّته فيزيائياً بحسب اتجاه الصفحة لا اتجاه العنصر. */
+html[dir="rtl"] body[data-path="login"] #khat-lang-switch {
+  left: 16px;
+  right: auto;
+}
+html[dir="ltr"] body[data-path="login"] #khat-lang-switch {
+  right: 16px;
+  left: auto;
+}
+body[data-path="login"] #khat-lang-switch {
+  background: var(--kaj-surface);
+  border: 1px solid var(--kaj-border);
+  box-shadow: 0 1px 2px rgba(11, 18, 32, .06);
+  backdrop-filter: none;
+}
+body[data-path="login"] #khat-lang-switch .khat-lang-btn {
+  color: var(--kaj-ink-3);
+}
+body[data-path="login"] #khat-lang-switch .khat-lang-btn:hover {
+  color: var(--kaj-ink);
+  background: var(--kaj-field);
+}
+body[data-path="login"] #khat-lang-switch .khat-lang-btn.is-active {
+  color: var(--kaj-link);
+  font-weight: 700;
+}
+body[data-path="login"] #khat-lang-switch .khat-lang-sep {
+  color: var(--kaj-border);
+}
+
+/* ════════════ مربّع «ثبّت التطبيق» ════════════
+ * pwa.js يثبّته فيزيائياً أسفل اليسار (left:18px) في كل الصفحات. في العربية
+ * هذه جهة النموذج فيغطّي زرّ «الدخول برابط البريد» — رُصد في الواجهة عند
+ * ظهور رسالة خطأ. على سطح المكتب ننقله إلى جهة لوح الهوية حيث لا عناصر
+ * تفاعلية. وتحت 1024px لا لوح ولا موضع خالٍ من الأزرار، فيُخفى في صفحة
+ * الدخول وحدها؛ ويبقى ظاهراً داخل النظام بعد الدخول (pwa.js محمّل هناك). */
+html[dir="rtl"] body[data-path="login"] #kaj-install-fab {
+  left: auto;
+  right: 18px;
+}
+@media (max-width: 1023.98px) {
+  body[data-path="login"] #kaj-install-fab {
+    display: none !important;
+  }
+}
+
+/* ════════════ لوح الهوية ════════════
+ * يظهر من 1024px فما فوق. تحت ذلك تأخذ الصورة نصف شاشة صغيرة من حقول
+ * يحتاجها المستخدم، والهوية تبقى في الشعار. ثابت بـposition:fixed فلا
+ * يتحرّك مع تمرير النموذج، ولا يرتبط بأي صنف قسم. */
+@media (min-width: 1024px) {
+  body[data-path="login"] .page-content-wrapper {
+    margin-inline-start: var(--kaj-panel-w);
+  }
+  body[data-path="login"]::before {
+    content: "";
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: var(--kaj-panel-w);
+    z-index: 0;
+    background:
+      radial-gradient(70% 55% at 18% 10%, rgba(198, 40, 57, .32), transparent 62%),
+      radial-gradient(60% 50% at 90% 94%, rgba(240, 180, 41, .14), transparent 62%),
+      linear-gradient(160deg, rgba(15, 26, 46, .93), rgba(7, 13, 25, .97)),
+      var(--kaj-bg, none) center / cover no-repeat,
+      var(--kaj-navy);
+  }
+  body[data-path="login"]::after {
+    content: var(--kaj-tagline, "");
+    position: fixed;
+    inset-inline-start: 0;
+    /* 96px لا 56: مربّع «ثبّت التطبيق» (pwa.js) يثبت أسفل الزاوية اليسرى
+     * بارتفاع ~52px، وهي في الإنجليزية زاوية اللوح — فكان يصطدم بالسطر. */
+    bottom: 96px;
+    z-index: 1;
+    box-sizing: border-box;
+    width: calc(var(--kaj-panel-w) - (var(--kaj-pad) * 2));
+    margin-inline: var(--kaj-pad);
+    padding-inline-start: 18px;
+    border-inline-start: 3px solid var(--kaj-gold);
+    color: #fff;
+    font-size: clamp(18px, 1.5vw, 24px);
+    font-weight: 600;
+    line-height: 1.5;
+    text-wrap: balance;
+    pointer-events: none;
+  }
+}
+
+/* ════════════ الشاشات الصغيرة ════════════ */
+@media (max-width: 575.98px) {
+  body[data-path="login"] .page_content > div {
+    padding: 24px 20px 32px;
+  }
+}
+/* شاشة قصيرة: أي حاسوب محمول بتكبير 150% */
+@media (max-height: 700px) {
+  body[data-path="login"] .page_content > div {
+    padding-block: 20px;
+  }
+  body[data-path="login"] .login-content.page-card {
+    gap: 24px;
+  }
+  body[data-path="login"] .page-card-head {
+    gap: 14px;
+  }
+  body[data-path="login"] .page-card form,
+  body[data-path="login"] .page-card .page-card-body {
+    gap: 16px;
+  }
+  body[data-path="login"] .page-card-head img.app-logo {
+    width: 40px !important;
+    height: 40px !important;
+  }
+}
+
+/* شاشة قصيرة جداً: لابتوب 1366×768 بتكبير 125% نافذته نحو 1093×510.
+ * الحقول تنزل إلى 44px — حدّ Apple HIG الأدنى — فلا تُضحّى بقابلية اللمس
+ * أكثر من اللازم، والبقية تُضغط حتى يتّسع الدخول بلا تمرير. */
+@media (max-height: 560px) {
+  body[data-path="login"] {
+    --kaj-field-h: 44px;
+  }
+  body[data-path="login"] .page_content > div {
+    padding-block: 12px;
+  }
+  body[data-path="login"] .login-content.page-card {
+    gap: 16px;
+  }
+  body[data-path="login"] .page-card-head {
+    gap: 10px;
+  }
+  body[data-path="login"] .page-card-head img.app-logo {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 8px;
+  }
+  body[data-path="login"] .page-card-head h4 {
+    font-size: 1.375rem;
+  }
+  body[data-path="login"] .page-card-head .page-card-subtitle {
+    font-size: 14px;
+  }
+  body[data-path="login"] .page-card-head .page-card-head-text {
+    gap: 4px;
+  }
+  body[data-path="login"] .page-card form {
+    gap: 12px;
+  }
+  body[data-path="login"] .page-card .page-card-body {
+    gap: 12px;
+  }
+  body[data-path="login"] .page-card .form-group {
+    gap: 6px;
+  }
+  body[data-path="login"] .page-card .page-card-actions {
+    gap: 10px;
+  }
+}
+
+/* ════════════ حركة ════════════ */
+/* دخول لطيف للمحتوى. على عناصر البطاقة لا البطاقة نفسها: الإطار يضع على
+ * البطاقة animation:wiggle عند فشل الدخول فيستبدل أي حركة عليها. */
+@media (prefers-reduced-motion: no-preference) {
+  body[data-path="login"] .login-content.page-card > * {
+    animation: kaj-rise .42s cubic-bezier(.2, .8, .2, 1) both;
+  }
+  body[data-path="login"] .login-content.page-card > *:nth-child(2) {
+    animation-delay: .05s;
+  }
+  body[data-path="login"] .login-content.page-card > *:nth-child(3) {
+    animation-delay: .1s;
+  }
+}
+@keyframes kaj-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-path="login"] * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

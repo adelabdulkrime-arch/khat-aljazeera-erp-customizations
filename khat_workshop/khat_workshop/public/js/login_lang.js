@@ -81,9 +81,27 @@
     'jane@example.com': 'name@khataljazeera.om',
   };
 
+  // المثال الإرشادي في حقل البريد يُستبدل في اللغتين: jane@example.com
+  // مثال عام من الإطار يظهر في نظام ورشة بعينها، وبقاؤه في الإنجليزية
+  // وحدها كان يترك واجهة نصفها هوية وطنية ونصفها قالب جاهز.
+  function swapExamplePlaceholder() {
+    document.querySelectorAll('input[placeholder]').forEach(function (el) {
+      if ((el.placeholder || '').trim() === 'jane@example.com') {
+        el.placeholder = 'name@khataljazeera.om';
+      }
+    });
+  }
+
   function translateLate() {
-    // عربية فقط — في الإنجليزية النص الأصلي هو الصحيح.
-    if (currentLang() !== 'ar') return;
+    swapExamplePlaceholder();
+
+    if (currentLang() !== 'ar') {
+      // العنوان في الإنجليزية «Sign In» وزرّه «Continue» — الزرّ يسجّل الدخول
+      // فيُسمّى كذلك، وهو ما فعلناه في العربية («تسجيل الدخول» بدل «متابعة»).
+      var submit = document.querySelector('.form-login .btn-login');
+      if (submit && submit.textContent.trim() === 'Continue') submit.textContent = 'Sign in';
+      return;
+    }
 
     // الوسوم موسّعة: رسائل مثل "Please check your email" و"Email is required"
     // تظهر في div/p/span لا في label أو button، فالاقتصار على الثلاثة الأولى
@@ -142,7 +160,8 @@
     box.checked = saved === null ? true : saved === '1';
 
     var txt = document.createElement('span');
-    txt.textContent = 'تذكّرني';
+    // بلغة الصفحة: كانت عربية ثابتة فتظهر وسط واجهة إنجليزية.
+    txt.textContent = currentLang() === 'ar' ? 'تذكّرني' : 'Remember me';
 
     label.appendChild(box);
     label.appendChild(txt);
