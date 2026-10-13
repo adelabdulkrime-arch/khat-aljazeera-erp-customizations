@@ -198,7 +198,20 @@ FORMS = {
         # وقسم مطويّ في تبويب خاص به يُظهر التبويب فارغاً.
         "props": {
             "sec_inspection": {"collapsible": 0},
-            "sec_costing": {"collapsible": 0},
+            "sec_costing": {"collapsible": 0, "print_hide": 1},
+            # التكلفة والعمولات وهامش الربح لا تُطبع بأي قالب: البطاقة ورقة
+            # تُسلَّم للعميل. القالب الافتراضي لا يعرضها أصلاً
+            # (setup/workshop_operations_print_format)؛ هذا للقالب القياسي.
+            "labour_hours": {"print_hide": 1},
+            "labour_cost": {"print_hide": 1},
+            "commission_total": {"print_hide": 1},
+            "parts_cost": {"print_hide": 1},
+            "total_cost": {"print_hide": 1},
+            "gross_profit": {"print_hide": 1},
+            "margin_pct": {"print_hide": 1},
+            "technicians": {"print_hide": 1},
+            "stock_entry": {"print_hide": 1},
+            "naming_series": {"print_hide": 1},
         },
         "layout": [
             ("tab_reception", "Tab Break", "الاستلام"),

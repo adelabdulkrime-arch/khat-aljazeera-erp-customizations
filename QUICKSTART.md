@@ -43,7 +43,7 @@
    ```bash
    docker run --rm -v <اسم-المشروع>_sites:/s alpine cat /s/init.log
    ```
-7. لما تخلص: `https://<SITE_NAME>` — `Administrator` بكلمة `ADMIN_PASSWORD`، أو حساب العميل التجريبي `Admin` بكلمة `DEMO_USER_PASSWORD`.
+7. لما تخلص: `https://<SITE_NAME>` — مالك النظام `onemedia` (الحساب الجذري) بكلمة `ADMIN_PASSWORD`، أو مدير الورشة `Admin` بكلمة `DEMO_USER_PASSWORD` (كلمة أولى فقط؛ ما يُغيَّر من الواجهة يبقى).
 
 ---
 

@@ -31,8 +31,8 @@
 
 | الحساب | المستخدم |
 |---|---|
-| المدير العام | `Administrator` |
-| الحساب التجريبي | `admin@khataljazeera.om` |
+| مالك النظام (الحساب الجذري) | `onemedia` |
+| مدير الورشة | `Admin` أو `khataljazeera@gmail.com` |
 
 كلمات المرور في ملف `.env`.
 

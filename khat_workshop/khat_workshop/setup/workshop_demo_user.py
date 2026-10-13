@@ -1,47 +1,25 @@
 # -*- coding: utf-8 -*-
-"""The client's trial account — runs the workshop, does not own the system.
+"""حسابا النظام: مالكه التقني، ومدير الورشة.
 
-The owner needs an account to hand the client so they can walk the real cycle:
-receive a vehicle, open a Work Card, issue parts, invoice, take payment. That
-is emphatically NOT the Administrator login, which can also drop doctypes and
-rewrite settings.
+النظام يُسلَّم بحسابين لا غير:
 
-WHAT IT GETS
-  مدير الورشة / Workshop Manager is the core role: create and submit Work
-  Cards, vehicles, packages, quotations, invoices, payments — the whole cycle.
+  ١. مالك النظام — «onemedia». هو الحساب الجذري المدمج في Frappe (سجلّه
+     Administrator): يملك كل شيء بحكم تعريفه، ولا يُحذف ولا يُعطَّل، ولا يراه
+     في قائمة المستخدمين ولا يعدّله أحد غيره — الإطار نفسه يمنع ذلك
+     (core/doctype/user/user.py) لا كود نكتبه نحن. لا يُنشأ هنا حساب جديد؛
+     يُعطى الحساب الجذري اسمه وبريده واسم دخوله.
 
-  The four EXTRA_ROLES exist for one reason: the dashboards are role-gated
-  allow-lists on their Custom HTML Blocks, and Workshop Manager appears in only
-  one of them. Without these, four of the seven dashboards render empty and the
-  trial looks broken rather than restricted. Each extra role also carries the
-  permission set workshop_permissions already granted it, so the lists behind
-  each dashboard actually open. Trim this tuple to narrow the account; the
-  dashboards it unlocks go dark in step.
+  ٢. مدير الورشة — حساب العميل، بالمسمّيين «مدير النظام» و«مدير الورشة»:
+     صلاحيات التشغيل كلها وإدارة المستخدمين والإعدادات. يظهر باسم
+     «Administrator» كما طُلب. لا يدخل بهذه الكلمة: هي معرّف الحساب الجذري،
+     والإطار يبحث عن الداخل بالمعرّف قبل اسم الدخول. يدخل ببريده أو بـ«Admin».
 
-  System Manager is deliberately withheld. That is the line between "runs the
-  workshop" and "can delete the workshop".
+كلمتا المرور ليستا هنا ولا في أي ملف بالمستودع. كلمة مرور حساب العميل تُقرأ
+من متغيّر البيئة DEMO_USER_PASSWORD **عند إنشاء الحساب فقط**. كانت تُكتب عند
+كل نشر، فأي كلمة يغيّرها العميل من الواجهة تعود إلى القديمة مع أول تحديث.
 
-LOGIN NAME
-  Frappe keys a User by e-mail — "Admin" alone cannot be the record's ID. So the
-  record is EMAIL and USERNAME goes in the username field.
-
-  That field is inert on its own: Frappe only looks a login up by username when
-  System Settings.allow_login_using_user_name is on, so the flag is switched on
-  here too. It is site-wide by nature — every user gains the option to sign in
-  by username; nobody loses the ability to sign in by e-mail, which stays the
-  guaranteed route for this account if the flag is ever turned back off.
-
-PASSWORD
-  Read from the DEMO_USER_PASSWORD environment variable, never from this file:
-  a literal here would sit in git history for good, which is exactly how the
-  previous admin password leaked. Set it in Coolify (see .env.example) — the value
-  is re-asserted on every migrate, so changing it there rotates the password on
-  the next deploy, and a password the client changes in the UI is reverted by
-  it. That is the intended contract for a shared trial account.
-
-  With the variable unset the account is still created and repaired, but with no
-  password, so it simply cannot be logged into. Failing closed beats baking in a
-  guessable default.
+الحساب السابق admin@khataljazeera.om يُعاد تسميته إلى البريد الجديد — لا يُحذف
+وينشأ غيره — فيبقى ما أنشأه من مستندات منسوباً إليه.
 """
 
 import os
@@ -49,131 +27,130 @@ import os
 import frappe
 from frappe.utils.password import update_password
 
-# The User record's ID. Frappe requires an address; nobody needs to read mail
-# here, so no welcome mail is sent and the domain need not resolve.
-EMAIL = "admin@khataljazeera.om"
+# ── مالك النظام: الحساب الجذري ──
+ROOT = "Administrator"
+OWNER_NAME = "onemedia"
+OWNER_EMAIL = "onemedia2a@gmail.com"
+OWNER_USERNAME = "onemedia"
 
-# What the client actually types at the login screen.
+# ── مدير الورشة ──
+EMAIL = "khataljazeera@gmail.com"
+OLD_EMAIL = "admin@khataljazeera.om"
 USERNAME = "Admin"
-FIRST_NAME = "مدير الورشة"
+FIRST_NAME = "Administrator"
+ROLES = ("مدير النظام", "Workshop Manager")
+# مسمّيات كانت تُمنح للحساب التجريبي ليرى اللوحات؛ «مدير النظام» يغني عنها
+LEGACY_ROLES = ("محاسب", "مدير المستودع", "مسؤول المشتريات", "مندوب مبيعات")
 
 PASSWORD_ENV = "DEMO_USER_PASSWORD"
 
-CORE_ROLE = "Workshop Manager"
 
-# Purely to unlock the remaining role-gated dashboards — see the module note.
-#   محاسب              → لوحة المحاسبة
-#   مدير المستودع      → لوحة المخزون
-#   مسؤول المشتريات    → لوحة المشتريات
-#   مندوب مبيعات       → لوحة المبيعات
-EXTRA_ROLES = ("محاسب", "مدير المستودع", "مسؤول المشتريات", "مندوب مبيعات")
-
-ROLES = (CORE_ROLE,) + EXTRA_ROLES
+def _username_free(username, user):
+    holder = frappe.db.get_value("User", {"username": username}, "name")
+    return not holder or holder == user
 
 
-def _ensure_user():
-    """Fetch the trial user, creating it on first run. Returns (doc, created)."""
+def _owner():
+    """اسم مالك النظام وبريده واسم دخوله على الحساب الجذري."""
+    doc = frappe.get_doc("User", ROOT)
+    changed = []
+    if doc.first_name != OWNER_NAME or doc.last_name:
+        doc.first_name, doc.last_name = OWNER_NAME, None
+        changed.append("name")
+    if doc.email != OWNER_EMAIL:
+        doc.email = OWNER_EMAIL
+        changed.append("email")
+    if doc.username != OWNER_USERNAME and _username_free(OWNER_USERNAME, ROOT):
+        doc.username = OWNER_USERNAME
+        changed.append("username")
+    if changed:
+        doc.flags.ignore_permissions = True
+        doc.save()
+    return changed
+
+
+def _client():
+    """حساب مدير الورشة: يُعاد تسمية السابق، أو يُنشأ. يعيد (المستند، ما جرى)."""
+    notes = []
+    if frappe.db.exists("User", OLD_EMAIL) and not frappe.db.exists("User", EMAIL):
+        frappe.rename_doc("User", OLD_EMAIL, EMAIL, force=True)
+        notes.append("renamed")
+
     if frappe.db.exists("User", EMAIL):
-        return frappe.get_doc("User", EMAIL), False
+        doc = frappe.get_doc("User", EMAIL)
+    else:
+        doc = frappe.get_doc({
+            "doctype": "User", "email": EMAIL, "first_name": FIRST_NAME,
+            "enabled": 1, "user_type": "System User", "language": "ar",
+            "send_welcome_email": 0,
+        })
+        doc.flags.no_welcome_mail = True
+        doc.insert(ignore_permissions=True)
+        notes.append("created")
 
-    doc = frappe.get_doc({
-        "doctype": "User",
-        "email": EMAIL,
-        "first_name": FIRST_NAME,
-        "enabled": 1,
-        "user_type": "System User",
-        # Explicit, so the account does not depend on workshop_language running
-        # after this step to pick up Arabic.
-        "language": "ar",
-        "send_welcome_email": 0,
-    })
-    # send_welcome_email alone is not always honoured on insert; the flag is.
-    doc.flags.no_welcome_mail = True
-    doc.insert(ignore_permissions=True)
-    return doc, True
+    changed = False
+    if not doc.enabled:
+        doc.enabled, changed = 1, True
+    if doc.email != EMAIL:
+        doc.email, changed = EMAIL, True
+    if doc.first_name != FIRST_NAME or doc.last_name:
+        doc.first_name, doc.last_name, changed = FIRST_NAME, None, True
+    if doc.username != USERNAME and _username_free(USERNAME, doc.name):
+        doc.username, changed = USERNAME, True
+
+    held = {row.role for row in doc.roles}
+    for role in ROLES:
+        if role not in held and frappe.db.exists("Role", role):
+            doc.append("roles", {"role": role})
+            changed = True
+    for row in list(doc.roles):
+        if row.role in LEGACY_ROLES:
+            doc.remove(row)
+            changed = True
+
+    if changed:
+        doc.flags.ignore_permissions = True
+        doc.flags.no_welcome_mail = True
+        doc.save()
+        notes.append("updated")
+    return doc, notes
 
 
-def _username_is_free(doc):
-    """True when USERNAME is unclaimed, or already claimed by this very user."""
-    holder = frappe.db.get_value("User", {"username": USERNAME}, "name")
-    return not holder or holder == doc.name
+def _has_password(user):
+    return bool(frappe.db.sql(
+        "select 1 from `__Auth` where doctype = 'User' and name = %s and fieldname = 'password'",
+        user))
+
+
+def _initial_password(user):
+    """كلمة مرور أولى من البيئة لحساب بلا كلمة مرور. لا تُمسّ كلمة قائمة."""
+    if _has_password(user):
+        return "kept"
+    pwd = (os.environ.get(PASSWORD_ENV) or "").strip()
+    if not pwd:
+        return "MISSING"
+    # update_password يتجاوز فحص قوة كلمة المرور، وهو ما ينتهي إليه مسار
+    # «إعادة التعيين» في الإطار نفسه
+    update_password(user, pwd)
+    return "set"
 
 
 def _allow_username_login():
-    """Turn on username logins, without which USERNAME is a decorative field.
-
-    Guarded by has_field rather than set blind: if the flag is ever renamed
-    upstream, the account should still be created — losing the short login name
-    is a nuisance, losing the whole step is not.
-    """
+    """«Admin» و«onemedia» اسما دخول؛ بلا هذا الإعداد لا يُقبل إلا البريد."""
     field = "allow_login_using_user_name"
     if not frappe.get_meta("System Settings").has_field(field):
-        print("DEMO USER warn: System Settings.%s absent — %r can only sign in "
-              "with the e-mail address" % (field, USERNAME))
         return False
-
-    if frappe.db.get_single_value("System Settings", field):
-        return True
-
-    frappe.db.set_single_value("System Settings", field, 1)
-    return True
-
-
-def _set_password():
-    """Write the password straight to __Auth, bypassing the strength policy.
-
-    Going through the User doc would run password_strength_test, which rejects
-    anything as short as the client's chosen password. update_password is the
-    same call Frappe's own reset flow ends in, so the stored hash is identical
-    in kind — only the policy check is skipped.
-    """
-    pwd = (os.environ.get(PASSWORD_ENV) or "").strip()
-    if not pwd:
-        print("DEMO USER warn: %s unset — account left without a password "
-              "and cannot be logged into" % PASSWORD_ENV)
-        return False
-
-    update_password(EMAIL, pwd)
+    if not frappe.db.get_single_value("System Settings", field):
+        frappe.db.set_single_value("System Settings", field, 1)
     return True
 
 
 def execute():
-    doc, created = _ensure_user()
-
-    changed = []
-
-    # A disabled account is the one state that silently defeats the whole point.
-    if not doc.enabled:
-        doc.enabled = 1
-        changed.append("enabled")
-
-    if doc.username != USERNAME:
-        if _username_is_free(doc):
-            doc.username = USERNAME
-            changed.append("username")
-        else:
-            print("DEMO USER warn: username %r is held by another user — "
-                  "this account can only be reached by e-mail" % USERNAME)
-
-    held = {d.role for d in doc.roles}
-    added = []
-    for role in ROLES:
-        if role in held:
-            continue
-        if not frappe.db.exists("Role", role):
-            print("DEMO USER warn: role %r absent — skipped" % role)
-            continue
-        doc.append("roles", {"role": role})
-        added.append(role)
-
-    if changed or added:
-        doc.save(ignore_permissions=True)
-
+    owner = _owner()
+    doc, notes = _client()
     by_username = _allow_username_login()
-    has_password = _set_password()
-
+    password = _initial_password(doc.name)
     frappe.db.commit()
-    print("DEMO USER %s created=%s roles_added=%d password=%s login_name=%s"
-          % (EMAIL, created, len(added),
-             "set" if has_password else "MISSING",
-             USERNAME if by_username else "e-mail only"))
+    print("ACCOUNTS owner=%s(%s) client=%s(%s) password=%s login_names=%s"
+          % (OWNER_NAME, "+".join(owner) or "ok", doc.name, "+".join(notes) or "ok",
+             password, "on" if by_username else "off"))

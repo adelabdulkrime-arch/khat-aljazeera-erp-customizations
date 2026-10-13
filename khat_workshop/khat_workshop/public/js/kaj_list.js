@@ -276,7 +276,7 @@
 					const roles = r.message || {};
 					cells.each((i, el) => {
 						const mine = roles[el.getAttribute('data-name')];
-						if (mine === '*') { el.textContent = tr('كل الأدوار', 'All roles'); return; }
+						if (mine === '*') { el.textContent = tr('مالك النظام', 'System owner'); return; }
 						const list = (mine || []).map((role) => __(role));
 						// ثلاثة أدوار تكفي للتعرّف؛ الباقي عدداً، والقائمة كاملة في التلميح
 						el.textContent = list.length > 3

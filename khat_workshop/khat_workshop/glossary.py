@@ -1020,12 +1020,36 @@ REPORT_LABELS = [
     ("Value Or Qty", "القيمة أو الكمية"),
 ]
 
+# ── قوالب الطباعة القياسية (أمر الشراء، إشعار التسليم…) ─────────────────────
+# تسمياتها مكتوبة في القالب بنقطتين في آخرها، فلا تطابق ترجمة الكلمة بدونهما.
+PRINT = [
+    ("Sub Total:", "المجموع:"),
+    ("Grand Total:", "الإجمالي:"),
+    ("In Words:", "المبلغ كتابةً:"),
+    ("Posting Date:", "التاريخ:"),
+    ("Order Date:", "تاريخ الأمر:"),
+    ("Delivery Date:", "تاريخ التسليم:"),
+    ("Required By:", "مطلوب بتاريخ:"),
+    ("Due By:", "تاريخ الاستحقاق:"),
+    ("Valid Till:", "صالح حتى:"),
+    ("Customer Name:", "العميل:"),
+    ("Supplier Name:", "المورد:"),
+    ("Supplier Address:", "عنوان المورد:"),
+    ("Address:", "العنوان:"),
+    ("Status:", "الحالة:"),
+    ("Quotation:", "عرض سعر:"),
+    ("Sales Order:", "أمر بيع:"),
+    ("Delivery Note:", "إشعار تسليم:"),
+    ("Purchase Order:", "أمر شراء:"),
+    ("Purchase Invoice:", "فاتورة مشتريات:"),
+]
+
 
 def entries():
     """كل المدخلات: (المصدر، العربية، السياق أو None)، بلا تكرار."""
     seen, out = set(), []
     for group in (DOCTYPES, REPORTS, WORKSPACES, CHROME, VALUES, MISC, FIELDS, HELP, MESSAGES, PASSWORD,
-                  REPORT_LABELS):
+                  REPORT_LABELS, PRINT):
         for row in group:
             source, arabic = row[0], row[1]
             context = row[2] if len(row) > 2 else None
