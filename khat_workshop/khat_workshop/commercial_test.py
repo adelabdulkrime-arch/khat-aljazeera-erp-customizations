@@ -38,16 +38,53 @@ def run():
     if not wc:
         print("no submitted Work Card to bill — run workflow_test first")
         return
-    card = frappe.get_doc("Work Card", wc[0].name)
+    src = frappe.get_doc("Work Card", wc[0].name)
+
+    # A priced card of its own, with a technician. Technicians and commission
+    # go on the DRAFT: a submitted card is locked (workshop_work_card_control),
+    # so this is the only moment they can be entered. This test used to append
+    # a technician to an already-submitted card, which the lock rightly
+    # refuses — the test had gone stale, and "technicians recorded" was
+    # asserted as `bool(...) or True`, i.e. it could not fail.
+    tech = frappe.db.get_value("Workshop Technician", {}, "name")
+    card = frappe.get_doc({
+        "doctype": "Work Card", "customer": src.customer, "vehicle": src.vehicle,
+        "service_line": src.service_line, "status": src.status,
+        "warehouse": src.warehouse,
+        "complaint": PREFIX + " — دورة تجارية", "no_visible_damage": 1,
+        "services": [{"service": "WS-MECH-001", "qty": 1, "rate": 100}],
+        "parts": [{"item": "SP-FLT-OIL", "part_name": "SP-FLT-OIL", "qty": 1, "rate": 4}],
+        "technicians": [{"technician": tech, "task": "تنفيذ الأعمال",
+                         "hours": 2, "commission": 5}] if tech else [],
+    })
+    card.insert(ignore_permissions=True)
+    card.submit()
+    card.reload()
+    # Committed here: the lock probe below rolls back its refused edit, and
+    # must not take the card with it.
+    frappe.db.commit()
     print("=== commercial test on %s (%s) ===" % (card.name, card.service_line))
 
-    # technicians + commission on the job card
-    if not card.technicians:
-        tech = frappe.db.get_value("Workshop Technician", {}, "name")
-        if tech:
-            card.append("technicians", {"technician": tech, "task": "تنفيذ الأعمال", "commission": 5})
-            card.save(ignore_permissions=True)
-    out.append(("technicians recorded", bool(card.technicians) or True))
+    out.append(("technicians recorded", len(card.technicians) == 1))
+    out.append(("card revenue = 104 (got %s)" % card.grand_total,
+                round(card.grand_total or 0, 3) == 104.0))
+    out.append(("commission counted as cost (got %s)" % card.commission_total,
+                round(card.commission_total or 0, 3) == 5.0))
+    out.append(("profit = revenue - cost (got %s)" % card.gross_profit,
+                round(card.gross_profit or 0, 3) == round(104.0 - (card.total_cost or 0), 3)))
+    out.append(("margin %% computed (got %s)" % card.margin_pct,
+                round(card.margin_pct or 0, 2)
+                == round((card.gross_profit or 0) / 104.0 * 100, 2)))
+
+    locked = False
+    try:
+        probe = frappe.get_doc("Work Card", card.name)
+        probe.services[0].rate = 1
+        probe.save(ignore_permissions=True)
+    except frappe.UpdateAfterSubmitError:
+        locked = True
+        frappe.db.rollback()
+    out.append(("submitted card refuses a price change", locked))
 
     tpl, taxes = _tax_rows(company)
     out.append(("default tax template found", bool(tpl)))

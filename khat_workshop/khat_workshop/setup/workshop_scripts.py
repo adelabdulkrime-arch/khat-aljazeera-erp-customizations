@@ -84,12 +84,41 @@ frappe.listview_settings['Customer Vehicle'] = {
 WORK_CARD_JS = r"""
 frappe.ui.form.on('Work Card Service', {
     qty: calc_service, rate: calc_service,
+    service: (frm, cdt, cdn) => fill_from_item(frm, cdt, cdn, 'service', 'description'),
     services_remove: (frm) => totals(frm),
 });
 frappe.ui.form.on('Work Card Part', {
-    qty: calc_part, rate: calc_part,
+    qty: (frm, cdt, cdn) => { calc_part(frm, cdt, cdn); warn_stock(locals[cdt][cdn]); },
+    rate: calc_part,
+    item: (frm, cdt, cdn) => fill_from_item(frm, cdt, cdn, 'item', 'part_name'),
     parts_remove: (frm) => totals(frm),
 });
+// اختيار خدمة أو قطعة يجلب اسمها وسعر بيعها من قائمة الأسعار، ورصيد القطعة
+// في مستودع البطاقة. السعر المجلوب يبقى قابلاً للتعديل في الصف.
+function fill_from_item(frm, cdt, cdn, item_field, name_field){
+    let r = locals[cdt][cdn];
+    if(!r[item_field]) return;
+    frappe.call({
+        method: 'khat_workshop.api.item_info',
+        args: { item: r[item_field], warehouse: frm.doc.warehouse },
+    }).then(res=>{
+        let m = res.message || {};
+        if(m.item_name && !r[name_field]) frappe.model.set_value(cdt, cdn, name_field, m.item_name);
+        if(m.rate) frappe.model.set_value(cdt, cdn, 'rate', m.rate);
+        if(!r.qty) frappe.model.set_value(cdt, cdn, 'qty', 1);
+        r.__available = m.available;
+        warn_stock(r);
+    });
+}
+function warn_stock(r){
+    if(r.__available === undefined || r.__available === null) return;
+    if((r.qty||0) > r.__available){
+        frappe.show_alert({
+            message: __('المتوفر من «{0}» في المستودع {1} فقط', [r.part_name || r.item, r.__available]),
+            indicator: 'orange',
+        }, 7);
+    }
+}
 function calc_service(frm, cdt, cdn){
     let r = locals[cdt][cdn];
     frappe.model.set_value(cdt, cdn, 'amount', (r.qty||0)*(r.rate||0));

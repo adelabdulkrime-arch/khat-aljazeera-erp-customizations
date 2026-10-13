@@ -98,9 +98,13 @@ def compute(doc, method=None):
     doc.parts_cost = flt(parts_cost, 3)
     doc.total_cost = total_cost
     doc.gross_profit = flt(revenue - total_cost, 3)
-    # Margin on zero revenue is undefined, not zero — leave it blank rather
-    # than print a figure that invites a wrong conclusion.
-    doc.margin_pct = flt(doc.gross_profit / revenue * 100, 2) if revenue else None
+    # Margin on zero revenue is undefined. It is stored as 0 because the column
+    # cannot hold anything else: numeric columns are NOT NULL, so the None this
+    # used to assign was silently turned into 0 on save — and on submit, where
+    # recompute_on_submit writes the field directly, it was rejected by the
+    # database. Any card billed at zero (a free check, a warranty job) could
+    # not be submitted at all.
+    doc.margin_pct = flt(doc.gross_profit / revenue * 100, 2) if revenue else 0
 
 
 def recompute_on_submit(doc, method=None):

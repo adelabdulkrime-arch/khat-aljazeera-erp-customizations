@@ -73,14 +73,27 @@ def execute():
     ss = frappe.get_single("System Settings")
     ss.country = "Oman"
     ss.time_zone = "Asia/Muscat"
+    # الريال العُماني ألف بيسة: المبالغ بثلاث خانات عشرية. بلا هذه القيمة تعرض
+    # الجداول المبلغ بخانتين («12.50») والحقول والمطبوعات بثلاث («12.500»).
+    ss.currency_precision = "3"
     ss.save(ignore_permissions=True)
 
-    # 6. Workshop Settings: Oman-style VAT number placeholder + phone format
+    # 6. Workshop Settings: قيم مبدئية لما لم يُملأ بعد، لا أكثر.
+    # كانت تُكتب عند كل نشر، فأي رقم ضريبي أو هاتف أو عنوان يدخله صاحب الورشة
+    # يعود إلى القيمة المبدئية مع أول تحديث للنظام.
     ws = frappe.get_single("Workshop Settings")
-    ws.tax_number = "OM1000000000"
-    ws.phone = "+968 9000 0000"
-    ws.address = "مسقط، سلطنة عُمان"
-    ws.save(ignore_permissions=True)
+    defaults = {
+        "tax_number": "OM1000000000",
+        "phone": "+968 9000 0000",
+        "address": "مسقط، سلطنة عُمان",
+    }
+    changed = False
+    for field, value in defaults.items():
+        if not ws.get(field):
+            ws.set(field, value)
+            changed = True
+    if changed:
+        ws.save(ignore_permissions=True)
 
     frappe.db.commit()
     frappe.clear_cache()

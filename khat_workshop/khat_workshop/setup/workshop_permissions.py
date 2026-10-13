@@ -22,6 +22,7 @@ from frappe.permissions import add_permission, update_permission_property
 # Permission tiers, widening outward.
 READ = {"read": 1, "report": 1, "export": 1, "print": 1}
 EDIT = dict(READ, write=1, create=1)
+POST = dict(EDIT, submit=1)                     # يعتمد ولا يلغي
 SUBMIT = dict(EDIT, submit=1, cancel=1, amend=1)
 FULL = dict(SUBMIT, delete=1, email=1, share=1)
 
@@ -39,6 +40,10 @@ MATRIX = [
     ("Workshop Manager", "Payment Entry", SUBMIT),
     ("Workshop Manager", "Item", READ),
     ("Workshop Manager", "Letter Head", READ),
+    ("Workshop Manager", "Vehicle Brand", FULL),
+    ("Workshop Manager", "Vehicle Model", FULL),
+    ("Workshop Manager", "Commission Log", EDIT),
+    ("Workshop Manager", "Maintenance Reminder", FULL),
 
     # ── موظف استقبال الورشة / Workshop Receptionist — intake only ──
     ("موظف استقبال الورشة", "Customer", EDIT),
@@ -46,12 +51,23 @@ MATRIX = [
     ("موظف استقبال الورشة", "Work Card", EDIT),
     ("موظف استقبال الورشة", "Quotation", EDIT),
     ("موظف استقبال الورشة", "Item", READ),
+    # حقول الاختيار في المركبة والبطاقة: بلا قراءتها تظهر قوائمها فارغة
+    ("موظف استقبال الورشة", "Vehicle Brand", EDIT),
+    ("موظف استقبال الورشة", "Vehicle Model", EDIT),
+    ("موظف استقبال الورشة", "Work Card Status", READ),
+    ("موظف استقبال الورشة", "Workshop Technician", READ),
+    ("موظف استقبال الورشة", "Workshop Package", READ),
 
     # ── فني ورشة / Workshop Technician — works the cards, no money, no delete ──
     ("فني ورشة", "Work Card", EDIT),
     ("فني ورشة", "Customer Vehicle", READ),
     ("فني ورشة", "Workshop Technician", READ),
     ("فني ورشة", "Item", READ),
+    ("فني ورشة", "Customer", READ),
+    ("فني ورشة", "Vehicle Brand", READ),
+    ("فني ورشة", "Vehicle Model", READ),
+    ("فني ورشة", "Work Card Status", READ),
+    ("فني ورشة", "Warehouse", READ),
 
     # ── محاسب / Accountant ──
     ("محاسب", "Sales Invoice", SUBMIT),
@@ -62,10 +78,12 @@ MATRIX = [
     ("محاسب", "Supplier", EDIT),
     ("محاسب", "Item", READ),
 
-    # ── كاشير / Cashier — takes payments, raises invoices, no cancel/delete ──
-    ("كاشير", "Payment Entry", EDIT),
-    ("كاشير", "Sales Invoice", EDIT),
-    ("كاشير", "Customer", READ),
+    # ── كاشير / Cashier — يصدر الفاتورة ويقبض قيمتها، بلا إلغاء ولا حذف ──
+    # كان له EDIT فقط: ينشئ السند ولا يعتمده، وسند غير معتمد لم يُقبض به شيء.
+    ("كاشير", "Payment Entry", POST),
+    ("كاشير", "Sales Invoice", POST),
+    ("كاشير", "Customer", EDIT),
+    ("كاشير", "Mode of Payment", READ),
 
     # ── مدير المستودع / Warehouse Manager ──
     ("مدير المستودع", "Item", FULL),

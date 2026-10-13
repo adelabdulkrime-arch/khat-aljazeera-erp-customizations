@@ -43,43 +43,14 @@ LANDING = "Home"
 # /desk opens v16's module launcher instead of honouring it.
 DESK_ROUTE = "/app/home"
 
-# Ordered exactly as the workshop should read it.
-ORDER = [
-    ("Home", 1),
-    ("General Settings", 2),
-    ("Accounting Dashboard", 3),
-    ("Inventory Dashboard", 4),
-    ("Purchasing Dashboard", 5),
-    ("Sales Dashboard", 6),
-    ("Workshop", 7),
-]
-
-# Not deleted — hidden. A workshop has no use for these, and leaving them on
-# screen makes the system look generic.
-HIDE = [
-    "Manufacturing", "Subcontracting", "Quality", "Projects", "Assets",
-    "Support", "Build", "Welcome Workspace", "CRM", "Website", "Integrations",
-]
+# Workspace order, and which workspaces are hidden (problems 2 and 3 above),
+# used to be set here too. Both now live in workshop_dashboards, next to the
+# list of dashboards they describe: this step kept its own copy of the order,
+# reversed, and ran later — so whichever step ran last decided the sidebar.
 
 
 def execute():
-    # 1. deterministic sidebar order
-    fixed = 0
-    for name, seq in ORDER:
-        if frappe.db.exists("Workspace", name):
-            if frappe.db.get_value("Workspace", name, "sequence_id") != seq:
-                frappe.db.set_value("Workspace", name, "sequence_id", seq)
-                fixed += 1
-
-    # 2. hide what a workshop never opens
-    hidden = 0
-    for name in HIDE:
-        if frappe.db.exists("Workspace", name) and \
-                not frappe.db.get_value("Workspace", name, "is_hidden"):
-            frappe.db.set_value("Workspace", name, "is_hidden", 1)
-            hidden += 1
-
-    # 3. land every real user on the dashboard, not the module grid
+    # land every real user on the dashboard, not the module grid
     landed = 0
     if frappe.db.exists("Workspace", LANDING):
         for user in frappe.get_all(
@@ -95,8 +66,8 @@ def execute():
 
     frappe.db.commit()
     frappe.clear_cache()
-    print("LANDING order_fixed=%d hidden=%d users_landed=%d target=%s root_redirect=%s"
-          % (fixed, hidden, landed, LANDING, redirected))
+    print("LANDING users_landed=%d target=%s root_redirect=%s"
+          % (landed, LANDING, redirected))
 
 
 def _redirect_root_to_desk():

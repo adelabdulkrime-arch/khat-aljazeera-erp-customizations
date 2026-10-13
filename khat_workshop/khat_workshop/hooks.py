@@ -33,6 +33,17 @@ after_migrate = ["khat_workshop.setup.run_all"]
 # worker). It is added to BOTH app_include_js (desk) and web_include_js (login /
 # portal) so "install" works whether the user triggers it before or after login.
 app_include_js = [
+    # اللوحات السبع: رسّام واحد يقرأ خريطة النظام من بيانات الإقلاع
+    # (extend_bootinfo أدناه). قبل kaj_nav.js لأنه يستعمل فحص الصلاحيات منه.
+    "/assets/khat_workshop/js/kaj_dashboard.js",
+    # شريط جانبي واحد ثابت في كل الشاشات، وبلاطات اللوحات في البحث.
+    "/assets/khat_workshop/js/kaj_nav.js",
+    # شاشات القوائم: أعمدة من lists.py، وعمود إجراءات مكان الإعجاب والتعليقات.
+    "/assets/khat_workshop/js/kaj_list.js",
+    # النماذج والحوارات: «إضافة مستخدم» في خطوة واحدة، والإضافة السريعة للعميل والمورد.
+    "/assets/khat_workshop/js/kaj_forms.js",
+    # التقارير: المرشّحات التي في reports.py، وقائمة «…» مختصرة.
+    "/assets/khat_workshop/js/kaj_reports.js",
     "/assets/khat_workshop/js/desk.js",
     "/assets/khat_workshop/js/pwa.js",
     # tooltips.js: تلميحات عربية لأيقونات القوائم وأشرطة الأدوات. Frappe يعرض
@@ -45,7 +56,15 @@ app_include_js = [
 # and renders it reversed — "Ctrl+/" appeared as "/+Ctrl", and the user's email
 # in the sidebar came out backwards. Each rule addresses something seen on the
 # rendered screen, not a theoretical case.
-app_include_css = ["/assets/khat_workshop/css/rtl_fixes.css"]
+app_include_css = [
+    "/assets/khat_workshop/css/rtl_fixes.css",
+    # مظهر المكتب: القوائم، شريط الأدوات، رأس الشريط الجانبي.
+    "/assets/khat_workshop/css/kaj_desk.css",
+]
+
+# خريطة النظام (اللوحات، بلاطاتها، وأي شريط جانبي لأي شاشة) مع بيانات
+# الإقلاع: مصدرها khat_workshop/navigation.py وحده.
+extend_bootinfo = "khat_workshop.boot.extend_bootinfo"
 
 # Same PWA bootstrap on the website + login pages (desk assets do not load there).
 # login_lang.js: مبدّل لغة على صفحة الدخول. الصفحة تُقدَّم قبل أن يُعرف
@@ -132,6 +151,10 @@ doc_events = {
     # those images public so wkhtmltopdf can fetch them while rendering the PDF.
     "Letter Head": {
         "validate": "khat_workshop.print_template.compose",
+    },
+    # المسمّى الوظيفي يحمل الأدوار القياسية التي تؤدي عمله (khat_workshop/roles.py).
+    "User": {
+        "before_validate": "khat_workshop.roles.sync_implied",
     },
     # Total a service package from its lines, applying the package discount.
     "Workshop Package": {

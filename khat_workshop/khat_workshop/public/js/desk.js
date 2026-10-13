@@ -126,11 +126,11 @@ frappe.provide("frappe");
 	'use strict';
 
 	var ACTIONS = [
-		{ label: 'بطاقة عمل جديدة', route: '/app/work-card/new', icon: 'edit' },
-		{ label: 'عميل جديد', route: '/app/customer/new', icon: 'users' },
-		{ label: 'مركبة جديدة', route: '/app/customer-vehicle/new', icon: 'car' },
-		{ label: 'فاتورة جديدة', route: '/app/sales-invoice/new', icon: 'money-coins-1' },
-		{ label: 'عرض سعر جديد', route: '/app/quotation/new', icon: 'file' },
+		{ label: 'بطاقة عمل جديدة', doctype: 'Work Card' },
+		{ label: 'عميل جديد', doctype: 'Customer' },
+		{ label: 'مركبة جديدة', doctype: 'Customer Vehicle' },
+		{ label: 'فاتورة مبيعات جديدة', doctype: 'Sales Invoice' },
+		{ label: 'عرض سعر جديد', doctype: 'Quotation' },
 	];
 
 	function build() {
@@ -153,15 +153,12 @@ frappe.provide("frappe");
 			item.className = 'kaj-fab-item';
 			item.setAttribute('role', 'menuitem');
 			item.textContent = a.label;
+			item.setAttribute('data-doctype', a.doctype);
 			item.addEventListener('click', function () {
 				close();
-				// router بدل تغيير العنوان: التنقّل داخل التطبيق لا يُعيد تحميل
-				// الصفحة كاملة، فهو أسرع ويحفظ حالة الواجهة.
-				if (window.frappe && frappe.set_route) {
-					frappe.set_route(a.route.replace(/^\/app\//, '').split('/'));
-				} else {
-					window.location.href = a.route;
-				}
+				// frappe.new_doc: الطريق نفسه الذي يسلكه زر «إضافة» في القائمة،
+				// فتُفتح نافذة الإضافة السريعة حيث وُجدت (العميل مثلاً).
+				frappe.new_doc(a.doctype);
 			});
 			menu.appendChild(item);
 		});
@@ -177,6 +174,14 @@ frappe.provide("frappe");
 			'stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
 
 		function open() {
+			// ما لا يملك المستخدم إنشاءه لا يُعرض عليه
+			var any = false;
+			Array.prototype.forEach.call(menu.children, function (item) {
+				var ok = !!(window.frappe && frappe.model && frappe.model.can_create(item.getAttribute('data-doctype')));
+				item.hidden = !ok;
+				any = any || ok;
+			});
+			if (!any) return;
 			menu.hidden = false;
 			fab.setAttribute('aria-expanded', 'true');
 			fab.classList.add('is-open');
@@ -247,4 +252,38 @@ frappe.provide("frappe");
 	} else {
 		start();
 	}
+})();
+
+// ── الإدخال السريع للعميل: تنبيه إن كان الاسم مسجّلاً ───────────────────────
+//
+// نافذة «إضافة عميل» السريعة (تُفتح من حقل العميل في بطاقة العمل مثلاً) حوار
+// مستقل بلا نموذج خلفه، فسكربتات العميل (frappe.ui.form.on) لا تعمل داخلها.
+// لذا يُلتقط الحدث من المستند: حين يطابق الاسم المكتوب عميلاً واحداً بعينه،
+// يُجلب جواله إلى الحوار ويُنبَّه المستخدم. إن طابق أكثر من عميل لا يُخمَّن شيء.
+//
+// الحفظ بعد ذلك ينشئ عميلاً ثانياً بالاسم نفسه — اختيار صريح من صاحب الورشة:
+// فضّل سرعة الإدخال على منع التكرار.
+(function () {
+	'use strict';
+	if (window.__kaj_customer_qe_hooked) return;
+	window.__kaj_customer_qe_hooked = true;
+
+	document.addEventListener('blur', function (e) {
+		var input = e.target;
+		if (!input || input.tagName !== 'INPUT') return;
+		if (!input.closest('[data-fieldname="customer_name"]')) return;
+		var d = window.cur_dialog;
+		if (!d || !d.fields_dict || !d.fields_dict.mobile_number) return;
+		var name = (d.get_value('customer_name') || '').trim();
+		if (!name || name.length < 2) return;
+
+		frappe.db.get_list('Customer', {
+			filters: [['customer_name', 'like', '%' + name + '%']],
+			fields: ['name', 'customer_name', 'mobile_no'], limit: 2,
+		}).then(function (matches) {
+			if (!matches || matches.length !== 1) return;
+			if (matches[0].mobile_no && !d.get_value('mobile_number')) d.set_value('mobile_number', matches[0].mobile_no);
+			frappe.show_alert({ message: __('يوجد عميل مسجّل بهذا الاسم: {0}', [matches[0].customer_name]), indicator: 'blue' }, 7);
+		});
+	}, true);
 })();

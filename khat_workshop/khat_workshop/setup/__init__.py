@@ -16,10 +16,6 @@ import frappe
 #   - workshop_oman_setup2 retags the chart of accounts to OMR and must run
 #     BEFORE workshop_oman_setup performs the currency switch.
 #
-# workshop_futuristic is deliberately absent: it is a shared CSS/JS library
-# imported by the dashboard builders and exposes no execute(). Listing it here
-# is what previously produced an "has no attribute 'execute'" failure on every
-# single deploy.
 STEPS = [
     # FIRST, before anything else: completes ERPNext's setup wizard on a fresh
     # site. `bench new-site --install-app erpnext` leaves setup_complete = 0,
@@ -37,20 +33,18 @@ STEPS = [
     # the end, stamps a default workspace onto every enabled System User, so
     # creating the account here means it is picked up by that pass.
     "workshop_demo_user",
-    "workshop_home",
-    "workshop_dashboard",
     # Creates the four reports the dashboard tiles link to, so clicking a
     # report tile opens a report instead of a server error.
     "workshop_reports",
-    "workshop_accounting",
-    "workshop_inventory",
-    "workshop_purchasing",
-    "workshop_sales",
-    "workshop_general_settings",
+    # The seven dashboards and their shared sidebar, all from
+    # khat_workshop.navigation. Replaces nine earlier steps (six dashboard
+    # builders, the sidebar step and the workspace-polish step) that each kept
+    # their own copy of the tile list and overrode one another's ordering.
+    "workshop_dashboards",
     # Translate every role name to Arabic and English + a list client script,
     # so the standard Role list reads consistently in the chosen language. Also
     # tears down the earlier custom Roles page. After workshop_roles (its ROLES
-    # provide the workshop labels) and general_settings (owns the tile).
+    # provide the workshop labels).
     "workshop_role_i18n",
     "workshop_scripts",
     # Must precede gl_stock_integration: the parts-issue script binds to the
@@ -83,6 +77,13 @@ STEPS = [
     # would leave the script pointing at nothing.
     "workshop_retire_shadow",
     "workshop_invoice_whatsapp",
+    # Quick-filter boxes above each list, from khat_workshop.lists. Late: every
+    # doctype and custom field it names must exist by now, and it fails loudly
+    # if lists.py names a field that does not.
+    "workshop_lists",
+    # Which fields each form hides, and the Work Card's tab layout, from
+    # khat_workshop.forms. After every step that adds a custom field.
+    "workshop_forms",
     "workshop_translations",
     # After translations: the English renderings must exist before anyone can
     # switch to English and find half a screen untranslated.
@@ -90,8 +91,6 @@ STEPS = [
     "workshop_navbar",
     "workshop_branding",
     "workshop_default_app",
-    # After every dashboard exists, so the nav can link to all seven.
-    "workshop_sidebar_nav",
     "workshop_print_template",
     # Needs the `vehicle` custom field gl_stock_integration put on Sales
     # Invoice/Quotation, and the Items workshop_replacement_operations seeds.
@@ -101,10 +100,6 @@ STEPS = [
     "workshop_permissions",
     "workshop_oman_setup2",
     "workshop_landing",
-    # After landing, which is the last step that creates or reorders workspaces:
-    # this one reassigns them to khat_workshop (so the sidebar header stops
-    # reading "Frappe Framework" / "ERPNext") and hides the unused HR ones.
-    "workshop_workspace_polish",
     "workshop_oman_setup",
 ]
 

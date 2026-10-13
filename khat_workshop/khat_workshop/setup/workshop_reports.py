@@ -96,10 +96,34 @@ def _upsert(name, ref_doctype, query):
     return "created"
 
 
+# تقارير يشغّلها ERPNext «معدّة مسبقاً»: تُرسَل إلى طابور الخلفية، ويضغط
+# المستخدم «إنشاء تقرير جديد» ثم ينتظر ويحدّث الصفحة. ذلك لشركات بمئات آلاف
+# الحركات؛ مخزون ورشة يُحسب في أقل من ثانية، فيُعرض فور فتح التقرير.
+# migrate يعيد القيمة من ملف التقرير، وهذه الخطوة تعيد ضبطها بعده.
+RUN_INLINE = ["Stock Balance"]
+
+
+def _run_inline():
+    changed = 0
+    for name in RUN_INLINE:
+        if not frappe.db.exists("Report", name):
+            continue
+        values = {"prepared_report": 0}
+        if frappe.get_meta("Report").has_field("disable_prepared_report_automation"):
+            # وإلا أعاده الإطار «معدّاً مسبقاً» عند أول تشغيل يتجاوز مهلته
+            values["disable_prepared_report_automation"] = 1
+        current = frappe.db.get_value("Report", name, list(values), as_dict=True)
+        if any(current[k] != v for k, v in values.items()):
+            frappe.db.set_value("Report", name, values, update_modified=False)
+            changed += 1
+    return changed
+
+
 def execute():
     states = {}
     for name, (ref, query) in REPORTS.items():
         states[name] = _upsert(name, ref, query)
+    states["inline"] = _run_inline()
     frappe.db.commit()
     frappe.clear_cache()
     print("WORKSHOP_REPORTS %s" % ", ".join("%s=%s" % (k[-6:], v) for k, v in states.items()))

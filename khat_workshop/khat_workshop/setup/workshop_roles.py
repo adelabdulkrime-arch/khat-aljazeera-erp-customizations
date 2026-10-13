@@ -29,25 +29,13 @@ stays with System Manager.
 
 import frappe
 
-# (frappe_role_name, arabic_display, english_display)
+from khat_workshop import roles
+
+# (frappe_role_name, arabic_display, english_display) — من khat_workshop/roles.py،
+# حيث يُعرَّف كل مسمّى وظيفي مع ما يحمله من أدوار قياسية.
 # frappe_role_name in Arabic  -> a workshop role we own; created if absent.
 # frappe_role_name in English -> an existing built-in we reuse, never recreated.
-ROLES = [
-    ("مدير النظام",          "مدير النظام",          "Super Admin"),
-    ("محاسب",               "محاسب",               "Accountant"),
-    ("HR Manager",          "مدير الموارد البشرية",  "HR Manager"),
-    ("Sales Manager",       "مدير المبيعات",         "Sales Manager"),
-    ("مندوب مبيعات",        "مندوب مبيعات",         "Sales Representative"),
-    ("كاشير",               "كاشير",               "Cashier"),
-    ("مدير المستودع",       "مدير المستودع",       "Warehouse Manager"),
-    ("مسؤول المشتريات",     "مسؤول المشتريات",     "Purchasing Officer"),
-    ("Workshop Manager",    "مدير الورشة",          "Workshop Manager"),
-    ("فني ورشة",            "فني ورشة",            "Workshop Technician"),
-    ("موظف استقبال الورشة", "موظف استقبال الورشة", "Workshop Receptionist"),
-    ("مسؤول",               "مسؤول",               "Admin"),
-    ("مدير",                "مدير",                "Manager"),
-    ("Employee",            "موظف",                "Employee"),
-]
+ROLES = [(job[0], job[1], job[2]) for job in roles.JOBS]
 
 
 def _has_arabic(text):
@@ -105,6 +93,26 @@ def _purge_stale_translations():
     return purged
 
 
+def _sync_users():
+    """يمنح كل مستخدم قائم الأدوار القياسية التي يحملها مسمّاه الوظيفي.
+
+    المستخدمون الجدد يمرّون بـ roles.sync_implied عند الحفظ (hooks.py)؛ هذه
+    للحسابات التي أُنشئت قبل ذلك، ولأي تغيير في roles.IMPLIED بعد نشره.
+    """
+    synced = 0
+    for name in frappe.get_all(
+            "User", filters={"name": ["not in", ("Administrator", "Guest")]}, pluck="name"):
+        doc = frappe.get_doc("User", name)
+        before = sorted(row.role for row in doc.roles)
+        roles.sync_implied(doc)
+        if sorted(row.role for row in doc.roles) != before:
+            doc.flags.ignore_permissions = True
+            doc.flags.no_welcome_mail = True
+            doc.save()
+            synced += 1
+    return synced
+
+
 def execute():
     created = 0
     for name, ar, en in ROLES:
@@ -122,7 +130,9 @@ def execute():
         _upsert_translation(name, "ar", ar)
 
     purged = _purge_stale_translations()
+    synced = _sync_users()
 
     frappe.db.commit()
     frappe.clear_cache()
-    print("ROLES aligned=%d created=%d stale_purged=%d" % (len(ROLES), created, purged))
+    print("ROLES aligned=%d created=%d stale_purged=%d users_synced=%d"
+          % (len(ROLES), created, purged, synced))

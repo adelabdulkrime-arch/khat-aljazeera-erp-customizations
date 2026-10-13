@@ -1,0 +1,178 @@
+/* مظهر المكتب — ما يخصّ خط الجزيرة فوق تنسيق Frappe.
+ *
+ * كل قاعدة هنا تقابل شيئاً يرسمه kaj_list.js أو kaj_nav.js، أو تُخفي عنصراً
+ * من الإطار لا مكان له في نظام ورشة. الألوان من متغيّرات الإطار فتتبع
+ * الوضع الفاتح والداكن. خصائص منطقية فقط: الواجهة عربية وإنجليزية.
+ */
+
+/* ── عمود الإجراءات في القوائم (kaj_list.js) ──────────────────────────────
+ * عرض ثابت في الرأس والصفوف معاً، وإلا انزاحت «الإجراءات» عن أزرارها. */
+.frappe-list .result .list-row-head .level-right,
+.frappe-list .result .list-row-container .list-row .level-right {
+  flex: 0 0 168px !important;
+  justify-content: flex-end;
+  gap: 12px;
+}
+/* عدّاد الصفوف («16 من 16») يشارك «الإجراءات» خانتها. وهو يتحدّث يعرض نصاً
+ * أطول منها فينكسر على سطرين فوق رأس الجدول؛ يُقتطع بدل أن ينكسر. */
+.frappe-list .list-row-head .level-right .list-count {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.kaj-actions-head {
+  flex: none;
+  display: inline-block;
+  width: 72px;
+  text-align: center;
+}
+.kaj-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 72px;
+  margin: 0;
+  justify-content: center;
+}
+.kaj-row-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color .15s, color .15s;
+}
+.kaj-row-btn:hover,
+.kaj-row-btn:focus-visible {
+  color: var(--text-color);
+  background: var(--subtle-fg, #f3f3f3);
+  outline: 0;
+}
+.kaj-row-btn:focus-visible { box-shadow: 0 0 0 2px var(--primary, #171717); }
+.kaj-row-delete:hover,
+.kaj-row-delete:focus-visible {
+  color: #c62839;
+  background: rgba(198, 40, 57, .1);
+}
+.kaj-row-btn-none { cursor: default; pointer-events: none; }
+.kaj-row-btn .icon { stroke-width: 1.6; }
+/* حالة بطاقة العمل: نقطة بلون الحالة ونصّها */
+.kaj-status {
+  --kaj-st: #6b7686;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 2px 10px;
+  font-size: var(--text-sm, 13px);
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--text-color);
+  background: var(--subtle-fg, #f3f3f3);
+  border-radius: 999px;
+}
+.kaj-status::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--kaj-st); }
+
+/* خانات البحث السريع: زر «نوع المطابقة» (≈ أو =) بجانب كل خانة تفصيل لا
+ * يحتاجه من يكتب اسماً ليجده؛ البحث «يحتوي» دائماً. */
+.standard-filter-section .input-group-btn { display: none; }
+.standard-filter-section .input-group > .form-control { border-radius: var(--border-radius, 8px) !important; }
+
+/* الإطار يفرض 150px حدّاً أدنى لكل عمود، فقائمة من ستة أعمدة تُمرَّر أفقياً
+ * على شاشة 1260px وأغلب أعمدتها تواريخ ومبالغ وحالات لا تحتاج نصف ذلك.
+ * العرض الفعلي يبقى ما يحسبه الإطار من طول المحتوى. */
+.layout-main-section-wrapper:not(.disable-scrolling) .frappe-list .result-container .result
+  .list-row-container .level-left .list-row-col:not(.list-subject) {
+  min-width: 96px;
+}
+
+/* الجدول بعرض الصفحة، لا بعرض محتواه. الإطار يعطي كل عمود عرض أطول قيمة فيه
+ * ويمنع انكماشه، فقائمة بطاقات العمل (ستة أعمدة) تجاوزت 1260px بمئة بكسل
+ * وظهر لها شريط تمرير أفقي يُخفي عمود الإجراءات. الأعمدة تنكمش الآن بالتناسب
+ * حتى حدّها الأدنى، والنص الأطول يُقتطع بثلاث نقاط كما في أي جدول. */
+.frappe-list .result .list-row-head,
+.frappe-list .result .list-row-container { width: 100% !important; min-width: 0 !important; }
+.frappe-list .result .list-row-container .list-row { width: 100%; min-width: 0; }
+.frappe-list .result .level-left { min-width: 0; }
+.frappe-list .result .level-left .list-row-col { flex-shrink: 1 !important; }
+
+/* الصف كله يفتح مستنده */
+.frappe-list .list-row { cursor: pointer; }
+
+/* زر «تحميل المزيد» في طرف السطر نفسه الذي يقف فوقه زر الإجراء السريع */
+.frappe-list .list-paging-area { padding-inline-end: 76px; }
+
+/* ── النماذج ──
+ * تحت كل حقل تاريخ ووقت يكتب الإطار المنطقة الزمنية («Asia/Muscat»). النظام
+ * يعمل في منطقة واحدة، والسطر يتكرر تحت كل حقل بلا معلومة. */
+.frappe-control[data-fieldtype="Datetime"] .help-box { display: none; }
+
+/* ── شريط المستند الجانبي وسجلّه ──
+ * بجانب كل مستند محفوظ: إسناد، وسوم، مشاركة، متابعة، إعجاب. أدوات تعاون
+ * لفرق تتقاسم المستندات؛ في ورشة كل مستند يراه من له صلاحيته ولا يُسنَد ولا
+ * يُتابَع. يبقى ما يُستعمل: المرفقات، ومن أنشأ وعدّل ومتى. وفي السجل يبقى
+ * التعليق؛ «بريد إلكتروني جديد» بلا خادم بريد زرّ لا يعمل. */
+.form-sidebar .form-assignments,
+.form-sidebar .form-tags,
+.form-sidebar .form-shared,
+.form-sidebar .followed-by-section,
+.form-sidebar .form-stats-likes .liked-by,
+.form-footer .timeline-actions { display: none !important; }
+
+/* ── رأس الشريط الجانبي: شعار المنشأة (kaj_nav.js) ── */
+.kaj-brand-logo { display: block; width: 32px; height: 32px; object-fit: cover; border-radius: 8px; }
+
+/* ── لوحاتنا ──
+ * قائمة «…» في رأس مساحة العمل (تعديل، تكرار، إعدادات) أدوات بناء مساحات
+ * العمل. اللوحات تُبنى من navigation.py عند كل نشر، فأي تعديل بها يُمحى. */
+body[data-route^="Workspaces"] .page-head .standard-actions .menu-btn-group,
+body[data-route^="Workspaces"] .page-head .standard-actions .page-icon-group { display: none !important; }
+/* اللوحة ترسم عنوانها؛ الهامش العلوي القياسي فوق أول بلوك زائد */
+body[data-route^="Workspaces"] .layout-main-section .ce-block:first-child { margin-top: 0; }
+
+/* ── الإشعارات ──
+ * «What's New» أخبار منتجات Frappe بالإنجليزية، لا إشعارات هذا النظام. */
+.notifications-category#changelog_feed { display: none !important; }
+
+/* ── حوار «إضافة مستخدم»: المسمّيات الوظيفية (kaj_forms.js) ──
+ * كل مسمّى بسطر يشرح ما يتيحه: الاختيار قرار صلاحيات لا اسم في قائمة. */
+.kaj-roles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 8px;
+}
+.kaj-role {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  padding: 10px 12px;
+  font-weight: 400;
+  border: 1px solid var(--border-color, #e2e2e2);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color .15s, background-color .15s;
+}
+.kaj-role:hover { background: var(--subtle-fg, #f7f7f7); }
+.kaj-role:has(input:checked) { border-color: var(--primary, #171717); background: var(--subtle-fg, #f7f7f7); }
+.kaj-role:has(input:focus-visible) { box-shadow: 0 0 0 2px var(--primary, #171717); }
+.kaj-role input { flex: none; margin: 3px 0 0; }
+.kaj-role-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.kaj-role-name { font-weight: 600; color: var(--text-color); }
+.kaj-role-desc { font-size: var(--text-sm, 13px); line-height: 1.5; color: var(--text-muted); }
+.kaj-roles-error { margin-top: 8px; font-size: var(--text-sm, 13px); color: #c62839; }
+
+/* ── زر الإجراء السريع (desk.js) ──
+ * في اللوحات والقوائم فقط. داخل نموذج أو تقرير يقف فوق ما يعمل عليه
+ * المستخدم: أزرار صفوف الجداول وأعمدة التقرير الأخيرة. */
+body[data-route^="Form/"] #kaj-fab-wrap,
+body[data-route^="query-report/"] #kaj-fab-wrap,
+body[data-route^="Tree/"] #kaj-fab-wrap,
+body.modal-open #kaj-fab-wrap { display: none; }

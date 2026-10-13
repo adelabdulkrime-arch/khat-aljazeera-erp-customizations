@@ -50,10 +50,9 @@ MSYS_NO_PATHCONV=1 docker compose exec backend bench --site erp.local execute fr
 
 | الملف | الوظيفة |
 |------|---------|
-| `workshop_futuristic.py` | **وحدة مشتركة** (CSS/JS) تستوردها كل اللوحات السبع. تعديلها يتطلب: (أ) `docker compose restart backend websocket queue-short queue-long`، و(ب) **إعادة تنفيذ كل اللوحات السبع** لأن الـ JS يُخبز داخل كل Custom HTML Block عند التنفيذ. |
-| `workshop_home.py` | لوحة الرئيسية + مربع البحث بالجوال/رقم اللوحة |
-| `workshop_dashboard.py` | لوحة "إدارة ورشة الصيانة" (18 بلاطة + بطاقات إحصائية + زر طي الإحصائيات) |
-| `workshop_accounting.py` / `workshop_inventory.py` / `workshop_purchasing.py` / `workshop_sales.py` / `workshop_general_settings.py` | باقي اللوحات |
+| `navigation.py` · `setup/workshop_dashboards.py` | اللوحات السبع وشريطها الجانبي من مصدر واحد. تعديل بلاطة = تعديل `navigation.py` وحده. (حلّت محلّ `workshop_home`/`workshop_dashboard`/`workshop_sales`/… و`workshop_futuristic`) |
+| `lists.py` · `forms.py` · `glossary.py` · `roles.py` | أعمدة القوائم، إخفاء حقول النماذج، المسرد العربي، والمسمّيات الوظيفية — كلٌّ في ملف واحد يطبّقه `setup/workshop_*` المقابل |
+| `public/js/kaj_*.js` | واجهة المكتب. تُبنى داخل صورة الواجهة: تعديلها يتطلب `up -d --build` |
 | `workshop_scripts.py` | Client/Server Scripts: حسابات المجاميع، أزرار واتساب، تعبئة بيانات العميل العائد، أيقونة واتساب في القوائم |
 | `workshop_gl_stock_integration.py` | ربط بطاقة العمل بحركة المخزون الحقيقية، وفاتورة الإصلاح بـ Sales Invoice، ودفعات الورشة بـ Payment Entry |
 | `workshop_invoice_whatsapp.py` | توليد PDF للفاتورة وإرجاع رابطها لإرساله عبر واتساب |
