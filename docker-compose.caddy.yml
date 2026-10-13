@@ -9,6 +9,12 @@
 #   docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d --build
 
 services:
+  # العنوان العام للنظام، يكتبه init.sh في إعدادات الموقع (host_name): منه تُبنى
+  # الروابط في رسائل البريد.
+  init:
+    environment:
+      PUBLIC_URL: https://${SITE_NAME}
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped

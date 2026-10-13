@@ -106,8 +106,12 @@ fi
 echo "${SITE_NAME}" > sites/currentsite.txt
 bench use "${SITE_NAME}" 2>/dev/null || true
 
-# host_name so wkhtmltopdf can fetch static assets via the nginx container
-bench --site "${SITE_NAME}" set-config host_name "http://frontend:8080" \
+# host_name: عنوان النظام كما يُكتب في كل رابط يرسله (إعادة تعيين كلمة المرور،
+# الترحيب، الإشعارات)، ومنه يجلب wkhtmltopdf ملفات المطبوعات. كان دائماً
+# «http://frontend:8080» — عنوان داخلي يصلح للثاني وحده: رسالة «نسيت كلمة
+# المرور» وصلت برابط لا يفتح. حيث للنظام عنوان عام (PUBLIC_URL، يضبطه
+# docker-compose.caddy.yml) يُستعمل هو: الحاويات تصل إليه، فيصلح للاثنين.
+bench --site "${SITE_NAME}" set-config host_name "${PUBLIC_URL:-http://frontend:8080}" \
   && log "host_name set" || warn "could not set host_name (non-fatal)"
 
 # ── 4. Install the Khat Workshop app, then migrate ───────────────────────────
