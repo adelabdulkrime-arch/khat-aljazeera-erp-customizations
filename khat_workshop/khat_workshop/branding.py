@@ -119,6 +119,13 @@ def inject_login_background(context):
         '<style id="kaj-login-css">%s</style>'
     ) % (preload, bg_value, _login_css())
 
+    # «نسيت كلمة المرور» يرسل رابطاً بالبريد. بلا حساب بريد صادر لا يخرج شيء،
+    # والصفحة تقول مع ذلك «أرسلنا التعليمات» — فينتظر المستخدم رسالة لن تصل.
+    # تُعلَّم الصفحة بذلك، وlogin_lang.js يعرض مكان النموذج ما يُفعل فعلاً.
+    # متى أُعدّ البريد عاد النموذج من نفسه.
+    if not frappe.db.exists("Email Account", {"enable_outgoing": 1}):
+        style += '<meta name="kaj-reset-by-email" content="off">'
+
     # head_html is what base.html renders inside <head>; append so we never
     # clobber anything another hook may have set.
     context.head_html = (context.get("head_html") or "") + style

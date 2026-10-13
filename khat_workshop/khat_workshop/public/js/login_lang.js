@@ -269,10 +269,41 @@
     document.body.appendChild(wrap);
   }
 
+  // ── «نسيت كلمة المرور» حين لا بريد صادر ──────────────────────────────────
+  // الخادم يعلّم الصفحة (branding.py) إن لم يكن للنظام حساب بريد صادر. النموذج
+  // القياسي يطلب البريد ثم يقول «أرسلنا التعليمات» ولا يُرسَل شيء. يُعرض مكانه
+  // ما يعيد كلمة المرور فعلاً: مدير النظام، من شاشة «المستخدمون».
+  function forgotWithoutEmail() {
+    var flag = document.querySelector('meta[name="kaj-reset-by-email"]');
+    if (!flag || flag.getAttribute('content') !== 'off') return;
+    var form = document.querySelector('.for-forgot .form-forgot, .for-forgot form');
+    if (!form || form.querySelector('.kaj-forgot-note')) return;
+
+    var ar = currentLang() === 'ar';
+    var note = document.createElement('div');
+    note.className = 'kaj-forgot-note';
+    note.setAttribute('role', 'note');
+    note.style.cssText = 'margin:0 0 16px;line-height:1.8;text-align:start;';
+    note.textContent = ar
+      ? 'لإعادة تعيين كلمة المرور تواصل مع مدير النظام في منشأتك؛ يضع لك كلمة جديدة من شاشة «المستخدمون».'
+      : 'To reset your password, contact your system administrator. They can set a new one for you from the Users screen.';
+
+    // حقل البريد، زرّ الإرسال، والسطر الذي يعد بإرسال رابط. !important لأن
+    // تنسيق الصفحة يفرض عرض الزر.
+    var section = form.closest('.for-forgot') || form;
+    [form.querySelector('.page-card-body'),
+     form.querySelector('.btn-forgot, button[type="submit"]'),
+     section.querySelector('.page-card-subtitle')].forEach(function (el) {
+      if (el) el.style.setProperty('display', 'none', 'important');
+    });
+    form.insertBefore(note, form.firstChild);
+  }
+
   function start() {
     build();
     translateLate();
     buildRemember();
+    forgotWithoutEmail();
 
     // الصفحة تبدّل نماذجها دون إعادة تحميل (نسيت كلمة السر، الدخول برابط
     // بريد)، وكل تبديل يبني نصوصاً جديدة — فنترجم عند كل تغيير في DOM بدل
@@ -287,6 +318,7 @@
         // الخانة تُعاد إن مسحها تبديل النموذج — buildRemember تتحقق من
         // وجودها أولاً فلا تُكرّرها.
         buildRemember();
+        forgotWithoutEmail();
       });
     }).observe(document.body, { childList: true, subtree: true });
   }
