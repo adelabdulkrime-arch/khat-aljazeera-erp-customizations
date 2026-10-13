@@ -66,7 +66,9 @@ EVERYWHERE = {
     "تفاصيل لا تُدخَل يدوياً": [
         "set_posting_time", "posting_time", "transaction_time", "title", "tax_category",
         "sec_tax_breakup", "packing_list", "bundle_items_section", "customer_po_details",
-        "disable_rounded_total", "rounding_adjustment", "rounded_total", "in_words",
+        "disable_rounded_total", "rounding_adjustment", "rounded_total",
+        # «المبلغ كتابةً» (in_words) يبقى: يُقرأ في الفاتورة العربية، وظهوره
+        # يقرّره Global Defaults لا هذا الملف.
     ],
     "طباعة: يكفي اختيار الترويسة": [
         "select_print_heading", "group_same_items", "language",

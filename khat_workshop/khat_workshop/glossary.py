@@ -467,6 +467,7 @@ FIELDS = [
     ("Total Taxes and Charges", "إجمالي الضريبة"),
     ("Grand Total", "الإجمالي شامل الضريبة"),
     ("Total Quantity", "إجمالي الكمية"),
+    ("In Words", "المبلغ كتابةً"),
     ("Totals", "الإجماليات"),
     ("Taxes and Charges", "الضريبة"),
     ("Taxes", "الضرائب"),

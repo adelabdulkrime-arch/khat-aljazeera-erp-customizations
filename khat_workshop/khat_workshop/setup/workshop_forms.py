@@ -179,3 +179,27 @@ def execute():
         print("FORMS %s: حقول خارج الترتيب أُلحقت بآخره: %s" % (doctype, ", ".join(extra)))
     if problems:
         frappe.throw("forms.py:\n" + "\n".join(problems))
+
+
+def verify():
+    """كل حقل في forms.py مخفيٌّ فعلاً في تعريف نموذجه الآن.
+
+    خطوة لاحقة قد تعيد إظهار حقل دون أن تمرّ بهذا الملف: حفظ Global Defaults
+    مثلاً يكتب خاصية «hidden» على rounded_total في كل معاملة. يُشغَّل بعد
+    الإعداد كله:
+
+        bench --site <site> execute khat_workshop.setup.workshop_forms.verify
+    """
+    frappe.clear_cache()
+    shown = []
+    for doctype in forms.doctypes():
+        if not frappe.db.exists("DocType", doctype):
+            continue
+        meta = frappe.get_meta(doctype)
+        for fieldname in forms.hidden_fields(doctype):
+            df = meta.get_field(fieldname)
+            if df and not cint(df.hidden):
+                shown.append("%s.%s" % (doctype, fieldname))
+    if shown:
+        frappe.throw("forms.py: حقول يُفترض أنها مخفية وهي ظاهرة:\n" + "\n".join(shown))
+    print("FORMS_VERIFY all hidden fields are hidden (%d doctypes)" % len(forms.doctypes()))
