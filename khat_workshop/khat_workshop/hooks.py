@@ -121,6 +121,9 @@ add_to_apps_screen = [
     }
 ]
 
+# دوالّ تُنادى من قوالب الطباعة باسمها
+jinja = {"methods": ["khat_workshop.print_template.in_words_ar"]}
+
 # Work Card automation, plus keeping branding files public.
 #
 # The costing cannot be a Server Script: it reads Item valuation and the linked
@@ -155,6 +158,10 @@ doc_events = {
     # المسمّى الوظيفي يحمل الأدوار القياسية التي تؤدي عمله (khat_workshop/roles.py).
     "User": {
         "before_validate": "khat_workshop.roles.sync_implied",
+    },
+    # الماركة تتبع الموديل: لا «شيفروليه» مع «تويوتا-كامري».
+    "Customer Vehicle": {
+        "validate": "khat_workshop.maintenance.brand_follows_model",
     },
     # Total a service package from its lines, applying the package discount.
     "Workshop Package": {

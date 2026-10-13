@@ -352,7 +352,9 @@ FORMS = {
         # سعر، ثم يُبحث عن مكان إدخاله
         "props": {
             "standard_rate": {"allow_in_quick_entry": 1},
-            "opening_stock": {"allow_in_quick_entry": 1},
+            # ERPNext يخفي «الرصيد الافتتاحي» في إصداره الحالي، ومنطقه يعمل: يُنشئ
+            # رصيد الصنف عند حفظه. بدونه يُدخَل رصيد كل قطعة بحركة مخزون مستقلة.
+            "opening_stock": {"allow_in_quick_entry": 1, "hidden": 0},
             "valuation_rate": {"allow_in_quick_entry": 1},
         },
     },
@@ -465,6 +467,15 @@ FORMS = {
     # أثراً لا يحدث. الحالة الافتراضية معرَّفة في نموذج البطاقة أعلاه.
     "Workshop Settings": {
         "hide": ["default_status"],
+        # كان النموذج يبدأ برمز الدولة ورابط النظام (حقلان أُضيفا لاحقاً فوقعا
+        # في أوله)، واسم الورشة تحتهما. يبدأ الآن بما يُسأل عنه أولاً.
+        "layout": [
+            "workshop_name", "phone", "tax_number", "cb1", "logo", "default_status",
+            "sec1", "address",
+            "sec2", "invoice_terms",
+            ("sec_whatsapp", "Section Break", "واتساب"),
+            "country_code", "public_url",
+        ],
     },
     "Activity Log": {
         "hide": ["timeline_doctype", "timeline_name", "link_doctype", "link_name",

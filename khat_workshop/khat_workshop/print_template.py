@@ -95,3 +95,15 @@ def compose(doc, method=None):
             )
         parts.append('</div>')
         doc.footer = "".join(parts)
+
+
+def in_words_ar(number):
+    """العدد الصحيح كتابةً بالعربية، أياً كانت لغة الطباعة.
+
+    frappe.utils.in_words يكتب بلغة الطلب، ومعاينة الطباعة تطلب بلغة المستند:
+    فاتورة عميلٍ لغة طباعته الإنجليزية خرجت «eight ريال عُماني» في مطبوعة
+    كلها عربية. تُسجَّل في hooks.jinja فتُنادى من قوالب الطباعة باسمها.
+    """
+    from num2words import num2words
+
+    return num2words(int(number or 0), lang="ar")

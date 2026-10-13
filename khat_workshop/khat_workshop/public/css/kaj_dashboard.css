@@ -111,7 +111,8 @@ a.kd-stat:hover { border-color: var(--kd-accent); box-shadow: 0 4px 14px rgba(16
 
 .kd-profile-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-top: 10px; }
 .kd-profile-name { font-size: 17px; }
-.kd-profile-phone { margin-inline-start: 10px; font-size: 14px; color: var(--kd-muted); }
+/* الرقم يُعزل اتجاهه (bdi) فيصير «أوّله» يساره، والاسم عن يمينه: الهامش من الجهتين */
+.kd-profile-phone { margin: 0 10px; font-size: 14px; color: var(--kd-muted); }
 .kd-profile-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .kd-figures { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 14px; }
 .kd-figures > div { padding: 10px 12px; background: var(--kd-subtle); border-radius: 10px; }

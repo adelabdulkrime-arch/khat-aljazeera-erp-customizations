@@ -356,12 +356,32 @@
 
 		this.wireLookup();
 
-		if ((m.stats || []).length || widgets.includes('recent_cards')) {
-			frappe.call({ method: 'khat_workshop.api.dashboard', args: { module: m.key }, type: 'GET' })
-				.then((r) => { this.fillStats(r.message); this.fillRecent(r.message && r.message.recent_cards); })
-				.catch(() => { const s = this.root.querySelector('.kd-stats'); if (s) s.remove(); this.fillRecent([]); });
+		this.load();
+		boards.push(this);
+	};
+
+	// الأرقام وأحدث البطاقات. تُطلب عند الرسم، ثم كلما عادت اللوحة إلى الواجهة.
+	Board.prototype.load = function () {
+		const m = this.module;
+		if (!(m.stats || []).length && !(m.widgets || []).includes('recent_cards')) return;
+		this.loadedAt = Date.now();
+		frappe.call({ method: 'khat_workshop.api.dashboard', args: { module: m.key }, type: 'GET' })
+			.then((r) => { this.fillStats(r.message); this.fillRecent(r.message && r.message.recent_cards); })
+			.catch(() => { const s = this.root.querySelector('.kd-stats'); if (s) s.remove(); this.fillRecent([]); });
+	};
+
+	// المكتب يُبقي اللوحة في الصفحة بعد مغادرتها ويعرضها عند العودة كما رُسمت أول
+	// مرة: بطاقة عمل أُنشئت بعدها لا تظهر، واللوحة تقول «لا توجد بطاقات عمل بعد»
+	// إلى أن يُحدَّث المتصفح. مع كل تنقّل تُحدَّث اللوحة الظاهرة.
+	const boards = [];
+	const refresh = function () {
+		for (let i = boards.length - 1; i >= 0; i--) {
+			const b = boards[i], host = b.root.host || b.root;
+			if (!host.isConnected) { boards.splice(i, 1); continue; }
+			if (host.offsetParent !== null && Date.now() - (b.loadedAt || 0) > 2000) b.load();
 		}
 	};
+	if (frappe.router && frappe.router.on) frappe.router.on('change', () => setTimeout(refresh, 400));
 
 	kaj.dashboard = {
 		mount: function (root, key) {

@@ -79,7 +79,7 @@ _WORDS = u"""
   {%- set rials = (amount or 0)|abs|int -%}
   {%- set baisa = (((amount or 0)|abs - rials) * 1000)|round|int -%}
   {%- if currency == "OMR" -%}
-    {{ frappe.utils.in_words(rials) if rials else "صفر" }} ريال عُماني{% if baisa %} و{{ baisa }} بيسة{% endif %} فقط لا غير
+    {{ in_words_ar(rials) }} ريال عُماني{% if baisa %} و{{ baisa }} بيسة{% endif %} فقط لا غير
   {%- else -%}{{ fallback or "" }}{%- endif -%}
 {%- endmacro -%}
 """

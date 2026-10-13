@@ -32,3 +32,18 @@ def set_next_service(doc, method=None):
         },
         update_modified=False,
     )
+
+
+def brand_follows_model(doc, method=None):
+    """مركبة العميل: الماركة ما يقوله موديلها.
+
+    الحقلان مستقلان في النموذج، فكانت تُحفظ «شيفروليه» مع الموديل
+    «تويوتا-كامري» وتظهر هكذا في البطاقة والفاتورة. الموديل أدقّ الاثنين
+    (كل موديل يعرف ماركته)، فهو المرجع. النموذج يفعل الشيء نفسه لحظة الاختيار
+    (kaj_forms.js)؛ هذا للاستيراد وكل ما لا يمرّ بالنموذج.
+    """
+    if not doc.get("model"):
+        return
+    brand = frappe.db.get_value("Vehicle Model", doc.model, "brand")
+    if brand and doc.get("brand") != brand:
+        doc.brand = brand

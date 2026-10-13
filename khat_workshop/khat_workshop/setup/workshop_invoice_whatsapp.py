@@ -68,8 +68,20 @@ def get_invoice_pdf_url(invoice):
     # public domain once deployed; fall back to the local dev address used
     # throughout this environment.
     public_url = (frappe.db.get_single_value("Workshop Settings", "public_url") or "").rstrip("/")
-    base = public_url or "http://localhost:8080"
-    return base + file_doc.file_url
+    return (public_url or _site_url()) + file_doc.file_url
+
+
+def _site_url():
+    """عنوان النظام حين لم يُكتب «الرابط العام» في إعدادات الورشة.
+
+    اسم الموقع هو نطاقه في أي تثبيت على الإنترنت (khat.onemedia24.xyz)، فيُبنى
+    الرابط منه. كان الاحتياط «http://localhost:8080»: رابط الفاتورة في رسالة
+    واتساب لا يفتح على جوال العميل، إلى أن ينتبه أحد ويملأ الحقل.
+    """
+    site = frappe.local.site or ""
+    if "." in site and not site.endswith((".localhost", ".local")):
+        return "https://" + site
+    return "http://localhost:8080"
 
 
 def execute():

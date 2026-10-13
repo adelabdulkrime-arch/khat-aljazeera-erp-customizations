@@ -3,20 +3,34 @@
 VAT 5% tax template. Idempotent."""
 import frappe
 
+# اسم كسر العملة كما يُكتب في «المبلغ كتابةً» على المعاملات
+FRACTION = u"بيسة"
+
+# رسالة ما بعد الاعتماد (Success Action). ERPNext يكتبها عند التثبيت نصاً ثابتاً
+# بلغة التثبيت: «Sales Invoice has been submitted successfully» في واجهة عربية.
+SUBMITTED = {
+    "Sales Invoice": u"تم اعتماد فاتورة المبيعات",
+    "Quotation": u"تم اعتماد عرض السعر",
+    "Sales Order": u"تم اعتماد أمر البيع",
+    "Delivery Note": u"تم اعتماد إشعار التسليم",
+    "Purchase Invoice": u"تم اعتماد فاتورة المشتريات",
+    "Purchase Receipt": u"تم اعتماد إيصال الاستلام",
+}
+
 
 def execute():
     # 1. Currency: OMR uses 3 decimal places (1 OMR = 1000 Baisa)
     if not frappe.db.exists("Currency", "OMR"):
         frappe.get_doc({
             "doctype": "Currency", "currency_name": "OMR", "enabled": 1,
-            "fraction": "Baisa", "fraction_units": 1000,
+            "fraction": FRACTION, "fraction_units": 1000,
             "symbol": "ر.ع.", "number_format": "#,###.###",
             "smallest_currency_fraction_value": 0.001,
         }).insert(ignore_permissions=True)
     else:
         c = frappe.get_doc("Currency", "OMR")
         c.enabled = 1
-        c.fraction = "Baisa"
+        c.fraction = FRACTION
         c.fraction_units = 1000
         c.number_format = "#,###.###"
         c.smallest_currency_fraction_value = 0.001
@@ -82,6 +96,19 @@ def execute():
     # الجداول المبلغ بخانتين («12.50») والحقول والمطبوعات بثلاث («12.500»).
     ss.currency_precision = "3"
     ss.save(ignore_permissions=True)
+
+    # لغة الطباعة الافتراضية. القيمة «language» (غير «lang» لغة الواجهة) بقيت
+    # «en» من التثبيت، وهي ما يأخذه حقل «لغة الطباعة» في كل عميل ومورد جديد،
+    # ومنه كل فاتورة: فتُطبع بالإنجليزية ما لم يغيّرها أحد — والحقل مخفي.
+    frappe.db.set_default("language", "ar")
+    for party in ("Customer", "Supplier"):
+        frappe.db.sql(
+            "update `tab%s` set language = 'ar' where ifnull(language, '') in ('', 'en')" % party)
+
+    for doctype, message in SUBMITTED.items():
+        if frappe.db.exists("Success Action", doctype):
+            frappe.db.set_value("Success Action", doctype, {
+                "message": message, "first_success_message": message})
 
     # إعدادات الورشة (الاسم، الرقم الضريبي، الهاتف، العنوان) لا تُملأ هنا: كانت
     # توضع فيها قيم مبدئية («OM1000000000»، «+968 9000 0000») تظهر على كل فاتورة

@@ -174,6 +174,43 @@
 		const timer = setInterval(() => { if (guardForms() || ++tries > 600) clearInterval(timer); }, 100);
 	}
 
+	// ── نماذج الإعدادات (مستند وحيد): عنوانها في الشريط الجانبي بالعربية ──
+	// الإطار يكتب هناك اسم المستند، وهو في المستند الوحيد اسم نوعه الإنجليزي
+	// («Workshop Settings»).
+	$(document).on('form-refresh', function (e, frm) {
+		if (!frm || !frm.meta || !frm.meta.issingle || !frm.sidebar) return;
+		setTimeout(function () {
+			$(frm.wrapper).closest('.page-container').find('.form-sidebar *').each(function () {
+				if (!this.children.length && this.textContent.trim() === frm.doctype) this.textContent = __(frm.doctype);
+			});
+		}, 0);
+	});
+
+	// ── مركبة العميل: الموديل من ماركته ──
+	// الحقلان مستقلان: قائمة الموديلات كانت تعرض موديلات كل الماركات، وتُحفظ
+	// «شيفروليه» مع «تويوتا-كامري». بعد اختيار الماركة تُعرض موديلاتها وحدها؛
+	// واختيار موديل يضبط ماركته، وتغيير الماركة يمحو موديلاً ليس منها.
+	const modelBrand = (model) => frappe.db.get_value('Vehicle Model', model, 'brand')
+		.then((r) => (r.message && r.message.brand) || '');
+	frappe.ui.form.on('Customer Vehicle', {
+		setup: function (frm) {
+			frm.set_query('model', () => (frm.doc.brand ? { filters: { brand: frm.doc.brand } } : {}));
+		},
+		model: function (frm) {
+			if (!frm.doc.model) return;
+			modelBrand(frm.doc.model).then((brand) => {
+				if (brand && frm.doc.brand !== brand) frm.set_value('brand', brand);
+			});
+		},
+		brand: function (frm) {
+			if (!frm.doc.model || !frm.doc.brand) return;
+			const brand = frm.doc.brand;
+			modelBrand(frm.doc.model).then((own) => {
+				if (own && own !== brand && frm.doc.brand === brand) frm.set_value('model', '');
+			});
+		},
+	});
+
 	// ── تبويب الأدوار في نموذج المستخدم: المسمّيات الوظيفية وحدها ──
 	// محرّر الأدوار يرسم خانة لكل دور في النظام ويجلبها بطلب خاص به، في وقت لا
 	// يُعلم به النموذج. قاعدة CSS تُظهر خانات المسمّيات وتخفي غيرها أياً كان
