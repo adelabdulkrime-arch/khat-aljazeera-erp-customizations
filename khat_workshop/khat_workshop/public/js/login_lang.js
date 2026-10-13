@@ -299,7 +299,31 @@
     form.insertBefore(note, form.firstChild);
   }
 
+  // ── بعد نجاح الدخول: البطاقة تبقى إلى أن يصل المكتب ──────────────────────
+  // الإطار يستبدل جسم الصفحة كله بشاشة انتظار لحظة نجاح الدخول، فتبقى خلفية
+  // صفحة الدخول بلا بطاقتها ثوانيَ إلى أن تصل صفحة المكتب — شاشة لا هي الدخول
+  // ولا هي النظام. قالبنا (templates/includes/splash_screen.html) يبدأ ما
+  // يُسنَد للجسم بعلامة؛ ما يبدأ بها يُتجاهل، والزرّ يقول ما يحدث.
+  function keepCardAfterLogin() {
+    var own = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+    if (!own || !own.set || !document.body) return;
+    Object.defineProperty(document.body, 'innerHTML', {
+      configurable: true,
+      get: function () { return own.get.call(this); },
+      set: function (html) {
+        if (String(html).indexOf('<!--kaj-keep-->') !== 0) { own.set.call(this, html); return; }
+        var ar = currentLang() === 'ar';
+        document.querySelectorAll('.for-login .btn-login, .for-login .btn-primary').forEach(function (b) {
+          b.textContent = ar ? 'جارٍ فتح النظام…' : 'Opening…';
+          b.disabled = true;
+        });
+        document.body.classList.add('kaj-entering');
+      },
+    });
+  }
+
   function start() {
+    keepCardAfterLogin();
     build();
     translateLate();
     buildRemember();

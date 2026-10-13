@@ -8,7 +8,7 @@
 
 import frappe
 
-from khat_workshop import forms, glossary, lists, navigation, reports, roles
+from khat_workshop import fastboot, forms, glossary, lists, navigation, reports, roles
 
 
 def extend_bootinfo(bootinfo):
@@ -28,4 +28,6 @@ def extend_bootinfo(bootinfo):
     kaj["roles"] = roles.for_boot()
     kaj["forms"] = forms.for_boot()
     kaj["reports"] = reports.for_boot()
+    # اللوحات السبع وبلوكاتها: تُرسم بلا طلبَي «وصف المساحة» و«مستند البلوك»
+    kaj["preload"] = fastboot.preload()
     bootinfo.kaj = kaj

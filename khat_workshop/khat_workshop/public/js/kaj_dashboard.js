@@ -383,6 +383,45 @@
 	};
 	if (frappe.router && frappe.router.on) frappe.router.on('change', () => setTimeout(refresh, 400));
 
+	// ── اللوحة بلا طلبات ─────────────────────────────────────────────────────
+	// قبل أن تُرسم لوحة يطلب المكتب وصف مساحة العمل ثم مستند البلوك: طلبان
+	// متتابعان جوابهما ثابت، ربع ثانية لكلٍّ على الأقل من اتصال بعيد. الخادم
+	// يرسلهما مع بيانات الإقلاع (fastboot.preload) فيؤخذان منها.
+	(function () {
+		const pre = frappe.boot && frappe.boot.kaj && frappe.boot.kaj.preload;
+		if (!pre) return;
+
+		const Block = frappe.widget && frappe.widget.widget_factory && frappe.widget.widget_factory.custom_block;
+		if (Block && pre.blocks) {
+			const load = Block.prototype.get_custom_block_data;
+			Block.prototype.get_custom_block_data = function () {
+				const block = pre.blocks[this.custom_block_name];
+				if (!block) return load.call(this);
+				this.label = this.custom_block_name;
+				this.custom_block_doc = {
+					name: this.custom_block_name, html: block.html, script: block.script,
+					style: block.style || pre.style || '',
+				};
+				return Promise.resolve();
+			};
+		}
+
+		const Space = frappe.views && frappe.views.Workspace;
+		if (Space && pre.pages) {
+			const show = Space.prototype.show_page, used = {};
+			Space.prototype.show_page = function (page) {
+				const data = page && pre.pages[page.name];
+				// مرة لكل مساحة: بعدها يحكم المكتب (من عدّل المساحة يراها كما حفظها)
+				if (data && !used[page.name]) {
+					used[page.name] = true;
+					this.pages = this.pages || {};
+					if (!this.pages[page.name]) this.pages[page.name] = JSON.parse(JSON.stringify(data));
+				}
+				return show.apply(this, arguments);
+			};
+		}
+	})();
+
 	kaj.dashboard = {
 		mount: function (root, key) {
 			const module = modules().find((m) => m.key === key);

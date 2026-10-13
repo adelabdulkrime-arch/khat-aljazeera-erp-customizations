@@ -1,0 +1,68 @@
+{#-
+  ما يُرى بين ضغط «تسجيل الدخول» وظهور المكتب. يحلّ محلّ قالب الإطار بالاسم نفسه
+  (قوالب تطبيقنا تسبق قوالب الإطار). الإطار يضمّنه في موضعين:
+
+  أ) صفحة الدخول، داخل نصّ جافاسكربت (login.js):
+         document.body.innerHTML = <نصّ هذا القالب بين علامتَي اقتباس مائلتين>;
+     أي أن الصفحة كلها تُستبدل بشاشة انتظار لحظة نجاح الدخول، وتبقى إلى أن تصل
+     صفحة المكتب. هذه «الخلفية التي تظهر بعد تسجيل الدخول»: خلفية صفحة الدخول
+     بلا بطاقتها. تبقى الآن بطاقة الدخول مكانها وزرّها يقول «جارٍ فتح النظام…»
+     (login_lang.js يتجاهل الاستبدال حين يبدأ النصّ بالعلامة أدناه). وإن لم
+     يُحمَّل login_lang.js أُعيد للصفحة محتواها نفسه. ما يُكتب هنا يُقرأ داخل
+     علامتَي الاقتباس المائلتين: لا وسوم script ولا علامة اقتباس مائلة فيه.
+
+  ب) صفحة المكتب (www/desk.html)، قبل بيانات الإقلاع:
+     1. هيكل الصفحة نفسها بدل شعار وسط بياض: شريط جانبي وشريط علوي ومحتوى،
+        بمقاسات المكتب، والمكتب يملؤه في مكانه. التنسيق في rtl_fixes.css.
+     2. قاموس الواجهة من ملف يُخزَّن في المتصفح بدل جسم الصفحة (fastboot.py).
+        يُحمَّل هنا، قبل حزم المكتب: فيها نصوص تُترجم لحظة تحميلها. الصفحة تكتب
+        بعده ‎frappe._messages = frappe.boot["__messages"]‎ (وقد فُرِّغ)، فيُعرَّف
+        ‎_messages‎ بحيث يُضاف ما يُسنَد إليه إلى القاموس ولا يحلّ محلّه.
+-#}
+{%- if desk_theme is not defined -%}
+<!--kaj-keep-->${document.body.innerHTML}
+{%- else -%}
+<div class="centered splash kaj-shell" aria-hidden="true">
+	<div class="ks-side">
+		<i class="ks-brand"></i>
+		<i class="ks-line ks-short"></i><i class="ks-line ks-short"></i>
+		<i class="ks-gap"></i>
+		<i class="ks-line"></i><i class="ks-line"></i><i class="ks-line"></i><i class="ks-line"></i>
+		<i class="ks-line"></i><i class="ks-line"></i><i class="ks-line"></i>
+	</div>
+	<div class="ks-main">
+		<div class="ks-bar"><i></i></div>
+		<div class="ks-body">
+			<i class="ks-hero"></i>
+			<i class="ks-search"></i>
+			<div class="ks-grid"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+		</div>
+	</div>
+</div>
+{%- if boot is defined and kaj_messages_src is defined %}
+{%- set kaj_src = kaj_messages_src(boot) %}
+<script>window.frappe = window.frappe || {};</script>
+<script src="{{ kaj_src }}"></script>
+<script>
+(function () {
+	if (!window.__kaj_messages) {
+		// تعذّر تحميل الملف (انقطاع عابر): يُطلب مرة ثانية قبل أن يبدأ المكتب بلا ترجمة
+		try {
+			var x = new XMLHttpRequest();
+			x.open("GET", {{ kaj_src | tojson }} + "&r=" + Date.now(), false);
+			x.send();
+			if (x.status === 200) (0, eval)(x.responseText);
+		} catch (e) { /* يبدأ المكتب بنصوصه الأصلية */ }
+	}
+	var messages = window.__kaj_messages;
+	if (!messages) return;
+	Object.defineProperty(window.frappe, "_messages", {
+		configurable: true,
+		enumerable: true,
+		get: function () { return messages; },
+		set: function (more) { if (more && more !== messages) for (var k in more) messages[k] = more[k]; },
+	});
+})();
+</script>
+{%- endif %}
+{%- endif %}

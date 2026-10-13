@@ -121,6 +121,15 @@
 			};
 		}
 
+		// الرأس يرسم لكل بند في قائمته صورةً من icon_url، وأغلب البنود بلا
+		// icon_url: فيطلب المتصفح ‎/desk/undefined‎ — صفحة المكتب كاملةً، 420KB
+		// تزاحم ملفات الصفحة — مع كل تحميل.
+		const addItem = Header.prototype.add_app_item;
+		Header.prototype.add_app_item = function (item) {
+			if (item && !item.icon && !item.icon_url) item = Object.assign({}, item, { icon: 'circle' });
+			return addItem.call(this, item);
+		};
+
 		const menu = Header.prototype.setup_app_switcher;
 		Header.prototype.setup_app_switcher = function () {
 			let items = (this.dropdown_items || []).filter((item) =>
@@ -186,7 +195,9 @@
 			if (plural) this.$breadcrumbs.find('li a.title-text').text(isAr() ? plural[0] : plural[1]);
 		};
 
-		bc.update();
+		// قبل أن يحدّد الموجّه المسار (تحديث صفحة قائمة) لا مسار يُرسم بعد؛ الإطار
+		// يرسمه حين يحدّده، بالدوالّ المعدَّلة أعلاه.
+		if (frappe.get_route()) bc.update();
 		return true;
 	}
 

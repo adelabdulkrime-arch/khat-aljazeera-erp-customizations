@@ -82,26 +82,18 @@
 }
 
 
-/* ── شاشة الانتظار بعد الدخول ─────────────────────────────────────────────
+/* ── ما يُرى بين الدخول وظهور المكتب ───────────────────────────────────────
  *
- * قاعدة التصميم هنا: شاشة الانتظار ليست مساحة لعرض الهوية — هي اعتراف
- * بأن النظام لم يجهز بعد. وكل ثانية يراها المستخدم ثانية لم يعمل فيها
- * شيء. فالهدف أن تمرّ دون أن تُلاحَظ، لا أن تكون جميلة.
+ * كانت شاشةً لها شكلها: تدرّج كحلي وشعار نابض، ثم بياض وشعار صغير. والمالك
+ * اشتكى منها ثلاث مرات، آخرها «الخلفية التي تظهر قبل الصفحة الرئيسية ما زالت
+ * موجودة» — أي شكلٍ تأخذه يُرى شاشةً غريبة تسبق النظام. فلم تعد شاشة: هي هيكل
+ * صفحة المكتب نفسها — شريط جانبي، شريط علوي، محتوى — بمقاساتها وألوان سطحها،
+ * والمكتب يملؤه في مكانه. العلامات في templates/includes/splash_screen.html.
+ * وما يقصّر مدّتها أصلاً في fastboot.py.
  *
- * نسخة سابقة ملأتها بتدرّج كحلي وشعار نابض بظلّ. والنتيجة عكسية: لون
- * صارخ يجذب العين فيطول الانتظار إحساساً، ثم قفزة لونية حادّة حين تختفي
- * وتظهر الواجهة البيضاء خلفها. والدليل العملي أن المستخدم اشتكى من
- * شكلها مرتين — وشاشة انتظار ناجحة لا يلاحظها أحد أصلاً.
- *
- * لذا: لون سطح النظام نفسه (فلا قفزة عند الاختفاء)، وشعار صغير هادئ،
- * وتلاشٍ لطيف بدل نبض. الهوية الكاملة مكانها صفحة الدخول حيث يتوقّف
- * المستخدم فعلاً وينظر.
- *
- * الوسم يحمل صنفين: "centered splash". و.centered في global.scss بفرّابي
- * يضع position:absolute مع transform:translate(-50%,-50%)، فالعنصر يتقلّص
- * إلى حجم محتواه ويتوسّط بدل ملء المنفذ — فيظهر شريطاً ضيّقاً وسط بياض.
- * المحدِّد مزدوج ليفوق وزنه، وtransform مُبطَل صراحةً وإلا بقي مُزاحاً
- * بنصف أبعاده. تُحقّق من global.scss لا بالتخمين.
+ * الوسم يحمل صنفين: "centered splash". و.centered في global.scss بفرّابي يضع
+ * position:absolute مع transform:translate(-50%,-50%)، فالعنصر يتقلّص إلى حجم
+ * محتواه. المحدِّد مزدوج ليفوق وزنه، وtransform مُبطَل صراحةً.
  */
 .splash,
 .centered.splash {
@@ -115,42 +107,70 @@
   -webkit-transform: none;
   z-index: 9999;
   display: flex;
+  align-items: stretch;
+  justify-content: flex-start;
+  /* لون سطح المكتب: يتبع الوضع الفاتح والداكن، والاحتياط لِما قبل المتغيّرات */
+  background: var(--bg-color, #ffffff);
+}
+
+.kaj-shell i {
+  display: block;
+  border-radius: 8px;
+  background: var(--control-bg, #f3f3f3);
+  animation: kajShell 1.6s ease-in-out infinite;
+}
+
+/* الشريط الجانبي: 220px كما في المكتب، في جهة بداية السطر (يمين العربية) */
+.kaj-shell .ks-side {
+  flex: 0 0 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 12px;
+  background: var(--subtle-accent, #f8f8f8);
+}
+.kaj-shell .ks-side i { background: var(--border-color, #ededed); }
+.kaj-shell .ks-brand { height: 34px; margin-bottom: 4px; }
+.kaj-shell .ks-line { height: 14px; width: 62%; }
+.kaj-shell .ks-short { width: 44%; }
+.kaj-shell .ks-gap { height: 6px; background: transparent !important; animation: none; }
+
+.kaj-shell .ks-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.kaj-shell .ks-bar {
+  flex: 0 0 48px;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  /* لون سطح الديسك نفسه: المتغيّر يتبع الوضع الفاتح والداكن تلقائياً،
-   * والقيمة الاحتياطية لِما قبل تحميل متغيّرات الإطار. */
-  background: var(--fg-color, #ffffff);
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border-color, #ededed);
+}
+.kaj-shell .ks-bar i { width: 120px; height: 16px; }
+
+.kaj-shell .ks-body {
+  width: 100%;
+  max-width: 898px;
+  margin: 0 auto;
+  padding: 36px 24px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.kaj-shell .ks-hero { height: 116px; border-radius: 16px; }
+.kaj-shell .ks-search { height: 46px; border-radius: 12px; }
+.kaj-shell .ks-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 28px; }
+.kaj-shell .ks-grid i { height: 92px; border-radius: 14px; }
+
+@media (max-width: 991px) {
+  .kaj-shell .ks-side { display: none; }
+  .kaj-shell .ks-grid { grid-template-columns: 1fr; }
 }
 
-/* القالب يكتب style="width:auto;max-width:200px" على الوسم مباشرة، والنمط
- * السطري يتغلّب على الملف — فبدون !important تبقى الصورة بحجمها الخام.
- * تُحقّق من القالب نفسه (templates/includes/splash_screen.html).
- *
- * 64px لا 170: الشعار هنا علامة طمأنة لا عنصر هوية. وبلا ظلّ ولا استدارة
- * مضافة — الصورة نفسها تحمل شكلها. */
-.splash img {
-  width: 64px !important;
-  max-width: 64px !important;
-  height: auto;
-  opacity: 0.72;
-  animation: kajSplashFade 1.4s ease-in-out infinite;
+/* نبض خافت بالشفافية: يكفي ليدلّ أن الصفحة تُحمَّل، ولا يسحب العين */
+@keyframes kajShell {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
 }
 
-/* تلاشٍ لطيف بدل نبض بالحجم: تغيّر الحجم يسحب العين، والشفافية تكفي
- * للدلالة على أن النظام يعمل. */
-@keyframes kajSplashFade {
-  0%, 100% { opacity: 0.72; }
-  50% { opacity: 0.38; }
-}
-
-/* من يطلب تقليل الحركة في نظامه لا يرى أي حركة. */
+/* من يطلب تقليل الحركة في نظامه لا يرى أي حركة */
 @media (prefers-reduced-motion: reduce) {
-  .splash img { animation: none; opacity: 0.6; }
-}
-
-/* الوضع الداكن: سطح الديسك الداكن بدل الأبيض، فلا ومضة بيضاء حادّة على
- * من يستخدم النظام ليلاً. */
-[data-theme-mode="dark"] .splash,
-[data-theme="dark"] .splash {
-  background: var(--fg-color, #1c2126);
+  .kaj-shell i { animation: none; }
 }

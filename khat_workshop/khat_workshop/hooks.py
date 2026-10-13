@@ -17,6 +17,20 @@ app_license = "MIT"
 # which would mean a new patch entry for every dashboard tweak.
 after_migrate = ["khat_workshop.setup.run_all"]
 
+# عناوين ملفاتنا تحمل بصمة محتواها (‎?v=…‎): المتصفح يخزّنها بلا مراجعة مع الخادم
+# (docker/Caddyfile يعطي ما له v سنةً وimmutable)، وأي تعديل يغيّر العنوان فيصل
+# فوراً. كانت تُراجَع في كل تحميل: عشرة طلبات تسبق الرسم، ربع ثانية لكلٍّ على
+# اتصال بعيد. راجع khat_workshop/fastboot.py.
+import hashlib as _hashlib
+import os as _os
+
+
+def _v(path):
+    full = _os.path.join(_os.path.dirname(__file__), "public", *path.split("/"))
+    with open(full, "rb") as f:
+        return "/assets/khat_workshop/%s?v=%s" % (path, _hashlib.md5(f.read()).hexdigest()[:10])
+
+
 # Desk-level assets, loaded on EVERY desk page.
 #
 # desk.js (navbar language switcher, logout item, sidebar-header hiding) used to
@@ -35,21 +49,21 @@ after_migrate = ["khat_workshop.setup.run_all"]
 app_include_js = [
     # اللوحات السبع: رسّام واحد يقرأ خريطة النظام من بيانات الإقلاع
     # (extend_bootinfo أدناه). قبل kaj_nav.js لأنه يستعمل فحص الصلاحيات منه.
-    "/assets/khat_workshop/js/kaj_dashboard.js",
+    _v("js/kaj_dashboard.js"),
     # شريط جانبي واحد ثابت في كل الشاشات، وبلاطات اللوحات في البحث.
-    "/assets/khat_workshop/js/kaj_nav.js",
+    _v("js/kaj_nav.js"),
     # شاشات القوائم: أعمدة من lists.py، وعمود إجراءات مكان الإعجاب والتعليقات.
-    "/assets/khat_workshop/js/kaj_list.js",
+    _v("js/kaj_list.js"),
     # النماذج والحوارات: «إضافة مستخدم» في خطوة واحدة، والإضافة السريعة للعميل والمورد.
-    "/assets/khat_workshop/js/kaj_forms.js",
+    _v("js/kaj_forms.js"),
     # التقارير: المرشّحات التي في reports.py، وقائمة «…» مختصرة.
-    "/assets/khat_workshop/js/kaj_reports.js",
-    "/assets/khat_workshop/js/desk.js",
-    "/assets/khat_workshop/js/pwa.js",
+    _v("js/kaj_reports.js"),
+    _v("js/desk.js"),
+    _v("js/pwa.js"),
     # tooltips.js: تلميحات عربية لأيقونات القوائم وأشرطة الأدوات. Frappe يعرض
     # القلب والتعليق وأزرار الصفوف بلا نص ولا title، فالمستخدم يمرّ عليها ولا
     # يعرف وظيفتها — احتكاك يومي على نظام يستخدمه فنّيون لا تقنيون.
-    "/assets/khat_workshop/js/tooltips.js",
+    _v("js/tooltips.js"),
 ]
 
 # RTL fixes for cases where Frappe applies the Arabic direction to Latin text
@@ -57,9 +71,9 @@ app_include_js = [
 # in the sidebar came out backwards. Each rule addresses something seen on the
 # rendered screen, not a theoretical case.
 app_include_css = [
-    "/assets/khat_workshop/css/rtl_fixes.css",
+    _v("css/rtl_fixes.css"),
     # مظهر المكتب: القوائم، شريط الأدوات، رأس الشريط الجانبي.
-    "/assets/khat_workshop/css/kaj_desk.css",
+    _v("css/kaj_desk.css"),
 ]
 
 # خريطة النظام (اللوحات، بلاطاتها، وأي شريط جانبي لأي شاشة) مع بيانات
@@ -73,8 +87,8 @@ extend_bootinfo = "khat_workshop.boot.extend_bootinfo"
 # `preferred_language`، وهو ما يقرأه Frappe فعلاً للزائر غير المسجّل
 # (frappe/translate.py: "2. Cookie => preferred_language").
 web_include_js = [
-    "/assets/khat_workshop/js/pwa.js",
-    "/assets/khat_workshop/js/login_lang.js",
+    _v("js/pwa.js"),
+    _v("js/login_lang.js"),
 ]
 
 # Serve the service worker at the origin root (/sw.js) with an origin-wide scope.
@@ -122,7 +136,11 @@ add_to_apps_screen = [
 ]
 
 # دوالّ تُنادى من قوالب الطباعة باسمها
-jinja = {"methods": ["khat_workshop.print_template.in_words_ar"]}
+jinja = {"methods": [
+    "khat_workshop.print_template.in_words_ar",
+    # قاموس الواجهة من ملف مخزَّن بدل جسم الصفحة (templates/includes/splash_screen.html)
+    "khat_workshop.fastboot.kaj_messages_src",
+]}
 
 # Work Card automation, plus keeping branding files public.
 #

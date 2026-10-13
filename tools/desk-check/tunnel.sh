@@ -10,7 +10,9 @@ while true; do
     'sudo docker inspect -f "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}" khat-erp-backend-1' 2>/dev/null)
   if [ -n "$IP" ]; then
     echo "$(date +%T) tunnel 127.0.0.1:$PORT -> $IP:8001"
-    ssh -o BatchMode=yes -o ExitOnForwardFailure=yes -o ServerAliveInterval=20 -o ServerAliveCountMax=3 \
+    # ‎-C‎: خادم الاختبار (gunicorn مباشرة) لا يضغط ردوده كما يفعل nginx في الإنتاج،
+    # وصفحة المكتب وقاموس الترجمة فوق الميغابايت: بلا ضغط النفق يطول كل تحميل.
+    ssh -C -o BatchMode=yes -o ExitOnForwardFailure=yes -o ServerAliveInterval=20 -o ServerAliveCountMax=3 \
       -N -L "127.0.0.1:$PORT:$IP:8001" -i "$KEY" "$HOST"
   fi
   echo "$(date +%T) tunnel down — retrying"
