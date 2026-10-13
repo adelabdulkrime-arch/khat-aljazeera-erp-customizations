@@ -108,10 +108,29 @@ const OVERLAY = `(() => {
   fs.mkdirSync(path.join(OUT, 'shots'), { recursive: true });
   const durations = fs.existsSync(path.join(OUT, 'durations.json')) ? JSON.parse(fs.readFileSync(path.join(OUT, 'durations.json'), 'utf8')) : {};
 
-  const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({ viewport: SIZE, locale: 'ar', recordVideo: { dir: path.join(OUT, 'video'), size: SIZE } });
+  // متصفح سبق أن فتح النظام، كمتصفح أي موظف بعد يومه الأول: ملفات الواجهة
+  // وقاموس الترجمة في مخزنه. بمتصفح جديد يصوّر الفيديو أول تحميل على الإطلاق —
+  // أبطأ ما يراه المستخدم، مرة واحدة — وكأنه الدخول المعتاد. جلسة تمهيد غير
+  // مسجَّلة تملأ المخزن، ثم يبدأ التسجيل بالملف الشخصي نفسه.
+  const profile = path.join(OUT, 'profile');
+  fs.rmSync(profile, { recursive: true, force: true });
+  const warm = await chromium.launchPersistentContext(profile, { headless: true, viewport: SIZE, locale: 'ar' });
+  try {
+    const w = warm.pages()[0] || await warm.newPage();
+    await w.goto(BASE + '/login', { waitUntil: 'domcontentloaded' });
+    await w.fill('#login_email', USER); await w.fill('#login_password', PASS);
+    await w.click('.for-login .btn-login');
+    await w.waitForURL(/\/desk/, { timeout: 120000 });
+    await w.waitForFunction(() => window.frappe && frappe.boot && document.querySelector('.body-sidebar') && !document.querySelector('.splash'), null, { timeout: 120000 });
+    await w.waitForTimeout(4000);
+    await w.evaluate(() => fetch('/api/method/logout', { method: 'POST', headers: { 'X-Frappe-CSRF-Token': frappe.csrf_token } }));
+    await w.waitForTimeout(500);
+    console.log('warm-up done');
+  } finally { await warm.close(); }
+
+  const context = await chromium.launchPersistentContext(profile, { headless: true, viewport: SIZE, locale: 'ar', recordVideo: { dir: path.join(OUT, 'video'), size: SIZE } });
   await context.addInitScript(OVERLAY);
-  const page = await context.newPage();
+  const page = context.pages()[0] || await context.newPage();
   const t0 = Date.now();
   page.setDefaultTimeout(45000);
   const log = (...a) => console.log(((Date.now() - t0) / 1000).toFixed(1).padStart(6), ...a);
@@ -554,7 +573,6 @@ const OVERLAY = `(() => {
   console.log('ENGLISH', english.length);
   english.forEach((t) => console.log('   EN', t));
   await context.close();
-  await browser.close();
   const video = fs.readdirSync(path.join(OUT, 'video')).filter((f) => f.endsWith('.webm')).map((f) => ({ f, t: fs.statSync(path.join(OUT, 'video', f)).mtimeMs })).sort((a, b) => b.t - a.t)[0];
   fs.writeFileSync(path.join(OUT, 'timeline.json'), JSON.stringify({ total: +total.toFixed(2), video: video && video.f, failed, scenes: timeline }, null, 2));
   console.log(failed ? 'RECORD_FAILED ' + JSON.stringify(failed) : 'RECORD_OK ' + total.toFixed(1) + 's ' + (video && video.f));

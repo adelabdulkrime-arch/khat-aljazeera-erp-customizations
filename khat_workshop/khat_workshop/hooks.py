@@ -135,6 +135,12 @@ add_to_apps_screen = [
     }
 ]
 
+# «نسيت كلمة المرور» تعرف الحساب ببريده أو اسم دخوله، وتُرسل لحساب المالك أيضاً
+# (khat_workshop/accounts.py).
+override_whitelisted_methods = {
+    "frappe.core.doctype.user.user.reset_password": "khat_workshop.accounts.reset_password",
+}
+
 # دوالّ تُنادى من قوالب الطباعة باسمها
 jinja = {"methods": [
     "khat_workshop.print_template.in_words_ar",
