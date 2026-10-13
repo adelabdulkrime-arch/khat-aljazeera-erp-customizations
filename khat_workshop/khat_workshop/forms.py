@@ -187,6 +187,9 @@ FORMS = {
     # يجري فعلاً: يُستلم المركب، يُفحص، يُنفَّذ العمل، ثم تُراجَع التكلفة.
     "Work Card": {
         "hide": ["naming_series", "odometer_km"],   # عداد مكرَّر: «قراءة العداد» أعلى البطاقة
+        # بطاقة جديدة تبدأ «بانتظار الفحص». كانت تُفتح بلا حالة، فتظهر في القائمة
+        # بخانة حالة فارغة إلى أن ينتبه الموظف.
+        "defaults": {"status": "بانتظار الفحص"},
         "labels": {
             "sec_complaint": "شكوى العميل",
             "complaint": "ما يشكو منه العميل",
@@ -457,6 +460,11 @@ FORMS = {
     },
     "Role": {
         "hide": ["home_page", "restrict_to_domain", "two_factor_auth"],
+    },
+    # «الحالة الافتراضية للبطاقة» حقل لا يقرؤه شيء في النظام: من يغيّره ينتظر
+    # أثراً لا يحدث. الحالة الافتراضية معرَّفة في نموذج البطاقة أعلاه.
+    "Workshop Settings": {
+        "hide": ["default_status"],
     },
     "Activity Log": {
         "hide": ["timeline_doctype", "timeline_name", "link_doctype", "link_name",
