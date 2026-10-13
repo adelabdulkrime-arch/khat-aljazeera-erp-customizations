@@ -1,6 +1,27 @@
-// فاحص صفحة الدخول — يُشغَّل في المتصفح بعد حقن login.css.
+// فاحص صفحة الدخول — يُشغَّل في المتصفح على المعاينة المحلية (serve.js).
 // يعيد قائمة fails فارغة حين تنجح كل الفحوص، وإلا يسمّي كل عيب بقيمته المقيسة.
 (function () {
+  // أقصر ارتفاع يجب أن تتّسع فيه الصفحة بلا تمرير، بحسب العرض ووجود رسالة
+  // خطأ. هذه هي الوعود التي يقطعها login.css (--kaj-fit)، مكتوبةً هنا
+  // مستقلّةً عنه: فاحص يقرأ وعده من الملف الذي يفحصه لا يكشف وعداً تراخى.
+  window.__kajBudget = function (width, hasMessage) {
+    if (width >= 1024) return 480;
+    if (width >= 360) return hasMessage ? 572 : 488;
+    return hasMessage ? 612 : 524;
+  };
+
+  // يضع القسم الظاهر في حالة خطأ بدوالّ الإطار نفسها، دون أي طلب للخادم:
+  //   banner — فشل الدخول · fields — إرسال والحقول فارغة
+  //   long — أطول رسالة يصدرها login.js في الإطار (إعداد المصادقة الثنائية)
+  window.__kajSetState = function (state) {
+    const section = [...document.querySelectorAll('section')]
+      .find(s => s.querySelector('.page-card') && getComputedStyle(s).display !== 'none');
+    if (state === 'banner') login.set_invalid(__('Invalid credentials, try again.'));
+    else if (state === 'long') login.set_invalid(__('OTP setup using OTP App was not completed. Please contact Administrator.'));
+    else if (state === 'fields') section.querySelector('.btn-login:not(.btn-login-option), .btn-forgot').click();
+    else if (state !== 'base') throw new Error('حالة غير معروفة: ' + state);
+  };
+
   const px = v => parseFloat(v) || 0;
   const rect = e => e.getBoundingClientRect();
   const shown = e => {
@@ -60,9 +81,13 @@
     // ٢) الفيض الرأسي: هل يحتاج المستخدم للتمرير؟ وهل الزر الأساسي قابل للوصول؟
     const sh = document.documentElement.scrollHeight;
     info.scrollH = sh; info.needsScroll = sh > vh + 1;
-    // من 480px ارتفاعاً فما فوق يجب أن يتّسع الدخول كاملاً بلا تمرير: مستخدم
-    // يضطر للتمرير ليجد زر الدخول يظنّ الصفحة معطّلة.
-    if (vh >= 480 && sh > vh + 1) F('FITS', 'المحتوى ' + sh + 'px > النافذة ' + vh + 'px — يحتاج تمريراً');
+    // الرسائل الظاهرة: شريط فشل الدخول وتنبيهات الحقول
+    const messages = [...section.querySelectorAll('.login-error-banner, .login-success-banner, .field-error')].filter(shown);
+    info.messages = messages.length;
+    // من حدّ الاتساع فما فوق يجب أن يتّسع الدخول كاملاً بلا تمرير، برسالة
+    // الخطأ إن ظهرت: مستخدم يضطر للتمرير ليجد زر الدخول يظنّ الصفحة معطّلة.
+    const budget = window.__kajBudget(vw, messages.length > 0);
+    if (vh >= budget && sh > vh + 1) F('FITS', 'المحتوى ' + sh + 'px > النافذة ' + vh + 'px — يحتاج تمريراً');
     const primary = section.querySelector('.btn-login:not(.btn-login-option), .btn-forgot');
     if (primary && shown(primary)) {
       const r = rect(primary);
@@ -155,6 +180,27 @@
       }
     }
 
+    // ٦ب) الرسائل: مقروءة، بلغة الصفحة، داخل البطاقة، غير مقتطعة
+    const arPage = document.documentElement.lang === 'ar';
+    messages.forEach(m => {
+      const t = (m.textContent || '').trim(), what = m.className.toString().split(' ')[0];
+      if (!t) { F('MSG-EMPTY', what); return; }
+      if (arPage && /[A-Za-z]{3,}/.test(t)) F('MSG-LANG', 'نص لاتيني في صفحة عربية: ' + t);
+      if (!arPage && /\p{Script=Arabic}/u.test(t)) F('MSG-LANG', 'نص عربي في صفحة إنجليزية: ' + t);
+      const txt = m.querySelector('span') || m, cs = getComputedStyle(txt), bg = bgOf(txt), fg = parse(cs.color);
+      const c = ratio(over(fg, bg), bg);
+      info.contrast[what] = +c.toFixed(2);
+      if (c < 4.5) F('CONTRAST', what + '=' + c.toFixed(2));
+      if (px(cs.fontSize) < 12) F('MSG-FONT', what + ' ' + cs.fontSize);
+      const mr = rect(m), kr = rect(card);
+      if (mr.left < kr.left - .5 || mr.right > kr.right + .5) F('MSG-OUT', what + ' خارج البطاقة');
+      if (m.scrollWidth > m.clientWidth + 1 && getComputedStyle(m).overflow !== 'visible') F('MSG-CLIP', t.slice(0, 30));
+    });
+    // عناصر جسم النموذج لا يركب بعضها بعضاً حين تُضاف رسالة
+    const stack = [...section.querySelectorAll('.page-card-body > *')].filter(shown).map(rect);
+    for (let i = 1; i < stack.length; i++)
+      if (stack[i].top < stack[i - 1].bottom - .5) F('STACK-OVERLAP', 'العنصر ' + (i + 1) + ' يركب ما قبله');
+
     // ٧) محاذاة الاتجاه: التسمية والعنوان يبدآن من نفس حافة الحقل
     const lbl = section.querySelector('.form-label'), fld = section.querySelector('input:not([type=checkbox])');
     if (lbl && fld && shown(lbl) && shown(fld)) {
@@ -178,7 +224,10 @@
     const cr = rect(card);
     let art = null;
     if (panelOn) {
-      const w = px(pb.width), h = px(pb.height), t = px(pb.top), l = px(pb.left);
+      // left المحسوبة لعنصر ثابت تُقاس من حافة منطقة العرض بلا شريط التمرير،
+      // والشريط في صفحة عربية على اليسار: يُضاف موضع تلك الحافة في النافذة.
+      const origin = rect(document.documentElement).left + scrollX;
+      const w = px(pb.width), h = px(pb.height), t = px(pb.top), l = px(pb.left) + origin;
       art = {left: l, right: l + w, top: t, bottom: t + h};
       info.art = Math.round(l) + ',' + Math.round(t) + ' ' + Math.round(w) + 'x' + Math.round(h);
       if (art.left < -.5 || art.right > vw + .5 || art.top < -.5 || art.bottom > vh + .5)
@@ -207,30 +256,47 @@
     if (cr.top + scrollY < -.5) F('CARD-CLIPPED', 'أعلى البطاقة عند ' + Math.round(cr.top + scrollY));
     info.cardTop = Math.round(cr.top); info.cardBottom = Math.round(cr.bottom);
 
-    // ٩) العناصر الثابتة (مبدّل اللغة، «ثبّت التطبيق»…): لا تركب البطاقة،
-    //    ولا الشعار، ولا تغطّي عنصراً تفاعلياً، ولا تخرج عن النافذة.
-    const fixedEls = [...document.body.querySelectorAll('*')].filter(e => {
-      if (e === document.body || e.closest('section')) return false;
-      const cs = getComputedStyle(e);
-      return cs.position === 'fixed' && shown(e);
+    // ٩) العناصر العائمة (مبدّل اللغة، «ثبّت التطبيق»…): لا تركب البطاقة،
+    //    ولا الشعار، ولا تغطّي عنصراً تفاعلياً، ولا تخرج عن الصفحة. «عائم»
+    //    = ثابت في النافذة، أو مطلق الموضع على جسم الصفحة (يُمرَّر معها).
+    const floats = [...document.body.querySelectorAll('*')].filter(e => {
+      if (e.closest('section')) return false;
+      const pos = getComputedStyle(e).position;
+      return (pos === 'fixed' || (pos === 'absolute' && e.parentElement === document.body)) && shown(e);
     });
     const hit = (a, b) => !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
     const nameOf = e => e.id || e.className.toString().slice(0, 20) || e.tagName;
-    info.fixed = fixedEls.map(nameOf);
-    fixedEls.forEach(fx => {
-      const r = rect(fx);
-      if (r.left < -.5 || r.right > vw + .5 || r.top < -.5 || r.bottom > vh + .5) F('FIXED-OUT', nameOf(fx) + ' خارج النافذة');
-      if (hit(r, cr)) F('FIXED-ON-CARD', nameOf(fx) + ' يركب البطاقة');
-      if (art && hit(r, art)) F('FIXED-ON-ART', nameOf(fx) + ' يركب الشعار');
-      section.querySelectorAll('input, button, a.btn, a[href]').forEach(e => {
-        if (!shown(e)) return;
-        if (hit(r, rect(e))) F('FIXED-OVERLAP', nameOf(fx) + ' يغطّي ' + (e.id || e.className.toString().slice(0, 30) || e.tagName));
+    info.fixed = floats.map(nameOf);
+    const floatChecks = when => {
+      const kr = rect(card);
+      floats.forEach(fx => {
+        const r = rect(fx), scrolls = getComputedStyle(fx).position === 'absolute';
+        // ما يُمرَّر مع الصفحة يُقاس موضعه فيها لا في النافذة
+        const top = scrolls ? r.top + scrollY : r.top, bottom = scrolls ? r.bottom + scrollY : r.bottom;
+        if (r.left < -.5 || r.right > vw + .5 || top < -.5 || bottom > (scrolls ? sh : vh) + .5) F('FIXED-OUT', nameOf(fx) + ' خارج الصفحة' + when);
+        if (hit(r, kr)) F('FIXED-ON-CARD', nameOf(fx) + ' يركب البطاقة' + when);
+        if (art && hit(r, art)) F('FIXED-ON-ART', nameOf(fx) + ' يركب الشعار' + when);
+        section.querySelectorAll('input, button, a.btn, a[href]').forEach(e => {
+          if (!shown(e)) return;
+          if (hit(r, rect(e))) F('FIXED-OVERLAP', nameOf(fx) + ' يغطّي ' + (e.id || e.className.toString().slice(0, 30) || e.tagName) + when);
+        });
       });
-    });
-    // العناصر الثابتة لا تركب بعضها
-    for (let i = 0; i < fixedEls.length; i++)
-      for (let j = i + 1; j < fixedEls.length; j++)
-        if (hit(rect(fixedEls[i]), rect(fixedEls[j]))) F('FIXED-ON-FIXED', nameOf(fixedEls[i]) + ' × ' + nameOf(fixedEls[j]));
+      // العناصر العائمة لا تركب بعضها
+      for (let i = 0; i < floats.length; i++)
+        for (let j = i + 1; j < floats.length; j++)
+          if (hit(rect(floats[i]), rect(floats[j]))) F('FIXED-ON-FIXED', nameOf(floats[i]) + ' × ' + nameOf(floats[j]) + when);
+    };
+    // حين تطول الصفحة عن النافذة (هاتف بالعرض، أو لوحة مفاتيح تدفع الحقل إلى
+    // مرمى البصر) يُعاد الفحص عند طرفَي التمرير: عنصر ثابت بريء في أعلى
+    // الصفحة يصير فوق البطاقة بعد التمرير.
+    const y0 = scrollY;
+    if (sh > vh + 1) {
+      [0, sh - vh].forEach(y => {
+        scrollTo({top: y, behavior: 'instant'});
+        floatChecks(' (التمرير عند ' + Math.round(scrollY) + 'px)');
+      });
+      scrollTo({top: y0, behavior: 'instant'});
+    } else floatChecks('');
 
     // ١٠) الخط الأساسي
     info.h4Font = h4 ? px(getComputedStyle(h4).fontSize) : null;

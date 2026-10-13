@@ -57,13 +57,35 @@ body[data-path="login"] {
 
   --kaj-r: 12px;
   --kaj-card-r: 20px;
-  --kaj-field-h: 48px;
-  --kaj-card-pad-y: 40px;
   --kaj-card-pad-x: 36px;
-  --kaj-page-pad-y: 32px;
   --kaj-page-pad-x: 24px;
+
+  /* ── الإيقاع الرأسي: ينساب مع ارتفاع الشاشة ──
+   * كل مسافة رأسية = حدّها الأدنى + حصّتها من --kaj-t، و--kaj-t يكبر من 0
+   * عند ارتفاع --kaj-fit حتى --kaj-span بعده. مجموع ما تكبره المسافات أقلّ
+   * من --kaj-span نفسه، أي أن المحتوى يطول أبطأ من الشاشة دائماً: ما اتّسع
+   * عند --kaj-fit يتّسع عند كل ارتفاع فوقه، في كل حالة.
+   *
+   * نسخة سابقة بدّلت المسافات على درجات (max-height: 700px ثم 600px ثم
+   * 560px) ضُبطت على الحالة العادية وحدها، ففوق كل عتبة مباشرة شريط ارتفاعات
+   * يظهر فيه تمرير متى ظهرت رسالة خطأ (604–644px و704px تحت 1024px عرضاً).
+   *
+   * --kaj-fit هو أقصر ارتفاع تتّسع فيه أطول حالة وهي في أدنى مسافاتها،
+   * مقيس لا مقدَّر: رسالة خطأ من ثلاثة أسطر تحتاج 569px بعرض 360px (فشل
+   * الدخول 548px، تنبيه الحقلين الفارغين 542px، الحالة العادية 481px)،
+   * و610px بعرض 320px، و464px من 1024px فما فوق. tools/login-check يعيد
+   * القياس ويرفض أي حالة تتجاوز حدّها. svh لا dvh: يُحسب وشريط عنوان
+   * المتصفح ظاهر، فلا تتحرّك المسافات حين يختفي الشريط. */
+  --kaj-fit: 572px;
+  --kaj-span: 220;
+  --kaj-t: clamp(0px, 100vh - var(--kaj-fit), var(--kaj-span) * 1px);
+  --kaj-card-pad-max: 40;
+  /* 44px حدّ اللمس الأدنى (Apple HIG)؛ لا ينزل الحقل عنه مهما قصرت الشاشة */
+  --kaj-field-h: calc(44px + var(--kaj-t) * (48 - 44) / var(--kaj-span));
+  --kaj-card-pad-y: calc(16px + var(--kaj-t) * (var(--kaj-card-pad-max) - 16) / var(--kaj-span));
+  --kaj-page-pad-y: calc(8px + var(--kaj-t) * (32 - 8) / var(--kaj-span));
   /* ارتفاع محجوز لمبدّل اللغة حين يشارك البطاقة عمودها (تحت 1024px) */
-  --kaj-switch-space: 64px;
+  --kaj-switch-space: calc(52px + var(--kaj-t) * (64 - 52) / var(--kaj-span));
   /* ضلع مربّع الشعار: محكوم بالأصغر من العرض والارتفاع فلا يتجاوز نصفه،
    * وبحدّ أقصى 520px — بلا حدّ بلغ 646px على شاشة 1920 فطغى على بطاقة
    * عرضها 440px. */
@@ -107,6 +129,31 @@ body[data-path="login"] {
     --kaj-err-bg: rgba(198, 40, 57, .16);
     --kaj-err-ink: #ffb0b8;
     --kaj-err-border: rgba(255, 135, 148, .35);
+  }
+}
+
+@supports (height: 100svh) {
+  body[data-path="login"] {
+    --kaj-t: clamp(0px, 100svh - var(--kaj-fit), var(--kaj-span) * 1px);
+  }
+}
+/* من 1024px لا مبدّل فوق البطاقة ولا شعار داخلها، فأطول حالة أقصر */
+@media (min-width: 1024px) {
+  body[data-path="login"] {
+    --kaj-fit: 480px;
+  }
+}
+@media (max-width: 575.98px) {
+  body[data-path="login"] {
+    --kaj-page-pad-x: 16px;
+    --kaj-card-pad-x: 24px;
+    --kaj-card-pad-max: 28;
+  }
+}
+/* تحت 360px ينكسر صفّ «تذكّرني» والرسائل إلى أسطر أكثر */
+@media (max-width: 359.98px) {
+  body[data-path="login"] {
+    --kaj-fit: 612px;
   }
 }
 
@@ -173,27 +220,28 @@ body[data-path="login"] .login-content.page-card {
   border: 1px solid var(--kaj-surface-border) !important;
   border-radius: var(--kaj-card-r) !important;
   box-shadow: 0 1px 2px rgba(3, 8, 20, .2), 0 24px 60px rgba(3, 8, 20, .42) !important;
-  gap: 28px;
+  gap: calc(12px + var(--kaj-t) * (28 - 12) / var(--kaj-span));
 }
 
 body[data-path="login"] .page-card-head {
-  gap: 18px;
+  gap: calc(8px + var(--kaj-t) * (18 - 8) / var(--kaj-span));
   text-align: start;
   align-items: flex-start;
 }
 body[data-path="login"] .page-card-head img.app-logo {
-  width: 44px !important;
-  height: 44px !important;
+  width: calc(32px + var(--kaj-t) * (44 - 32) / var(--kaj-span)) !important;
+  height: calc(32px + var(--kaj-t) * (44 - 32) / var(--kaj-span)) !important;
   max-height: none !important;
-  border-radius: 11px;
+  border-radius: 25%;
   object-fit: contain;
   box-shadow: 0 1px 3px rgba(11, 18, 32, .18);
 }
 body[data-path="login"] .page-card-head .page-card-head-text {
-  gap: 8px;
+  gap: calc(4px + var(--kaj-t) * (8 - 4) / var(--kaj-span));
 }
 body[data-path="login"] .page-card-head h4 {
-  font-size: clamp(1.5rem, 1.3rem + .5vw, 1.75rem);
+  /* الأصغر من حدَّين: ما يسمح به العرض، وما يسمح به الارتفاع (22→28px) */
+  font-size: min(clamp(1.5rem, 1.3rem + .5vw, 1.75rem), calc(22px + var(--kaj-t) * (28 - 22) / var(--kaj-span)));
   line-height: 1.2;
   font-weight: 700;
   letter-spacing: -.01em;
@@ -201,24 +249,22 @@ body[data-path="login"] .page-card-head h4 {
   text-wrap: balance;
 }
 body[data-path="login"] .page-card-head .page-card-subtitle {
-  font-size: 15px;
+  font-size: calc(14px + var(--kaj-t) * (15 - 14) / var(--kaj-span));
   line-height: 1.55;
   letter-spacing: 0;
   color: var(--kaj-ink-3);
 }
 
 /* المسافات: gap فقط */
-body[data-path="login"] .page-card form {
-  gap: 20px;
-}
+body[data-path="login"] .page-card form,
 body[data-path="login"] .page-card .page-card-body {
-  gap: 20px;
+  gap: calc(12px + var(--kaj-t) * (20 - 12) / var(--kaj-span));
 }
 body[data-path="login"] .page-card .form-group {
-  gap: 8px;
+  gap: calc(6px + var(--kaj-t) * (8 - 6) / var(--kaj-span));
 }
 body[data-path="login"] .page-card .page-card-actions {
-  gap: 12px;
+  gap: calc(10px + var(--kaj-t) * (12 - 10) / var(--kaj-span));
 }
 
 /* ════════════ الحقول ════════════ */
@@ -485,6 +531,13 @@ html[dir="rtl"] body[data-path="login"] #kaj-install-fab {
   body[data-path="login"] .page_content > div {
     padding-top: var(--kaj-switch-space);
   }
+  /* المبدّل هنا في عمود البطاقة نفسه، فيُمرَّر مع الصفحة ولا يُثبَّت في
+   * النافذة: متى طالت الصفحة عن الشاشة — هاتف بالعرض، أو لوحة مفاتيح تدفع
+   * الحقل إلى مرمى البصر — صعدت البطاقة تحت مبدّل ثابت فغطّى عنوانها ثم
+   * حقل البريد. المساحة المحجوزة فوق البطاقة تبقى له في الحالين. */
+  body[data-path="login"] #khat-lang-switch {
+    position: absolute;
+  }
   body[data-path="login"] #kaj-install-fab {
     display: none !important;
   }
@@ -531,78 +584,6 @@ html[dir="rtl"] body[data-path="login"] #kaj-install-fab {
     background: var(--kaj-bg, none) center / contain no-repeat;
     -webkit-mask-image: radial-gradient(circle closest-side, #000 89.9%, transparent 90.7%);
     mask-image: radial-gradient(circle closest-side, #000 89.9%, transparent 90.7%);
-  }
-}
-
-/* ════════════ الشاشات الصغيرة والقصيرة ════════════ */
-@media (max-width: 575.98px) {
-  body[data-path="login"] {
-    --kaj-page-pad-x: 16px;
-    --kaj-card-pad-x: 24px;
-    --kaj-card-pad-y: 28px;
-  }
-}
-/* شاشة قصيرة: أي حاسوب محمول بتكبير 150% (نافذته نحو 1260×590) */
-@media (max-height: 700px) {
-  body[data-path="login"] {
-    --kaj-page-pad-y: 12px;
-    --kaj-card-pad-y: 28px;
-    --kaj-switch-space: 60px;
-  }
-  body[data-path="login"] .login-content.page-card {
-    gap: 22px;
-  }
-  body[data-path="login"] .page-card-head {
-    gap: 14px;
-  }
-  body[data-path="login"] .page-card form,
-  body[data-path="login"] .page-card .page-card-body {
-    gap: 16px;
-  }
-  body[data-path="login"] .page-card-head img.app-logo {
-    width: 40px !important;
-    height: 40px !important;
-  }
-}
-/* شاشة قصيرة جداً: لابتوب 1366×768 بتكبير 125% نافذته نحو 1093×510، وهاتف
- * صغير يشارك فيه المبدّل البطاقة عمودها. الحقول تنزل إلى 44px — حدّ
- * Apple HIG الأدنى — فلا تُضحّى بقابلية اللمس أكثر من اللازم. */
-@media (max-height: 560px), (max-width: 1023.98px) and (max-height: 600px) {
-  body[data-path="login"] {
-    --kaj-field-h: 44px;
-    --kaj-page-pad-y: 8px;
-    --kaj-card-pad-y: 18px;
-    --kaj-switch-space: 56px;
-  }
-  body[data-path="login"] .login-content.page-card {
-    gap: 14px;
-  }
-  body[data-path="login"] .page-card-head {
-    gap: 10px;
-  }
-  body[data-path="login"] .page-card-head img.app-logo {
-    width: 32px !important;
-    height: 32px !important;
-    border-radius: 8px;
-  }
-  body[data-path="login"] .page-card-head h4 {
-    font-size: 1.375rem;
-  }
-  body[data-path="login"] .page-card-head .page-card-subtitle {
-    font-size: 14px;
-  }
-  body[data-path="login"] .page-card-head .page-card-head-text {
-    gap: 4px;
-  }
-  body[data-path="login"] .page-card form,
-  body[data-path="login"] .page-card .page-card-body {
-    gap: 12px;
-  }
-  body[data-path="login"] .page-card .form-group {
-    gap: 6px;
-  }
-  body[data-path="login"] .page-card .page-card-actions {
-    gap: 10px;
   }
 }
 
