@@ -68,6 +68,11 @@ def execute():
     gd = frappe.get_single("Global Defaults")
     gd.default_currency = "OMR"
     gd.country = "Oman"
+    # «الإجمالي المقرَّب» يُعطَّل: الريال يُكتب بالبيسة (0.001) فلا تقريب، والحقل
+    # يكرّر الإجمالي نفسه تحته. وحفظ Global Defaults هو ما يقرّر ظهوره — يكتب
+    # خاصية «hidden» على الحقل في كل معاملة — فلو تُرك مفعّلاً لأعاد إظهار ما
+    # أخفته forms.py مع كل نشر، لأن هذه الخطوة تعمل بعدها.
+    gd.disable_rounded_total = 1
     gd.save(ignore_permissions=True)
 
     ss = frappe.get_single("System Settings")
