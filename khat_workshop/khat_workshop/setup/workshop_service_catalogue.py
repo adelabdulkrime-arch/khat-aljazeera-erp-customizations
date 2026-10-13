@@ -102,8 +102,10 @@ def _convert_field():
 
 
 def execute():
+    from khat_workshop.setup import demo_data_enabled
+
     _ensure_item_group()
-    created = _seed_services()
+    created = _seed_services() if demo_data_enabled() else 0
     outcome = _convert_field()
     frappe.db.commit()
     print("SERVICE_CATALOGUE seeded=%d total=%d field=%s"

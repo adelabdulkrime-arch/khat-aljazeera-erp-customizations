@@ -222,12 +222,12 @@
       });
       await step('بطاقة عمل: خدمة وقطعة وفني، ثم حفظ', async () => {
         const frm = ctx.cardFrm;
-        const part = await stockedPart(frm.doc.warehouse || await defaultWarehouse(), 5);
+        const part = ctx.partDoc || await stockedPart(frm.doc.warehouse || await defaultWarehouse(), 5);
         const tech = (await frappe.db.get_list('Workshop Technician', { limit: 1 }))[0].name;
         const line = frm.fields_dict.service_line.df.options.split('\n').filter(Boolean)[0];
         const status = (await frappe.db.get_list('Work Card Status', { filters: { is_closed: 0 }, limit: 1 }))[0].name;
         await setValues(frm, { service_line: line, status, complaint: 'صوت عند الفرملة واهتزاز في المقود', mileage: 84620, fuel_level: frm.fields_dict.fuel_level.df.options.split('\n').filter(Boolean)[1], no_visible_damage: 1 });
-        const service = (await frappe.db.get_list('Item', { filters: { is_stock_item: 0, disabled: 0, item_code: ['like', 'WS-%'] }, fields: ['name', 'item_name'], limit: 1 }))[0];
+        const service = ctx.serviceDoc || (await frappe.db.get_list('Item', { filters: { is_stock_item: 0, disabled: 0, item_code: ['like', 'WS-%'] }, fields: ['name', 'item_name'], limit: 1 }))[0];
         if (!service) throw new Error('لا خدمة في دليل الخدمات (WS-…)');
         ctx.service = service.name;
         // المستخدم يختار الصنف ويكتب الكمية؛ الاسم والسعر يجلبهما النموذج
@@ -293,6 +293,37 @@
         ctx.payment = pe.doc.name;
         return { name: pe.doc.name, docstatus: pe.doc.docstatus, paid: pe.doc.paid_amount, type: pe.doc.payment_type, invoiceOutstanding: outstanding, hiddenMandatory: hidden, ok: pe.doc.docstatus === 1 && Math.abs(outstanding) < 0.001 };
       });
+    },
+
+    // اليوم الأول على نظام فارغ (بعد khat_workshop.handover.clean): لا فني ولا
+    // خدمة ولا قطعة. العميل يدخلها بنفسه، ثم يفتح أول بطاقة عمل ويفوترها.
+    async firstday() {
+      await step('نظام فارغ: لا أصناف نموذجية ولا عملاء', async () => {
+        const items = await frappe.db.count('Item', { filters: { item_group: ['in', ['قطع غيار', 'خدمات الورشة', 'عمليات الاستبدال']] } });
+        const customers = await frappe.db.count('Customer');
+        return { items, customers, ok: true };
+      });
+      await step('فني جديد', async () => {
+        const r = await create('Workshop Technician', { technician_name: TAG + ' فني ' + stamp, specialization: 'ميكانيكا', commission_rate: 10 });
+        ctx.tech = r.name; return r;
+      });
+      await step('خدمة جديدة بسعرها (إدخال سريع)', async () => {
+        const name = 'تغيير زيت وفلتر ' + stamp;
+        const r = await create('Item', { item_code: 'KH-SVC-' + stamp, item_name: name, item_group: 'خدمات الورشة', stock_uom: 'Nos', is_stock_item: 0, standard_rate: 8 });
+        ctx.serviceDoc = { name: r.name, item_name: name };
+        r.priceListed = (await frappe.call({ method: 'khat_workshop.api.item_info', args: { item: r.name } })).message.rate;
+        r.ok = r.priceListed === 8;
+        return r;
+      });
+      await step('قطعة جديدة بسعرها ورصيدها الافتتاحي (إدخال سريع)', async () => {
+        const name = 'فلتر زيت ' + stamp;
+        const r = await create('Item', { item_code: 'KH-PRT-' + stamp, item_name: name, item_group: 'قطع غيار', stock_uom: 'Nos', is_stock_item: 1, standard_rate: 3.5, opening_stock: 10, valuation_rate: 2 });
+        ctx.partDoc = { name: r.name, item_name: name };
+        r.stock = await stockOf(r.name);
+        r.ok = r.stock === 10;
+        return r;
+      });
+      await SCENARIOS.workshop();
     },
 
     // دورة شراء: مورد، أمر شراء، استلام، فاتورة، سداد

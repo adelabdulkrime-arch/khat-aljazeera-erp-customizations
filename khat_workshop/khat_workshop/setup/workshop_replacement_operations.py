@@ -142,8 +142,10 @@ def _seed_operations():
 
 
 def execute():
+    from khat_workshop.setup import demo_data_enabled
+
     group_state = _ensure_item_group()
-    created, migrated, skipped = _seed_operations()
+    created, migrated, skipped = _seed_operations() if demo_data_enabled() else (0, 0, 0)
     frappe.db.commit()
     frappe.clear_cache()
     print("REPLACEMENT_OPERATIONS item_group=%s created=%d migrated=%d skipped=%d total=%d"

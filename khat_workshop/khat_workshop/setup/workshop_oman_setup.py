@@ -83,22 +83,9 @@ def execute():
     ss.currency_precision = "3"
     ss.save(ignore_permissions=True)
 
-    # 6. Workshop Settings: قيم مبدئية لما لم يُملأ بعد، لا أكثر.
-    # كانت تُكتب عند كل نشر، فأي رقم ضريبي أو هاتف أو عنوان يدخله صاحب الورشة
-    # يعود إلى القيمة المبدئية مع أول تحديث للنظام.
-    ws = frappe.get_single("Workshop Settings")
-    defaults = {
-        "tax_number": "OM1000000000",
-        "phone": "+968 9000 0000",
-        "address": "مسقط، سلطنة عُمان",
-    }
-    changed = False
-    for field, value in defaults.items():
-        if not ws.get(field):
-            ws.set(field, value)
-            changed = True
-    if changed:
-        ws.save(ignore_permissions=True)
+    # إعدادات الورشة (الاسم، الرقم الضريبي، الهاتف، العنوان) لا تُملأ هنا: كانت
+    # توضع فيها قيم مبدئية («OM1000000000»، «+968 9000 0000») تظهر على كل فاتورة
+    # مطبوعة إلى أن ينتبه أحد. يدخلها صاحب الورشة.
 
     frappe.db.commit()
     frappe.clear_cache()

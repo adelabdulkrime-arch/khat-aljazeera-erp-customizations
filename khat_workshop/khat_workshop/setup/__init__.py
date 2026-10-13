@@ -9,6 +9,22 @@ import importlib
 import traceback
 
 import frappe
+from frappe.utils import cint
+
+
+def demo_data_enabled():
+    """هل تُزرع البيانات النموذجية (قطع، خدمات، عمليات، رصيد افتتاحي) هنا؟
+
+    لا، ما لم يُطلب: نظام يُسلَّم لعميل يبدأ فارغاً، ونشرٌ لاحق لا يعيد إليه
+    قطعاً وأرصدة لم يُدخلها (khat_workshop/handover.py). تُفعَّل على موقع
+    اختبار أو عرض:
+
+        bench --site <site> set-config kaj_demo_data 1
+
+    الاختبارات الخادمية (smoke_test، workflow_test…) وسيناريوهات
+    tools/desk-check تحتاجها.
+    """
+    return bool(cint(frappe.conf.get("kaj_demo_data")))
 
 # Order matters:
 #   - workshop_setup creates the custom DocTypes and roles everything else

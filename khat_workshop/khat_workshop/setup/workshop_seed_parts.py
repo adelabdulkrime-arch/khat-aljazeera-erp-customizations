@@ -107,7 +107,12 @@ def _receive_opening(warehouse):
 
 
 def execute():
+    from khat_workshop.setup import demo_data_enabled
+
     _ensure_group()
+    if not demo_data_enabled():
+        print("SEED_PARTS skipped (kaj_demo_data off)")
+        return
     created = _ensure_items()
     warehouse = _warehouse()
     entry = _receive_opening(warehouse)
