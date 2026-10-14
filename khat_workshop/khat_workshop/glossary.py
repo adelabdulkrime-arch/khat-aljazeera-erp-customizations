@@ -831,6 +831,31 @@ HELP = [
 
 # ── رسائل النظام وأطراف النموذج ──────────────────────────────────────────────
 MESSAGES = [
+    # شاشة النسخ الاحتياطي
+    ("Set Number of Backups", "عدد النسخ المحفوظة"),
+    ("Download Files Backup", "تنزيل نسخة الملفات"),
+    ("Get Backup Encryption Key", "مفتاح تشفير النسخ"),
+    # قائمتا الأسعار القياسيتان (أسماء سجلّات تُعرض مترجمة)
+    ("Standard Buying", "أسعار الشراء"),
+    ("Standard Selling", "أسعار البيع"),
+    ("Expense Head Changed", "تغيّر حساب المصروف"),
+    ("Row {0}: Expense Head changed to {1} because account {2} is not linked to warehouse {3} or it is not the default inventory account",
+     "الصف {0}: قُيّد البند على حساب {1}، لأن {2} ليس حساب مخزون المستودع {3}."),
+    # مرتجع على فاتورة مسدَّدة: المبلغ يبقى رصيداً للعميل على المرتجع نفسه
+    ("The outstanding amount {0} in {1} is lesser than {2}. Updating the outstanding to this invoice.",
+     "المتبقي على {1} ({0}) أقل من مبلغ المرتجع ({2})، فقُيّد المبلغ رصيداً على هذا المرتجع."),
+    ("We can see {0} is made against {1}. If you want {1}'s outstanding to be updated, uncheck the '{2}' checkbox.",
+     "{0} مرتبط بـ{1}. ليُخصم من المستحق على {1} ألغِ خيار «{2}»."),
+    ("You can use {0} to reconcile against {1} later.", "ويمكن تسويته لاحقاً مع {1} من {0}."),
+    ("Credit Note", "إشعار دائن"),
+    ("Debit Note", "إشعار مدين"),
+    ("Payment Reconciliation", "تسوية المدفوعات"),
+    ("Update Outstanding for Self", "تحديث المتبقي على المرتجع نفسه"),
+    # شجرة الحسابات
+    ("Expand All", "توسيع الكل"),
+    ("Collapse All", "طيّ الكل"),
+    ("Dr", "مدين"),
+    ("Cr", "دائن"),
     # حوار «صنف جديد»: رسالة حفظ السعر، ووصف «رصيد افتتاحي»
     ("Item Price created at rate {0}", "سُجّل سعر البيع: {0}"),
     ("Opening Stock entry created: {0}", "سُجّل الرصيد الافتتاحي: {0}"),

@@ -183,6 +183,17 @@ doc_events = {
     "User": {
         "before_validate": "khat_workshop.roles.sync_implied",
     },
+    # الرصيد الافتتاحي للصنف يُقيَّد على حساب الافتتاح لا على المصروفات
+    # (khat_workshop/opening_stock.py).
+    "Item": {
+        "before_insert": "khat_workshop.opening_stock.hold",
+        "after_insert": "khat_workshop.opening_stock.post",
+    },
+    # بند مخزني في فاتورة تُدخل المخزون يُقيَّد على حساب المخزون قبل التحقق، فلا
+    # تظهر نافذة «تغيّر حساب المصروف» مع كل فاتورة (khat_workshop/purchasing.py).
+    "Purchase Invoice": {
+        "before_validate": "khat_workshop.purchasing.inventory_expense_head",
+    },
     # الماركة تتبع الموديل: لا «شيفروليه» مع «تويوتا-كامري».
     "Customer Vehicle": {
         "validate": "khat_workshop.maintenance.brand_follows_model",

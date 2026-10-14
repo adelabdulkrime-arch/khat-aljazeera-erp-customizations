@@ -174,14 +174,17 @@
 		const timer = setInterval(() => { if (guardForms() || ++tries > 600) clearInterval(timer); }, 100);
 	}
 
-	// ── نماذج الإعدادات (مستند وحيد): عنوانها في الشريط الجانبي بالعربية ──
-	// الإطار يكتب هناك اسم المستند، وهو في المستند الوحيد اسم نوعه الإنجليزي
-	// («Workshop Settings»).
+	// ── عنوان المستند في الشريط الجانبي بالعربية ──
+	// الإطار يكتب هناك عنوان المستند كما هو مخزَّن: في المستند الوحيد اسم نوعه
+	// («Workshop Settings»)، وفي حركة المخزون نوعها («Material Issue»). ما له
+	// ترجمة يُكتب بها، كما في مسار التنقّل أعلى الصفحة.
 	$(document).on('form-refresh', function (e, frm) {
-		if (!frm || !frm.meta || !frm.meta.issingle || !frm.sidebar) return;
+		if (!frm || !frm.meta || !frm.sidebar) return;
+		const raw = frm.meta.issingle ? frm.doctype : String(frappe.model.get_doc_title(frm.doc) || '');
+		if (!raw || __(raw) === raw) return;
 		setTimeout(function () {
 			$(frm.wrapper).closest('.page-container').find('.form-sidebar *').each(function () {
-				if (!this.children.length && this.textContent.trim() === frm.doctype) this.textContent = __(frm.doctype);
+				if (!this.children.length && this.textContent.trim() === raw) this.textContent = __(raw);
 			});
 		}, 0);
 	});

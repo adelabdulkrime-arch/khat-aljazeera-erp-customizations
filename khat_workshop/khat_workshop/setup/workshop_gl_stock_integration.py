@@ -40,13 +40,16 @@ if not doc.stock_entry:
 	valid_rows = [p for p in (doc.parts or []) if p.item and p.qty]
 	if valid_rows and doc.warehouse:
 		company = frappe.db.get_single_value("Global Defaults", "default_company")
+		# قطع صُرفت في عمل يُفوتَر: تكلفتها «تكلفة البضاعة المباعة»، لا «تسويات
+		# المخزون» (حساب الفروق والتالف) التي يضعها ERPNext لكل صرف بلا حساب.
+		cogs = frappe.db.get_value("Company", company, "default_expense_account")
 		se = frappe.get_doc({
 			"doctype": "Stock Entry",
 			"stock_entry_type": "Material Issue",
 			"company": company,
 			"posting_date": frappe.utils.nowdate(),
 			"items": [
-				{"item_code": p.item, "qty": p.qty, "s_warehouse": doc.warehouse}
+				{"item_code": p.item, "qty": p.qty, "s_warehouse": doc.warehouse, "expense_account": cogs}
 				for p in valid_rows
 			],
 		})
@@ -165,6 +168,12 @@ def execute():
         default_warehouse = frappe.db.get_value("Warehouse", {"is_group": 0}, "name")
 
     _ensure_custom_field("Work Card", "warehouse", "المستودع (لصرف القطع)", "Link", "Warehouse", insert_after="sec_parts", read_only=0, default=default_warehouse)
+    # القيمة الافتراضية اسم مستودع محفوظ نصاً، فإعادة تسمية المستودع لا تتبعها
+    # (workshop_arabic_names): بطاقة جديدة كانت تبدأ بمستودع لم يعد موجوداً.
+    current = frappe.db.get_value("Custom Field", "Work Card-warehouse", "default")
+    if default_warehouse and (not current or not frappe.db.exists("Warehouse", current)):
+        frappe.db.set_value("Custom Field", "Work Card-warehouse", "default", default_warehouse)
+        frappe.clear_cache(doctype="Work Card")
     _ensure_custom_field("Work Card", "stock_entry", "حركة المخزون المرتبطة", "Link", "Stock Entry", insert_after="warehouse", read_only=1)
 
     # Workshop context ON the native documents. Users now raise a real Quotation

@@ -12,12 +12,15 @@
 const fs = require('fs');
 const path = require('path');
 const { chromium } = require('playwright');
-const scenes = require('./narration');
+const PART = process.env.KAJ_PART === '2' ? '2' : '1';        // الجزء الثاني يبدأ من بيانات الأول
+const scenes = require(PART === '2' ? './narration2' : './narration');
 const sync = require('./sync');
 
 const OUT = path.resolve(process.argv[2] || 'out');
 const DRY = process.argv.includes('--dry');
 const UNTIL = (process.argv.find((a) => a.startsWith('--until=')) || '').split('=')[1];
+// ‎--from=<مشهد>‎: للتجربة — يُنفَّذ المشهد الأول (يجهّز الصفحة) ثم يُقفز إلى هذا المشهد
+const FROM = (process.argv.find((a) => a.startsWith('--from=')) || '').split('=')[1];
 const BASE = process.env.KAJ_BASE || 'http://127.0.0.1:8766';
 const USER = process.env.KAJ_USER || 'Admin';
 const PASS = process.env.KAJ_PASS || 'admin123';
@@ -38,6 +41,9 @@ const D = {
   complaint: 'صوت عند تشغيل المحرك، والمطلوب تغيير الزيت والفلتر',
   user: 'خالد بن ناصر الرواحي', email: 'khalid' + SFX.replace(/\W/g, '') + '@khataljazeera.om', password: 'Warsha#2026-Kh',
   role: 'موظف استقبال الورشة',
+  // الجزء الثاني
+  supplier: 'مؤسسة الخليج لقطع الغيار' + SFX, supplierMobile: '24567890', billNo: 'INV-7781',
+  expenseAccount: 'مطبوعات وقرطاسية', bankAccount: 'الحساب البنكي', expenseAmount: '1.5',
 };
 
 // ── ما يُرسم فوق الصفحة: المؤشّر، النصّ السفلي، بطاقات العناوين ──
@@ -123,7 +129,8 @@ const OVERLAY = `(() => {
     await w.waitForURL(/\/desk/, { timeout: 120000 });
     await w.waitForFunction(() => window.frappe && frappe.boot && document.querySelector('.body-sidebar') && !document.querySelector('.splash'), null, { timeout: 120000 });
     await w.waitForTimeout(4000);
-    await w.evaluate(() => fetch('/api/method/logout', { method: 'POST', headers: { 'X-Frappe-CSRF-Token': frappe.csrf_token } }));
+    // الجزء الثاني يبدأ والمستخدم داخل النظام: الجلسة تبقى في الملف الشخصي
+    if (PART === '1') await w.evaluate(() => fetch('/api/method/logout', { method: 'POST', headers: { 'X-Frappe-CSRF-Token': frappe.csrf_token } }));
     await w.waitForTimeout(500);
     console.log('warm-up done');
   } finally { await warm.close(); }
@@ -233,13 +240,20 @@ const OVERLAY = `(() => {
   }
   async function closeAlerts() { await js(() => { document.querySelectorAll('.desk-alert .close, #alert-container .close').forEach((b) => b.click()); }); }
   // صف جديد في جدول: يُضغط «إضافة صف» ثم تُملأ خلاياه
-  async function gridRow(table, cells) {
+  async function gridRow(table, cells, reuse) {
     const grid = `.page-container:visible .frappe-control[data-fieldname="${table}"]`;
-    await click(page.locator(`${grid} .grid-add-row:visible`).first(), 700);
+    // جداول المعاملات تبدأ بصف فارغ أو صفّين: يُملأ أول فارغ (reuse = الحقل الذي يدلّ
+    // فراغه على فراغ الصف)، وإلا يُضاف صف.
+    let idx = reuse ? await js(([t, f]) => (cur_frm.doc[t] || []).findIndex((r) => !r[f]), [table, reuse]) : -1;
+    if (idx < 0) {
+      await click(page.locator(`${grid} .grid-add-row:visible`).first(), 700);
+      idx = await js((t) => (cur_frm.doc[t] || []).length - 1, table);
+    }
+    const row = `${grid} .grid-body .rows > .grid-row:nth-child(${idx + 1})`;
     for (const [field, value, kind, optionText] of cells) {
-      const cell = page.locator(`${grid} .grid-body .grid-row:last-child [data-fieldname="${field}"]`).first();
+      const cell = page.locator(`${row} [data-fieldname="${field}"]`).first();
       await click(cell, 350);
-      const input = page.locator(`${grid} .grid-body .grid-row:last-child [data-fieldname="${field}"] input:visible`).first();
+      const input = page.locator(`${row} [data-fieldname="${field}"] input:visible`).first();
       if (await input.count()) {
         await page.keyboard.press('Control+A'); await page.keyboard.press('Delete');
         await page.keyboard.type(String(value), { delay: 70 });
@@ -247,19 +261,76 @@ const OVERLAY = `(() => {
           const option = page.locator('.awesomplete > ul:visible > [role="option"]').filter({ hasText: optionText || value }).first();
           try { await option.waitFor({ state: 'visible', timeout: 15000 }); await wait(300); await click(option, 300); }
           catch (e) { log('  لا قائمة في الجدول لـ', value); await page.screenshot({ path: path.join(OUT, 'shots', 'debug-grid-' + table + '-' + field + '.png') }).catch(() => {}); }
-        } else { await page.keyboard.press('Tab'); }
+        // Tab من آخر عمود يُنشئ صفاً جديداً فارغاً: القيمة تُثبَّت بالرجوع خانة
+        } else { await page.keyboard.press(kind === 'end' ? 'Shift+Tab' : 'Tab'); }
       }
       await idle(500);
       // ما لم تثبته الواجهة يُثبَّت من خلفها: الفيديو لا يتوقف عند خلية عنيدة
-      const ok = await js(([t, f, v]) => { const rows = cur_frm.doc[t] || []; const r = rows[rows.length - 1]; return r && String(r[f] == null ? '' : r[f]) === String(v); }, [table, field, value]);
+      const ok = await js(([t, f, v, i]) => { const r = (cur_frm.doc[t] || [])[i]; return r && (String(r[f] == null ? '' : r[f]) === String(v) || (v !== '' && !isNaN(v) && Number(r[f]) === Number(v))); }, [table, field, value, idx]);
       if (!ok) {
         log('  FALLBACK', table, field);
-        await js(([t, f, v]) => { const rows = cur_frm.doc[t] || []; const r = rows[rows.length - 1]; return frappe.model.set_value(r.doctype, r.name, f, isNaN(v) || v === '' ? v : Number(v)); }, [table, field, value]);
+        await js(([t, f, v, i]) => { const r = (cur_frm.doc[t] || [])[i]; return frappe.model.set_value(r.doctype, r.name, f, isNaN(v) || v === '' ? v : Number(v)); }, [table, field, value, idx]);
         await idle(600);
       }
     }
     await page.keyboard.press('Escape').catch(() => {});
     await wait(300);
+  }
+  // خلية في صف موجود: تُضغط وتُكتب قيمتها
+  async function gridCell(table, field, value) {
+    const grid = `.page-container:visible .frappe-control[data-fieldname="${table}"]`;
+    const cell = page.locator(`${grid} .grid-body .grid-row:last-child [data-fieldname="${field}"]`).first();
+    await click(cell, 350);
+    const input = page.locator(`${grid} .grid-body .grid-row:last-child [data-fieldname="${field}"] input:visible`).first();
+    if (await input.count()) {
+      await page.keyboard.press('Control+A'); await page.keyboard.press('Delete');
+      await page.keyboard.type(String(value), { delay: 80 });
+      await page.keyboard.press('Tab');
+    }
+    await idle(600);
+    const ok = await js(([t, f, v]) => { const rows = cur_frm.doc[t] || []; const r = rows[rows.length - 1]; return r && Number(r[f]) === Number(v); }, [table, field, value]);
+    if (!ok) {
+      log('  FALLBACK', table, field);
+      await js(([t, f, v]) => { const rows = cur_frm.doc[t] || []; const r = rows[rows.length - 1]; return frappe.model.set_value(r.doctype, r.name, f, Number(v)); }, [table, field, value]);
+      await idle(600);
+    }
+    await page.keyboard.press('Escape').catch(() => {});
+    await wait(300);
+  }
+  const field = (name) => page.locator(`.page-container:visible .frappe-control[data-fieldname="${name}"]:visible`).first();
+  const checkbox = (name) => page.locator(`.page-container:visible .frappe-control[data-fieldname="${name}"] input[type=checkbox]:visible`).first();
+  // نموذج جديد من بلاطة في لوحة
+  async function newFrom(section, label, doctype) {
+    await goSection(section);
+    await click(tile(label), 600);
+    await page.waitForFunction((d) => window.cur_frm && cur_frm.doctype === d && cur_frm.is_new(), doctype, { timeout: 45000 });
+    await idle(900);
+  }
+  // حفظ ثم اعتماد، كما يفعل المستخدم: زرّ «حفظ» ثم «اعتماد» وتأكيده
+  async function saveAndSubmit(what) {
+    await js(() => window.scrollTo({ top: 0, behavior: 'smooth' })); await wait(600);
+    await save();
+    if (await js(() => cur_frm.is_new())) throw new Error('لم يُحفظ: ' + what + ' — ' + await js(() => (document.querySelector('.modal.show .msgprint') || {}).innerText || ''));
+    await closeAlerts(); await dismissMessage(); await wait(700);
+    await save(true);
+    await page.waitForFunction(() => window.cur_frm && cur_frm.doc.docstatus === 1, null, { timeout: 60000 });
+    await idle(1200); await closeAlerts(); await dismissMessage();
+    return frmDoc('name');
+  }
+  // رسالة في نافذة (لا سؤال): تُقرأ ثم تُغلق بزرّها، كما يفعل المستخدم
+  async function dismissMessage() {
+    const box = page.locator('.modal.show:has(.msgprint)').first();
+    if (!(await box.isVisible().catch(() => false))) return;
+    log('  رسالة:', (await box.innerText().catch(() => '')).replace(/s+/g, ' ').slice(0, 140));
+    await wait(1500);
+    await click(box.locator('.btn-modal-close:visible, .modal-header .close:visible').first(), 500).catch(() => page.keyboard.press('Escape'));
+    await wait(400);
+  }
+  // اختيار الطرف يجلب بياناته ثم يعيد رسم الحقول: ما يُكتب قبل أن ينتهي يضيع
+  async function settle() { await idle(1800); await idle(700); }
+  async function reportReady(name) {
+    await page.waitForFunction((n) => window.frappe && frappe.query_report && frappe.query_report.report_name === n && (frappe.query_report.data || []).length > 0 && !frappe.request.ajax_count, name, { timeout: 60000 }).catch(() => log('  التقرير بلا صفوف:', name));
+    await idle(1500);
   }
   async function ensure(field, value, where) {
     const got = await frmDoc(field);
@@ -271,6 +342,11 @@ const OVERLAY = `(() => {
   }
 
   const ctx = {};
+  if (DRY) {
+    const timed = (name, fn) => async (...args) => { const t = Date.now(); try { return await fn(...args); } finally { log('    ⏱', name, typeof args[0] === 'string' ? args[0] : '', ((Date.now() - t) / 1000).toFixed(1) + 's'); } };
+    gridRow = timed('gridRow', gridRow); pick = timed('pick', pick); saveAndSubmit = timed('saveAndSubmit', saveAndSubmit);
+    newFrom = timed('newFrom', newFrom); menuItem = timed('menuItem', menuItem); gridCell = timed('gridCell', gridCell);
+  }
   // ── المشاهد ──
   const run = {
     async intro() { await page.goto(BASE + '/login', { waitUntil: 'domcontentloaded' }); await wait(800); },
@@ -537,22 +613,246 @@ const OVERLAY = `(() => {
     },
 
     async outro() { await wait(300); },
+
+    // ══ الجزء الثاني ══
+    async intro2() {
+      await page.goto(BASE + '/desk/home', { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(() => window.frappe && frappe.boot && frappe.boot.kaj && document.querySelector('.body-sidebar') && !document.querySelector('.splash'), null, { timeout: 120000 });
+      await page.locator('.kd').first().waitFor({ timeout: 60000 });
+      // العميل والأصناف من الجزء الأول، بأسمائها هناك (اللاحقة لما يُنشأ هنا وحده)
+      if (SFX) for (const k of ['customer', 'partCode', 'svcCode']) D[k] = D[k].slice(0, -SFX.length);
+      ctx.customer = (await js((n) => frappe.db.get_list('Customer', { filters: { customer_name: n }, limit: 1 }), D.customer))[0].name;
+      ctx.company = await js(() => frappe.defaults.get_default('company'));
+      ctx.abbr = (await js((c) => frappe.db.get_value('Company', c, 'abbr'), ctx.company)).message.abbr;
+      ctx.warehouse = (await js(() => frappe.db.get_single_value('Stock Settings', 'default_warehouse')));
+      await idle(800);
+    },
+    async s_sales() { await wait(300); },
+
+    async quotation() {
+      await newFrom('المبيعات', 'عرض سعر جديد', 'Quotation');
+      await pick(inForm('party_name'), D.customer.slice(0, 8), D.customer);
+      await settle();
+      await ensure('party_name', ctx.customer, 'quotation');
+      await settle();
+      await gridRow('items', [['item_code', D.partCode, 'link', D.partCode], ['qty', '2']], 'item_code');
+      await idle(900);
+      await gridRow('items', [['item_code', D.svcCode, 'link', D.svcCode], ['qty', '1']], 'item_code');
+      await idle(900);
+      await glide(field('grand_total')); await wait(1500);
+      await ensure('party_name', ctx.customer, 'quotation');
+      ctx.quotation = await saveAndSubmit('عرض السعر');
+      await glide(page.locator('.page-container:visible .indicator-pill:visible').first()).catch(() => {}); await wait(1200);
+    },
+
+    async direct_sale() {
+      await newFrom('المبيعات', 'فاتورة مبيعات جديدة', 'Sales Invoice');
+      await pick(inForm('customer'), D.customer.slice(0, 8), D.customer);
+      await settle();
+      await ensure('customer', ctx.customer, 'sale');
+      await settle();
+      await click(checkbox('update_stock'), 600);
+      if (!(await frmDoc('update_stock'))) await ensure('update_stock', 1, 'sale');
+      await gridRow('items', [['item_code', D.partCode, 'link', D.partCode], ['qty', '2']], 'item_code');
+      await idle(900);
+      await glide(field('grand_total')); await wait(1500);
+      await ensure('customer', ctx.customer, 'sale');
+      if (!(await frmDoc('update_stock'))) await ensure('update_stock', 1, 'sale');
+      ctx.sale = await saveAndSubmit('فاتورة البيع');
+    },
+
+    async sales_return() {
+      await js(() => window.scrollTo({ top: 0 })); await wait(400);
+      await menuItem('إنشاء', 'مرتجع');
+      await page.waitForFunction(() => window.cur_frm && cur_frm.doctype === 'Sales Invoice' && cur_frm.doc.is_return && cur_frm.is_new(), null, { timeout: 60000 });
+      await idle(1500);
+      await glide(field('is_return')).catch(() => {}); await wait(900);
+      // أُعيدت قطعة واحدة من اثنتين
+      await gridCell('items', 'qty', '-1');
+      await glide(field('grand_total')); await wait(1400);
+      ctx.ret = await saveAndSubmit('المرتجع');
+    },
+
+    async s_purchasing() { await wait(300); },
+
+    async supplier() {
+      await goSection('المشتريات');
+      await click(page.locator('.kd-sections a, .kd-sec a, .kd a').filter({ hasText: /^\s*الموردون\s*$/ }).last(), 600);
+      await page.waitForFunction(() => window.cur_list && cur_list.doctype === 'Supplier', null, { timeout: 30000 });
+      await idle(1000);
+      await click(primary(), 700);
+      await page.locator('.modal.show .frappe-control[data-fieldname="supplier_name"] input').first().waitFor({ timeout: 30000 });
+      await idle(400);
+      await type(inDialog('supplier_name'), D.supplier);
+      await type(inDialog('mobile_number'), D.supplierMobile);
+      await wait(600);
+      await click(page.locator('.modal.show .modal-footer .btn-primary:visible, .modal.show .btn-primary:visible').first(), 600);
+      await idle(1500);
+      ctx.supplier = ((await js((n) => frappe.db.get_list('Supplier', { filters: { supplier_name: n }, limit: 1 }), D.supplier))[0] || {}).name;
+      if (!ctx.supplier) throw new Error('لم يُحفظ المورد');
+      await closeAlerts(); await wait(900);
+    },
+
+    async purchase() {
+      await newFrom('المشتريات', 'فاتورة مشتريات جديدة', 'Purchase Invoice');
+      await pick(inForm('supplier'), D.supplier.slice(0, 8), D.supplier);
+      await settle();
+      await ensure('supplier', ctx.supplier, 'purchase');
+      await settle();
+      await type(inForm('bill_no'), D.billNo, { clear: true });
+      await click(checkbox('update_stock'), 600);
+      if (!(await frmDoc('update_stock'))) await ensure('update_stock', 1, 'purchase');
+      await gridRow('items', [['item_code', D.partCode, 'link', D.partCode], ['qty', '3'], ['rate', '2', 'end']], 'item_code');
+      await idle(900);
+      await ensure('supplier', ctx.supplier, 'purchase');
+      await ensure('bill_no', D.billNo, 'purchase');
+      if (!(await frmDoc('update_stock'))) await ensure('update_stock', 1, 'purchase');
+      await glide(field('grand_total')).catch(() => {}); await wait(1500);
+      ctx.purchase = await saveAndSubmit('فاتورة المشتريات');
+    },
+
+    async purchase_pay() {
+      await js(() => window.scrollTo({ top: 0 })); await wait(400);
+      await menuItem('إنشاء', 'سداد');
+      await page.waitForFunction(() => window.cur_frm && cur_frm.doctype === 'Payment Entry', null, { timeout: 60000 });
+      await idle(1500);
+      await glide(field('paid_amount')); await wait(900);
+      await type(inForm('reference_no'), 'حوالة 5521', { clear: true });
+      await js(() => cur_frm.set_value('reference_date', frappe.datetime.get_today())); await idle(400);
+      await ensure('reference_no', 'حوالة 5521', 'purchase_pay');
+      await saveAndSubmit('سند الصرف');
+    },
+
+    async s_stock() { await wait(300); },
+
+    async stock_ledger() {
+      await goSection('المخزون');
+      await click(tile('دفتر حركة المخزون'), 600);
+      await reportReady('Stock Ledger');
+      const rows = page.locator('.page-container:visible .dt-row:not(.dt-row-header):not(.dt-row-filter)');
+      const n = Math.min(await rows.count(), 6);
+      for (let i = 0; i < n; i++) { await glide(rows.nth(i).locator('.dt-cell__content').nth(2)).catch(() => {}); await wait(1100); }
+      await page.mouse.move(520, 470, { steps: 20 }); await wait(1500);
+    },
+
+    async stock_issue() {
+      await newFrom('المخزون', 'حركة مخزون جديدة', 'Stock Entry');
+      // أنواع الحركة تُعرض مترجمة ويُبحث فيها بأسمائها الأصلية: تُفتح القائمة ويُختار منها
+      await click(inForm('stock_entry_type'), 300);
+      const issue = page.locator('.awesomplete > ul:visible > [role="option"]').filter({ hasText: 'صرف مواد' }).first();
+      await issue.waitFor({ state: 'visible', timeout: 12000 }).then(() => click(issue, 400)).catch(() => log('  لا خيار «صرف مواد» في القائمة'));
+      await idle(600);
+      await ensure('stock_entry_type', 'Material Issue', 'issue');
+      await idle(900);
+      await gridRow('items', [['s_warehouse', ctx.warehouse, 'link', ctx.warehouse.split(' - ')[0]], ['item_code', D.partCode, 'link', D.partCode], ['qty', '1', 'end']], 'item_code');
+      await idle(900);
+      ctx.issue = await saveAndSubmit('حركة الصرف');
+    },
+
+    async stocktake() {
+      await goSection('المخزون');
+      await click(page.locator('.kd a').filter({ hasText: /^\s*الجرد\s*$/ }).last(), 600);
+      await page.waitForFunction(() => window.cur_list && cur_list.doctype === 'Stock Reconciliation', null, { timeout: 30000 });
+      await idle(1000);
+      await click(primary(), 700);
+      await page.waitForFunction(() => window.cur_frm && cur_frm.doctype === 'Stock Reconciliation' && cur_frm.is_new(), null, { timeout: 45000 });
+      await idle(900);
+      const purpose = inForm('purpose');
+      await glide(purpose); await purpose.selectOption('Stock Reconciliation').catch(() => {}); await wait(600);
+      await ensure('purpose', 'Stock Reconciliation', 'stocktake');
+      await idle(900);
+      const counted = (await js(([i, w]) => frappe.db.get_value('Bin', { item_code: i, warehouse: w }, 'actual_qty'), [D.partCode, ctx.warehouse])).message.actual_qty - 1;
+      await gridRow('items', [['item_code', D.partCode, 'link', D.partCode], ['warehouse', ctx.warehouse, 'link', ctx.warehouse.split(' - ')[0]], ['qty', String(counted), 'end']], 'item_code');
+      await idle(1500);
+      // حساب الفرق: تسويات المخزون (الجرد ليس رصيداً افتتاحياً)
+      const adj = (await js((c) => frappe.db.get_value('Company', c, 'stock_adjustment_account'), ctx.company)).message.stock_adjustment_account;
+      if ((await frmDoc('expense_account')) !== adj) await js((a) => cur_frm.set_value('expense_account', a), adj);
+      await idle(600);
+      await saveAndSubmit('الجرد');
+    },
+
+    async s_accounting() { await wait(300); },
+
+    async expense() {
+      await newFrom('المحاسبة', 'قيد يومية جديد', 'Journal Entry');
+      const exp = D.expenseAccount + ' - ' + ctx.abbr, bank = D.bankAccount + ' - ' + ctx.abbr;
+      await gridRow('accounts', [['account', exp, 'link', D.expenseAccount], ['debit_in_account_currency', D.expenseAmount]], 'account');
+      await idle(800);
+      await gridRow('accounts', [['account', bank, 'link', D.bankAccount], ['credit_in_account_currency', D.expenseAmount, 'end']], 'account');
+      await idle(800);
+      await glide(field('total_debit')).catch(() => {}); await wait(1500);
+      ctx.journal = await saveAndSubmit('قيد اليومية');
+    },
+
+    async reports_fin() {
+      await goSection('المحاسبة');
+      await click(tile('قائمة الدخل'), 600);
+      await reportReady('Profit and Loss Statement');
+      const rows = page.locator('.page-container:visible .dt-row:not(.dt-row-header):not(.dt-row-filter)');
+      const n = Math.min(await rows.count(), 8);
+      for (let i = 0; i < n; i += 2) { await glide(rows.nth(i).locator('.dt-cell__content').nth(1)).catch(() => {}); await wait(1000); }
+      await wait(2500);
+      await goSection('المحاسبة');
+      await click(tile('مديونيات العملاء'), 600);
+      await reportReady('Accounts Receivable');
+      const cell = page.locator('.page-container:visible .dt-row:not(.dt-row-header):not(.dt-row-filter) .dt-cell__content').filter({ hasText: D.customer }).first();
+      if (await cell.count()) { await glide(cell); await wait(1500); }
+      await page.mouse.move(520, 470, { steps: 20 }); await wait(2500);
+    },
+
+    async s_settings() { await wait(300); },
+
+    async identity() {
+      await goSection('الإعدادات العامة');
+      await click(tile('الشعار والهوية'), 600);
+      await page.waitForFunction(() => window.cur_frm && cur_frm.doctype === 'Website Settings', null, { timeout: 45000 });
+      await idle(1200);
+      await glide(field('app_name')).catch(() => {}); await wait(1500);
+      await glide(field('app_logo')).catch(() => {}); await wait(2200);
+      await goSection('الإعدادات العامة');
+      await click(tile('ترويسات الطباعة'), 600);
+      await page.waitForFunction(() => window.cur_list && cur_list.doctype === 'Letter Head', null, { timeout: 30000 });
+      await idle(1200);
+      const first = page.locator('.page-container:visible .list-row-container .list-row a.ellipsis, .page-container:visible .list-row-container .list-subject a').first();
+      await click(first, 800).catch(() => {});
+      if (!(await js(() => window.cur_frm && cur_frm.doctype === 'Letter Head'))) {
+        const name = (await js(() => frappe.db.get_value('Letter Head', { is_default: 1 }, 'name'))).message.name;
+        await js((n) => frappe.set_route('Form', 'Letter Head', n), name);
+      }
+      await page.waitForFunction(() => window.cur_frm && cur_frm.doctype === 'Letter Head' && !cur_frm.is_new(), null, { timeout: 45000 }).catch(() => log('  لم تُفتح الترويسة'));
+      await idle(1200);
+      for (const f of ['kaj_header_img', 'kaj_footer_img', 'kaj_stamp_img']) { await glide(field(f)).catch(() => {}); await wait(1300); }
+    },
+
+    async backup() {
+      await goSection('الإعدادات العامة');
+      await click(tile('النسخ الاحتياطي'), 600);
+      await page.waitForFunction(() => /backups/.test(frappe.get_route_str()), null, { timeout: 30000 });
+      await idle(2500);
+      const cards = page.locator('.page-container:visible .layout-main-section a:visible, .page-container:visible .download-backup-card:visible');
+      const n = Math.min(await cards.count(), 3);
+      for (let i = 0; i < n; i++) { await glide(cards.nth(i)).catch(() => {}); await wait(1300); }
+      await wait(1500);
+    },
+
+    async outro2() { await wait(300); },
   };
 
   const timeline = [];
   let failed = null;
   for (let i = 0; i < scenes.length; i++) {
     const scene = scenes[i];
+    if (FROM && i > 0 && scenes.findIndex((x) => x.id === FROM) > i) continue;
     const start = (Date.now() - t0) / 1000;
     timeline.push({ id: scene.id, start: +start.toFixed(2) });
     log('▶', scene.id);
     try {
-      if (scene.id === 'intro') await run.intro();            // لا بدّ من صفحة تُرسم فوقها البطاقة
+      if (i === 0) await run[scene.id]();                     // لا بدّ من صفحة تُرسم فوقها البطاقة
       await js((c) => window.__kv && window.__kv.sync(c), sync.color(i));   // بداية المشهد كما يراها الفيديو
       if (scene.card) { await caption(''); await card(scene.card[0], scene.card[1]); await wait(500); }
       else { await card('', ''); await caption(scene.caption); }
       const began = Date.now();
-      if (scene.id !== 'intro') await run[scene.id]();
+      if (i !== 0) await run[scene.id]();
       const need = DRY ? 400 : (durations[scene.id] || 4) * 1000 + 700 - (Date.now() - began);
       if (need > 0) await wait(need);
       await page.screenshot({ path: path.join(OUT, 'shots', String(i).padStart(2, '0') + '-' + scene.id + '.png') });

@@ -195,6 +195,20 @@
 			if (plural) this.$breadcrumbs.find('li a.title-text').text(isAr() ? plural[0] : plural[1]);
 		};
 
+		// عنوان المستند من المستند المفتوح، لا من مسار الصفحة. بعد أول حفظ يبقى المسار
+		// باسم المستند المؤقت (new-…) والمسار القياسي يقرأ العنوان منه: «إضافة فاتورة
+		// مبيعات» فوق فاتورة محفوظة ومعتمدة، إلى أن تُحدَّث الصفحة.
+		const form = bc.set_form_breadcrumb;
+		bc.set_form_breadcrumb = function (breadcrumbs, view) {
+			form.call(this, breadcrumbs, view);
+			const frm = window.cur_frm;
+			if (!frm || frm.doctype !== breadcrumbs.doctype || frm.is_new()) return;
+			let title = frappe.model.get_doc_title(frm.doc) || frm.doc.name;
+			if (frappe.utils.is_html(title)) title = strip_html(title);
+			this.$breadcrumbs.find('.title-text-form').text(__(title))
+				.attr('href', '/desk/' + frappe.router.slug(frm.doctype) + '/' + encodeURIComponent(frm.doc.name));
+		};
+
 		// قبل أن يحدّد الموجّه المسار (تحديث صفحة قائمة) لا مسار يُرسم بعد؛ الإطار
 		// يرسمه حين يحدّده، بالدوالّ المعدَّلة أعلاه.
 		if (frappe.get_route()) bc.update();
@@ -234,6 +248,21 @@
 		const c = registerSearch();
 		const d = patchBreadcrumbs();
 		return a && b && c && d;
+	}
+
+	// ── شاشة النسخ الاحتياطي: التاريخ كما يُكتب في بقية النظام ──
+	// الصفحة تكتب تاريخ كل نسخة كما يطبعه الخادم: «Wed Oct 14 04:36 2026».
+	function backupDates() {
+		if (!frappe.get_route || frappe.get_route_str() !== 'backups') return;
+		$('.page-container:visible .layout-main-section *').each(function () {
+			const text = this.children.length ? '' : this.textContent.trim();
+			if (!/^[A-Z][a-z]{2} [A-Z][a-z]{2}\s+\d{1,2} \d{2}:\d{2} \d{4}$/.test(text)) return;
+			const when = moment(text.replace(/\s+/g, ' '), 'ddd MMM D HH:mm YYYY', 'en');
+			if (when.isValid()) this.textContent = frappe.datetime.str_to_user(when.format('YYYY-MM-DD HH:mm:ss'));
+		});
+	}
+	if (frappe.router && frappe.router.on) {
+		frappe.router.on('change', () => [300, 1200, 3000].forEach((ms) => setTimeout(backupDates, ms)));
 	}
 
 	// frappe.boot وأصناف الشريط تُعرَّف قبل هذا الملف في الترتيب المعتاد؛

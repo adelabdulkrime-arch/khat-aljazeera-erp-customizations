@@ -289,6 +289,10 @@ FORMS = {
                  # الدفع داخل الفاتورة يتطلب إعداد نقطة بيع؛ السداد بسند قبض
                  # من زر «إنشاء» في الفاتورة
                  "is_pos", "pos_profile", "payments_tab"],
+        # المرتجع يُخصم من المستحق على فاتورته. القيمة القياسية (1) تُبقيه رصيداً
+        # مستقلاً على المرتجع نفسه، والفاتورة الأصلية بكامل مبلغها، وتعرض عند
+        # الحفظ رسالة تطلب إلغاء خيارٍ في حقل مخفي.
+        "defaults": {"update_outstanding_for_self": "0"},
         "buttons": ["Timesheet"],
     },
     "Payment Entry": {
@@ -325,6 +329,8 @@ FORMS = {
                  "company_shipping_address_section", "company_billing_address_section",
                  "unrealized_profit_loss_account", "sb_14", "supplier_group", "sender",
                  "is_opening"],
+        # كما في فاتورة المبيعات: المرتجع يُخصم من فاتورته
+        "defaults": {"update_outstanding_for_self": "0"},
     },
 
     # ── المخزون ──
@@ -481,8 +487,15 @@ FORMS = {
         "hide": ["timeline_doctype", "timeline_name", "link_doctype", "link_name",
                  "reference_owner"],
     },
+    # ترويسة الطباعة عند صاحب الورشة ثلاث صور: رأس الصفحة وذيلها والختم. منها
+    # يُبنى الباقي (print_template.compose): مصدر الترويسة، وشيفرتها HTML التي
+    # كانت تملأ أسفل النموذج، وصورة الإطار ومقاساتها — حقول يكتبها النظام.
     "Letter Head": {
-        "hide": ["scripts_section"],
+        "hide": ["scripts_section", "source", "footer_source",
+                 "letter_head_image_section", "image", "image_height", "image_width", "align",
+                 "header_section", "content", "footer_section", "footer",
+                 "footer_image_section", "footer_image", "footer_image_height",
+                 "footer_image_width", "footer_align", "instructions"],
     },
     # «الشعار والهوية»: من إعدادات موقع كاملة يبقى ما يخصّ هوية النظام
     "Website Settings": {

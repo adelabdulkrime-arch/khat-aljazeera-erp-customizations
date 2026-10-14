@@ -40,6 +40,9 @@ STEPS = [
     # "Could not find Default Unit of Measure: Nos". Idempotent: a no-op once
     # the site is already onboarded.
     "workshop_company",
+    # دليل الحسابات والمستودعات بأسماء عربية. مباشرةً بعد إنشاء الشركة: كل خطوة
+    # تالية تبحث عن مخزن أو حساب تجده باسمه النهائي.
+    "workshop_arabic_names",
     "workshop_setup",
     # Right after setup, which creates the first roles: align the full list and
     # labels with Mazoon's fourteen before anything else references them.

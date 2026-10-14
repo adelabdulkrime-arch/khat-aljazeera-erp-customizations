@@ -247,7 +247,13 @@ services:
           SITE="$$(cat sites/currentsite.txt 2>/dev/null)"
           if [ -n "$$SITE" ]; then
             echo "[backup] $$(date -u '+%Y-%m-%dT%H:%M:%SZ') backing up $$SITE"
-            if bench --site "$$SITE" backup --with-files --backup-path /backups; then
+            # النسخة تُكتب في مجلد الموقع: هناك تعرضها شاشة «النسخ الاحتياطي»
+            # ومنها تُنزَّل (الإطار يُبقي أحدث ثلاث). ثم تُنسخ إلى الفوليوم
+            # المستقل، الذي يحفظها RETENTION_DAYS يوماً ولا يضيع بضياع بيانات
+            # الموقع. كانت تُكتب في الفوليوم وحده، فالشاشة لا تعرض نسخة يومية
+            # واحدة، ومن أراد نسخته احتاج دخولاً إلى الخادم.
+            if bench --site "$$SITE" backup --with-files; then
+              cp -p "sites/$$SITE/private/backups/"* /backups/ 2>/dev/null || true
               echo "[backup] OK"
               # Prune anything older than the retention window.
               find /backups -type f -mtime "+$${RETENTION_DAYS}" -delete 2>/dev/null || true

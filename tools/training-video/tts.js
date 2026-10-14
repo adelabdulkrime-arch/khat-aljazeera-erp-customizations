@@ -9,7 +9,7 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 const { MsEdgeTTS, OUTPUT_FORMAT } = require('msedge-tts');
 const ffmpeg = require('ffmpeg-static');
-const scenes = require('./narration');
+const scenes = require(process.env.KAJ_PART === '2' ? './narration2' : './narration');
 
 const OUT = path.resolve(process.argv[2] || 'out');
 const VOICE = process.env.KAJ_VOICE || 'ar-OM-AbdullahNeural';
