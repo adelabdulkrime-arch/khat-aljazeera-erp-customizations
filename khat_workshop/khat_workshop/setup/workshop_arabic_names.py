@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""أسماء عربية لدليل الحسابات والمستودعات ومركز التكلفة.
+"""أسماء عربية لدليل الحسابات والمستودعات ومركز التكلفة وقائمتَي الأسعار.
 
 ERPNext ينشئ دليل حساباته القياسي ومستودعاته بالإنجليزية أياً كانت لغة الواجهة:
 «Cash - KHAT»، «Sales - KHAT»، «Stores - KHAT». وهذه أسماء سجلّات لا تسميات
@@ -133,6 +133,13 @@ COST_CENTERS = {
     "Main": u"المركز الرئيسي",
 }
 
+# قائمتا الأسعار القياسيتان. اسماهما يُكتبان كما هما في رسائل النظام («أُضيف سعر
+# الصنف إلى قائمة الأسعار Standard Buying»)، والترجمة لا تصل إلا إلى عرضهما في الحقول.
+PRICE_LISTS = {
+    "Standard Buying": u"أسعار الشراء",
+    "Standard Selling": u"أسعار البيع",
+}
+
 # (نوع المستند، حقل الاسم، الخريطة)
 MASTERS = (
     ("Account", "account_name", ACCOUNTS),
@@ -160,6 +167,12 @@ def execute():
                                   rebuild_search=False)
                 frappe.db.set_value(doctype, new, field, arabic, update_modified=False)
                 done[doctype] = done.get(doctype, 0) + 1
+    for old, arabic in PRICE_LISTS.items():
+        if frappe.db.exists("Price List", old) and not frappe.db.exists("Price List", arabic):
+            frappe.rename_doc("Price List", old, arabic, force=True, show_alert=False,
+                              rebuild_search=False)
+            frappe.db.set_value("Price List", arabic, "price_list_name", arabic, update_modified=False)
+            done["Price List"] = done.get("Price List", 0) + 1
     if done:
         frappe.db.commit()
         frappe.clear_cache()

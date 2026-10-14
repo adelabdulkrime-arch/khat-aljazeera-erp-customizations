@@ -23,6 +23,7 @@ const STRIP_Y = PAGE_H - sync.SIZE.h, STRIP = OUT_H - STRIP_Y;
 const FPS = 25;
 // ‎--clips=<مجلد>‎: بعد الفيديو الكامل، مقطع مستقل لكل عملية
 const CLIPS = (process.argv.find((a) => a.startsWith('--clips=')) || '').slice(8) || null;
+const HEAD = 0.6;                                   // ما يُقصّ بعد أول ظهور للبطاقة الأولى
 const TITLE = 2.5;                                  // مدّة بطاقة عنوان المقطع
 const LEAD = 0.35;                                  // الصوت يبدأ بعد بداية المشهد بقليل
 
@@ -55,8 +56,12 @@ function marks(video, timeline) {
     const i = sync.decode(raw[o], raw[o + 1], raw[o + 2]);
     if (i !== null && i < n && seen[i] === null) seen[i] = f / FPS;
   }
-  const total = frames / FPS;
-  seen[0] = 0;                                               // البطاقة الأولى من أول إطار
+  // ما قبل البطاقة الأولى تحميل الصفحة التي تُرسم فوقها (ثوانٍ من هيكل فارغ في
+  // الجزء الثاني): الفيديو يبدأ معها. HEAD مهلة ظهورها التدريجي.
+  const head = seen[0] === null ? 0 : seen[0] + HEAD;
+  for (let i = 0; i < n; i++) if (seen[i] !== null) seen[i] = Math.max(0, seen[i] - head);
+  const total = frames / FPS - head;
+  seen[0] = 0;
   const missing = seen.map((t, i) => (t === null ? timeline.scenes[i].id : null)).filter(Boolean);
   if (missing.length) console.log('SYNC_MISSING', missing.join(','));
   const clock = timeline.scenes.map((s) => s.start).concat(timeline.total);
@@ -70,7 +75,7 @@ function marks(video, timeline) {
   });
   for (let i = 1; i < n; i++) if (starts[i] <= starts[i - 1]) throw new Error('مزامنة غير مرتّبة عند ' + timeline.scenes[i].id);
   console.log('SYNC', timeline.scenes.map((s, i) => s.id + ' ' + clock[i].toFixed(0) + '→' + starts[i].toFixed(0)).join(' | '));
-  return { starts, total };
+  return { starts, total, head };
 }
 
 // ── مقاطع مستقلة: مقطع لكل عملية ───────────────────────────────────────────
@@ -92,12 +97,14 @@ const indexed = (list) => list.map((s, i) => Object.assign({ id0: i }, s));
 async function cut(list, tmp) {
   fs.mkdirSync(CLIPS, { recursive: true });
   const offset = process.env.KAJ_PART === '2' ? groups(indexed(require('./narration'))).length : 0;
-  const cuts = groups(indexed(scenes));
+  // تسجيل جزئي (‎--from/--until‎ في record.js): مقاطع ما سُجِّل وحده
+  const all = groups(indexed(scenes));
+  const cuts = all.filter((c) => c.ids.every((id) => list.some((s) => s.id === id)));
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: W, height: OUT_H } });
   const made = [];
   for (const [k, c] of cuts.entries()) {
-    const no = String(offset + k + 1).padStart(2, '0');
+    const no = String(offset + all.indexOf(c) + 1).padStart(2, '0');
     const from = list.find((s) => s.id === c.ids[0]).start, to = list.find((s) => s.id === c.ids[c.ids.length - 1]).end;
     const card = path.join(tmp, 'title-' + no + '.png');
     await page.setContent(`<!doctype html><html dir="rtl"><body style="margin:0;width:${W}px;height:${OUT_H}px;display:flex;flex-direction:column;
@@ -133,7 +140,7 @@ async function cut(list, tmp) {
   const capDir = path.join(OUT, 'captions');
   await captions(capDir);
 
-  const { starts, total } = marks(video, timeline);
+  const { starts, total, head } = marks(video, timeline);
   const list = timeline.scenes.map((s, i) => ({
     id: s.id, start: starts[i], end: i + 1 < starts.length ? starts[i + 1] : total,
   }));
@@ -151,7 +158,7 @@ async function cut(list, tmp) {
     d.forEach((len, k) => { clips.push({ file: s.id + (k ? '.' + (k + 1) : '') + '.mp3', at }); at += len + gap; });
   }
 
-  const args = ['-y', '-i', video];
+  const args = ['-y', '-ss', head.toFixed(2), '-i', video];
   list.forEach((s) => args.push('-i', path.join(capDir, s.id + '.png')));
   clips.forEach((c) => args.push('-i', path.join(OUT, 'audio', c.file)));
 

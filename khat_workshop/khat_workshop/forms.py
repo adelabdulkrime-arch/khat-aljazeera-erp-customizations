@@ -503,6 +503,8 @@ FORMS = {
                  "banner_image", "brand_html", "set_banner_from_image", "top_bar",
                  "navbar_template_section", "banner", "footer_tab", "integrations",
                  "section_break_38", "redirects_tab"],
+        # زرّان لموقع عام لا وجود له هنا: «مشاهدة الموقع» يفتح صفحة الدخول، و«Clear Cache»
+        "buttons": ["View Website", "Clear Cache"],
     },
 }
 

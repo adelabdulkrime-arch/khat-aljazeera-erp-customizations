@@ -303,7 +303,7 @@ const OVERLAY = `(() => {
   async function newFrom(section, label, doctype) {
     await goSection(section);
     await click(tile(label), 600);
-    await page.waitForFunction((d) => window.cur_frm && cur_frm.doctype === d && cur_frm.is_new(), doctype, { timeout: 45000 });
+    await page.waitForFunction((d) => window.cur_frm && cur_frm.doctype === d && cur_frm.is_new(), doctype, { timeout: 90000 });
     await idle(900);
   }
   // حفظ ثم اعتماد، كما يفعل المستخدم: زرّ «حفظ» ثم «اعتماد» وتأكيده

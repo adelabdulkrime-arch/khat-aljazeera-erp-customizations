@@ -103,6 +103,11 @@ def _ensure_default_letter_head():
                 (frappe.db.get_value("Letter Head", name, "content") or "").strip() != HEADER_HTML.strip():
             frappe.db.set_value("Letter Head", name, {"source": "HTML", "content": HEADER_HTML})
             state.append("stock")
+        # معطَّلتان: لا تظهران في قائمة «الترويسة» عند الطباعة ولا في شاشة الترويسات،
+        # حيث كانتا اسمين إنجليزيين بجانب ترويسة الورشة بالمحتوى نفسه.
+        if frappe.db.exists("Letter Head", name) and not frappe.db.get_value("Letter Head", name, "disabled"):
+            frappe.db.set_value("Letter Head", name, "disabled", 1)
+            state.append("disabled")
 
     for company in frappe.get_all("Company", fields=["name", "default_letter_head"]):
         if not company.default_letter_head or company.default_letter_head in STOCK:

@@ -24,9 +24,17 @@ def inventory_expense_head(doc, method=None):
             return
         stock_items = doc.get_stock_items()
         accounts = doc.get_inventory_account_map()
+        default = frappe.db.get_single_value("Stock Settings", "default_warehouse")
         for row in doc.get("items") or []:
-            if (row.item_code in stock_items and row.warehouse
-                    and not row.get("from_warehouse") and not row.get("is_fixed_asset")):
+            if row.item_code not in stock_items or row.get("from_warehouse") or row.get("is_fixed_asset"):
+                continue
+            # حُفظت الفاتورة قبل أن يجلب النموذج مخزن البند (اتصال بطيء): يُملأ
+            # كما يملؤه ERPNext في التحقق، وإلا قيل «تغيّر حساب المصروف» على أي حال.
+            if not row.warehouse:
+                row.warehouse = (doc.get("set_warehouse") or frappe.db.get_value(
+                    "Item Default", {"parent": row.item_code, "company": doc.company},
+                    "default_warehouse") or default)
+            if row.warehouse:
                 account = (doc.get_inventory_account_dict(row, accounts) or {}).get("account")
                 if account:
                     row.expense_account = account

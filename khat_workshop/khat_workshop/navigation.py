@@ -279,7 +279,7 @@ MODULES = [
                     tile("الشعار والهوية", "Logo & Identity", "form", "Website Settings",
                          "image"),
                     tile("ترويسات الطباعة", "Print Letterheads", "list", "Letter Head",
-                         "printer"),
+                         "printer", {"disabled": 0}),
                     tile("إعدادات الورشة", "Workshop Settings", "form", "Workshop Settings",
                          "settings")),
             section("النظام", "System",

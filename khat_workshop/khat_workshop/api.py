@@ -412,7 +412,7 @@ def item_info(item, warehouse=None):
     if not row:
         return {}
     price_list = frappe.db.get_single_value("Selling Settings", "selling_price_list") \
-        or "Standard Selling"
+        or frappe.db.get_value("Price List", {"selling": 1, "enabled": 1}, "name")
     rate = frappe.db.get_value(
         "Item Price", {"item_code": item, "price_list": price_list, "selling": 1},
         "price_list_rate")
