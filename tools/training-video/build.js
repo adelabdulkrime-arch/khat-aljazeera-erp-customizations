@@ -53,8 +53,10 @@ function marks(video, timeline) {
   const n = timeline.scenes.length, seen = new Array(n).fill(null);
   for (let f = 0; f < frames; f++) {
     const o = f * frame + (4 + 1) * 3;                       // بكسل من وسط المربّع
-    const i = sync.decode(raw[o], raw[o + 1], raw[o + 2]);
-    if (i !== null && i < n && seen[i] === null) seen[i] = f / FPS;
+    // اللون رقم المشهد في ملف النصّ كله، لا في التسجيل: تسجيل جزئي (‎--from‎) يبدأ من وسطه
+    const k = sync.decode(raw[o], raw[o + 1], raw[o + 2]);
+    const i = k === null || !scenes[k] ? -1 : timeline.scenes.findIndex((s) => s.id === scenes[k].id);
+    if (i >= 0 && seen[i] === null) seen[i] = f / FPS;
   }
   // ما قبل البطاقة الأولى تحميل الصفحة التي تُرسم فوقها (ثوانٍ من هيكل فارغ في
   // الجزء الثاني): الفيديو يبدأ معها. HEAD مهلة ظهورها التدريجي.

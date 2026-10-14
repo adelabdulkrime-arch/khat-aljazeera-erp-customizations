@@ -831,6 +831,7 @@ HELP = [
 
 # ── رسائل النظام وأطراف النموذج ──────────────────────────────────────────────
 MESSAGES = [
+    ("There must be atleast 1 Finished Good in this Stock Entry", "يجب أن تحتوي حركة المخزون هذه على صنف تامّ واحد على الأقل"),
     # شاشة النسخ الاحتياطي
     ("Set Number of Backups", "عدد النسخ المحفوظة"),
     ("Download Files Backup", "تنزيل نسخة الملفات"),

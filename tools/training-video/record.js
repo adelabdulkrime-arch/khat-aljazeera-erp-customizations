@@ -739,7 +739,7 @@ const OVERLAY = `(() => {
       await newFrom('المخزون', 'حركة مخزون جديدة', 'Stock Entry');
       // أنواع الحركة تُعرض مترجمة ويُبحث فيها بأسمائها الأصلية: تُفتح القائمة ويُختار منها
       await click(inForm('stock_entry_type'), 300);
-      const issue = page.locator('.awesomplete > ul:visible > [role="option"]').filter({ hasText: 'صرف مواد' }).first();
+      const issue = page.locator('.awesomplete > ul:visible > [role="option"]').filter({ hasText: /^s*صرف موادs*$/ }).first();
       await issue.waitFor({ state: 'visible', timeout: 12000 }).then(() => click(issue, 400)).catch(() => log('  لا خيار «صرف مواد» في القائمة'));
       await idle(600);
       await ensure('stock_entry_type', 'Material Issue', 'issue');

@@ -261,8 +261,16 @@
 			if (when.isValid()) this.textContent = frappe.datetime.str_to_user(when.format('YYYY-MM-DD HH:mm:ss'));
 		});
 	}
+	// الصفحة تُرسم بعد وصول قائمة النسخ من الخادم: يُراقَب رسمها بدل مواعيد ثابتة
+	// كانت تترك التاريخ الإنجليزي ظاهراً ثوانيَ على اتصال بطيء.
 	if (frappe.router && frappe.router.on) {
-		frappe.router.on('change', () => [300, 1200, 3000].forEach((ms) => setTimeout(backupDates, ms)));
+		frappe.router.on('change', () => {
+			if (frappe.get_route_str() !== 'backups') return;
+			backupDates();
+			const watch = new MutationObserver(backupDates);
+			watch.observe(document.body, { childList: true, subtree: true });
+			setTimeout(() => watch.disconnect(), 20000);
+		});
 	}
 
 	// frappe.boot وأصناف الشريط تُعرَّف قبل هذا الملف في الترتيب المعتاد؛

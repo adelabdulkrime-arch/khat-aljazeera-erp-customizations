@@ -37,6 +37,10 @@
 			[this.$report, this.$chart, this.$summary].forEach((el) => el && el.empty && el.empty());
 			if (this.$message) this.$message.hide && this.$message.hide();
 			if (this.page && this.page.set_title) this.page.set_title(__(frappe.get_route()[1] || ''));
+			// ومرشّحات السابق: تبقى خاناتها فارغة فوق صفحة بيضاء إلى أن تصل مرشّحات الجديد
+			if (this.page && this.page.clear_fields) this.page.clear_fields();
+			// «جارٍ التحميل» من أول لحظة، كما يعرضه الإطار حين يبدأ الحساب
+			if (this.$report && this.show_loading_screen) this.show_loading_screen();
 			return load_report.apply(this, arguments);
 		};
 
