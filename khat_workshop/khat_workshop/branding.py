@@ -36,6 +36,11 @@ def force_site_language(context):
     """
     if frappe.request and frappe.request.cookies.get("preferred_language"):
         return
+    # للزائر غير المسجّل وحده. المستخدم المسجّل لغته في حسابه، وزرّ «العربية /
+    # English» يغيّرها هناك؛ وكانت هذه تعيد صفحة المكتب إلى العربية فوق بيانات
+    # إقلاع إنجليزية: شريط جانبي إنجليزي في واجهة عربية، والزرّ لا يبدّل شيئاً.
+    if frappe.session.user != "Guest":
+        return
 
     site_lang = frappe.db.get_single_value("System Settings", "language")
     if not site_lang or frappe.local.lang == site_lang:
