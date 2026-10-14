@@ -29,6 +29,17 @@
 		if (Report.prototype.__kaj) return true;
 		Report.prototype.__kaj = true;
 
+		// تقرير آخر يُفتح في الصفحة نفسها: يبقى السابق ظاهراً، بعنوانه وأرقامه، إلى أن
+		// يصل إعداد الجديد من الخادم — ثوانٍ على اتصال بطيء يقرأ فيها المستخدم «قائمة
+		// الدخل» فوق جدول رصيد المخزون. يُفرَّغ قبل التحميل.
+		const load_report = Report.prototype.load_report;
+		Report.prototype.load_report = function () {
+			[this.$report, this.$chart, this.$summary].forEach((el) => el && el.empty && el.empty());
+			if (this.$message) this.$message.hide && this.$message.hide();
+			if (this.page && this.page.set_title) this.page.set_title(__(frappe.get_route()[1] || ''));
+			return load_report.apply(this, arguments);
+		};
+
 		const setup_filters = Report.prototype.setup_filters;
 		Report.prototype.setup_filters = function () {
 			const keep = conf()[this.report_name];

@@ -100,7 +100,10 @@ def _upsert(name, ref_doctype, query):
 # المستخدم «إنشاء تقرير جديد» ثم ينتظر ويحدّث الصفحة. ذلك لشركات بمئات آلاف
 # الحركات؛ مخزون ورشة يُحسب في أقل من ثانية، فيُعرض فور فتح التقرير.
 # migrate يعيد القيمة من ملف التقرير، وهذه الخطوة تعيد ضبطها بعده.
-RUN_INLINE = ["Stock Balance"]
+RUN_INLINE = ["Stock Balance", "Stock Ledger",
+              # التقارير المالية: كانت تُعرض «تم إنشاء هذا التقرير قبل 3 دقائق» بأرقام قديمة
+              "Profit and Loss Statement", "Balance Sheet", "Trial Balance",
+              "General Ledger", "Cash Flow", "Accounts Receivable", "Accounts Payable"]
 
 
 def _run_inline():
