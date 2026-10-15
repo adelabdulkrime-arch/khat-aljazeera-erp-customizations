@@ -31,6 +31,10 @@ services:
       - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data      # الشهادات — هذا الفوليوم يمنع إعادة الإصدار عند كل تشغيل
       - caddy-config:/config
+      # المواقع الأخرى على الخادم (راجع آخر Caddyfile): إعداداتها وملفاتها،
+      # للقراءة فقط. المجلد بجوار المستودع، وغيابه يعني لا مواقع.
+      - ${WEBHOST_DIR:-../webhost}/caddy:/etc/caddy/sites:ro
+      - ${WEBHOST_DIR:-../webhost}/sites:/srv/sites:ro
     depends_on:
       frontend:
         condition: service_started
