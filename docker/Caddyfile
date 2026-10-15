@@ -1,6 +1,11 @@
 # Caddy يصدر شهادة HTTPS تلقائياً ويجدّدها، ويمرّر الطلبات لحاوية frontend.
 {
 	email {$ACME_EMAIL}
+	# المواقع التلقائية (~/webhost/caddy/zz-auto.caddy): لا تصدر شهادة إلا لدومين
+	# له مجلد فيه صفحة رئيسية — يجيب عن ذلك عنوان 5555 المعرَّف هناك.
+	on_demand_tls {
+		ask http://127.0.0.1:5555/check
+	}
 }
 
 {$SITE_NAME} {
