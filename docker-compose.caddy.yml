@@ -38,6 +38,12 @@ services:
     depends_on:
       frontend:
         condition: service_started
+    # webhost: شبكة مواقع PHP الأخرى (مشروع ~/webhost) ليصلها Caddy.
+    networks: [default, webhost]
+
+networks:
+  webhost:
+    name: webhost
 
 volumes:
   caddy-data:
